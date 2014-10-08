@@ -1,193 +1,193 @@
-### Name of the experiment. Used in naming wains.
-# experimentName="Iomha"
+# Name of the experiment. Used in naming wains.
+experimentName="Iomha"
 
-### The working directory, which contains all of the data for
-### this experiment.
-# workingDir="full-path-to-working-directory"
+# The working directory, which contains all of the data for
+# this experiment.
+workingDir="full-path-to-working-directory"
 
-### The size of the memory cache used to hold wains.
-# cacheSize=1000000
+# The size of the memory cache used to hold wains.
+cacheSize=1000000
 
-### Number of microseconds to sleep after each agent gets its turn
-### at the CPU.
-# sleepTimeBetweenTasks=0
+# Number of microseconds to sleep after each agent gets its turn
+# at the CPU.
+sleepTimeBetweenTasks=0
 
-### Location of the images to be used in this experiment.
-# imageDir="full-path-to-image-directory"
+# Location of the images to be used in this experiment.
+imageDir="full-path-to-image-directory"
 
-### Image width. All images must have the same dimensions.
-# imageWidth=1
+# Image width. All images must have the same dimensions.
+imageWidth=1
 
-### Image height. All images must have the same dimensions.
-# imageHeight=1
+# Image height. All images must have the same dimensions.
+imageHeight=1
 
-### The daemon will stop if the population falls outside this
-### range. This gives you a chance to analyse the problem and
-### perhaps adjust your configuration.
-# popSizeRange=(0,100)
+# The daemon will stop if the population falls outside this
+# range. This gives you a chance to analyse the problem and
+# perhaps adjust your configuration.
+popSizeRange=(0,100)
 
-### Size of the initial population.
-# initialPopSize=50
+# Size of the initial population.
+initialPopSize=50
 
-### The amount of energy that can be awarded to wains in a
-### single round.
-# energyPoolSize=1000.0
+# The amount of energy that can be awarded to wains in a
+# single round.
+energyPoolSize=1000.0
 
 #####
 # Metabolism
 #####
 
-### To ensure that smaller agents don't have an excessive advantage
-### over larger agents, part of the metabolic cost is fixed.
-### Compare with maxSizeBasedMetabolismDeltaE.
-### This is normally an energy LOSS, so it should be negative.
-# baseMetabDeltaE=-0.75
+# To ensure that smaller agents don't have an excessive advantage
+# over larger agents, part of the metabolic cost is fixed.
+# Compare with maxSizeBasedMetabolismDeltaE.
+# This is normally an energy LOSS, so it should be negative.
+baseMetabDeltaE=-0.75
 
-### To ensure that agents use resources efficiently, part of their
-### metabolic cost is based on their size.
-### This is normally an energy LOSS, so it should be negative.
-# energyCostPerByte=-1.0e-7
+# To ensure that agents use resources efficiently, part of their
+# metabolic cost is based on their size.
+# This is normally an energy LOSS, so it should be negative.
+energyCostPerByte=-1.0e-7
 
-### A wain rearing a child pays a fraction of the metabolic cost
-### that the child would pay if it were full-grown. It's only a
-### fraction because, biologically speaking, a child is only
-### completely helpless when it's small (so the resource
-### cost of raising it would be small).
-### You probably won't need to alter this field.
-# childCostFactor=0.2
+# A wain rearing a child pays a fraction of the metabolic cost
+# that the child would pay if it were full-grown. It's only a
+# fraction because, biologically speaking, a child is only
+# completely helpless when it's small (so the resource
+# cost of raising it would be small).
+# You probably won't need to alter this field.
+childCostFactor=0.2
 
 #####
 # Easement period
 #####
 
-### A new population may not be able to agree on enough
-### classifications to survive. The "easement period" is a time
-### during which the wains are given higher energy rewards,
-### buying them some extra time to agree on a classification
-### scheme.
-# easementTime=100
+# A new population may not be able to agree on enough
+# classifications to survive. The "easement period" is a time
+# during which the wains are given higher energy rewards,
+# buying them some extra time to agree on a classification
+# scheme.
+easementTime=100
 
-### Controls the energy bonus given during the easement period
-### to any wains that choose to co-operate. At the beginning of
-### the easement period, the bonus is the value specified below.
-### The bonus decreases linearly with time, so that by the end
-### of the easement period (and thereafter), it is zero.
-### This is normally an energy GAIN, so it should be positive.
-# easementAgreementDeltaE=0.9
+# Controls the energy bonus given during the easement period
+# to any wains that agree on a classification. At the beginning
+# of the easement period, the bonus is the value specified below.
+# The bonus decreases linearly with time, so that by the end
+# of the easement period (and thereafter), it is zero.
+# This is normally an energy GAIN, so it should be positive.
+easementCooperationDeltaE=0.1
 
-### Controls the energy bonus given during the easement period
-### to any wains that agree on a classification. At the beginning
-### of the easement period, the bonus is the value specified below.
-### The bonus decreases linearly with time, so that by the end
-### of the easement period (and thereafter), it is zero.
-### This is normally an energy GAIN, so it should be positive.
-# easementCooperationDeltaE=0.1
+# Controls the energy bonus given during the easement period
+# to any wains that choose to co-operate. At the beginning of
+# the easement period, the bonus is the value specified below.
+# The bonus decreases linearly with time, so that by the end
+# of the easement period (and thereafter), it is zero.
+# This is normally an energy GAIN, so it should be positive.
+easementAgreementDeltaE=0.9
 
 #####
 # Reproduction
 #####
 
-### Every time an agent flirts, its energy changes by a fixed
-### amount.
-### This is normally an energy LOSS, so it should be negative.
-# flirtingDeltaE=-1.0e-2
+# Every time an agent flirts, its energy changes by a fixed
+# amount.
+# This is normally an energy LOSS, so it should be negative.
+flirtingDeltaE=-1.0e-2
 
 #####
 # Co-operation and agreement
 #####
 
-### When an agent initiates co-operation (trading classifications),
-### its energy changes by a fixed amount.
-### This is normally an energy LOSS, so it should be negative.
-# cooperationDeltaE=-1.0e-2
+# When an agent initiates co-operation (trading classifications),
+# its energy changes by a fixed amount.
+# This is normally an energy LOSS, so it should be negative.
+cooperationDeltaE=-1.0e-2
 
-### When two agents co-operate, and agree on a classification,
-### their energy changes by this amount, multiplied by the
-### novelty of the image.
-### This is in addition to minimum agreement energy change.
-### This is normally an energy GAIN, so it should be positive.
-# noveltyBasedAgreementDeltaE=0.5
+# When two agents co-operate, and agree on a classification,
+# their energy changes by this amount, multiplied by the
+# novelty of the image.
+# This is in addition to minimum agreement energy change.
+# This is normally an energy GAIN, so it should be positive.
+noveltyBasedAgreementDeltaE=0.5
 
-### When two agents co-operate, and agree on a classification,
-### their energy changes by this amount.
-### This is in addition to the energy change based on novelty.
-### This is normally an energy GAIN, so it should be positive.
-# minAgreementDeltaE=0.5
+# When two agents co-operate, and agree on a classification,
+# their energy changes by this amount.
+# This is in addition to the energy change based on novelty.
+# This is normally an energy GAIN, so it should be positive.
+minAgreementDeltaE=0.5
 
 #####
 # Configuring the initial gene pool
 #####
 
-### Constrains the amount of energy that wains in the initial
-### population give to their children at birth.
-# devotionRange=(0.0,0.3)
+# Constrains the amount of energy that wains in the initial
+# population give to their children at birth.
+devotionRange=(0.0,0.3)
 
-### Constrains the age at which wains in the initial population
-### mature and leave their parents.
-# maturityRange=(1,50)
+# Constrains the age at which wains in the initial population
+# mature and leave their parents.
+maturityRange=(1,50)
 
-### The classifier portion of a wain's brain is a Self-Organising
-### Map (SOM). This SOM uses a hexagonal grid with hexagonal tiles.
-### The setting below controls the maximum length of one side of
-### the grid, for the /initial/ population. The processing time
-### required is proportional to the square of this value.
-# classifierSizeRange=(2,5)
+# The classifier portion of a wain's brain is a Self-Organising
+# Map (SOM). This SOM uses a hexagonal grid with hexagonal tiles.
+# The setting below controls the maximum length of one side of
+# the grid, for the /initial/ population. The processing time
+# required is proportional to the square of this value.
+classifierSizeRange=(2,5)
 
-### The range of values allowed for r0 (the learning rate applied
-### to the BMU at time 0) in the learning function for the
-### classifier in the initial population.
-# classifierR0Range=(0.0,1.0)
+# The range of values allowed for r0 (the learning rate applied
+# to the BMU at time 0) in the learning function for the
+# classifier in the initial population.
+classifierR0Range=(0.0,1.0)
 
-### The range of values allowed for rf (the learning rate applied
-### to the BMU at time tf) in the learning function for the
-### classifier in the initial population.
-# classifierRfRange=(0.0,1.0)
+# The range of values allowed for rf (the learning rate applied
+# to the BMU at time tf) in the learning function for the
+# classifier in the initial population.
+classifierRfRange=(0.0,1.0)
 
-### The range of values allowed for w0 (the neighbourhood width at
-### time 0) in the learning function for the classifier in the
-### initial population.
-# classifierW0Range=(0.0,5.0)
+# The range of values allowed for w0 (the neighbourhood width at
+# time 0) in the learning function for the classifier in the
+# initial population.
+classifierW0Range=(0.0,5.0)
 
-### The range of values allowed for wf (the neighbourhood width at
-### time tf) in the learning function for the classifier in the
-### initial population.
-# classifierWfRange=(0.0,5.0)
+# The range of values allowed for wf (the neighbourhood width at
+# time tf) in the learning function for the classifier in the
+# initial population.
+classifierWfRange=(0.0,5.0)
 
-### The range of values allowed for tf (the time at which the
-### learning rate becomes negligible) in the learning function
-### for the classifier in the initial population.
-# classifierTfRange=(0.0,10000.0)
+# The range of values allowed for tf (the time at which the
+# learning rate becomes negligible) in the learning function
+# for the classifier in the initial population.
+classifierTfRange=(0.0,10000.0)
 
-### The decider portion of a wain's brain is also a SOM, using a
-### hexagonal grid with hexagonal tiles. The setting below controls
-### the maximum length of one side of the grid, for the /initial/
-### population. The processing time required is proportional to
-### the square of this value.
-# deciderSizeRange=(2,5)
+# The decider portion of a wain's brain is also a SOM, using a
+# hexagonal grid with hexagonal tiles. The setting below controls
+# the maximum length of one side of the grid, for the /initial/
+# population. The processing time required is proportional to
+# the square of this value.
+deciderSizeRange=(2,5)
 
-### The range of values allowed for r0 (the learning rate applied
-### to the BMU at time 0) in the learning function for the
-### decider in the initial population.
-# deciderR0Range=(0.0,1.0)
+# The range of values allowed for r0 (the learning rate applied
+# to the BMU at time 0) in the learning function for the
+# decider in the initial population.
+deciderR0Range=(0.0,1.0)
 
-### The range of values allowed for rf (the learning rate applied
-### to the BMU at time tf) in the learning function for the
-### decider in the initial population.
-# deciderRfRange=(0.0,1.0)
+# The range of values allowed for rf (the learning rate applied
+# to the BMU at time tf) in the learning function for the
+# decider in the initial population.
+deciderRfRange=(0.0,1.0)
 
-### The range of values allowed for w0 (the neighbourhood width at
-### time 0) in the learning function for the decider in the
-### initial population.
-# deciderW0Range=(0.0,5.0)
+# The range of values allowed for w0 (the neighbourhood width at
+# time 0) in the learning function for the decider in the
+# initial population.
+deciderW0Range=(0.0,5.0)
 
-### The range of values allowed for wf (the neighbourhood width at
-### time tf) in the learning function for the decider in the
-### initial population.
-# deciderWfRange=(0.0,5.0)
+# The range of values allowed for wf (the neighbourhood width at
+# time tf) in the learning function for the decider in the
+# initial population.
+deciderWfRange=(0.0,5.0)
 
-### The range of values allowed for tf (the time at which the
-### learning rate becomes negligible) in the learning function
-### for the decider in the initial population.
-# deciderTfRange=(0.0,10000.0)
+# The range of values allowed for tf (the time at which the
+# learning rate becomes negligible) in the learning function
+# for the decider in the initial population.
+deciderTfRange=(0.0,10000.0)
 
 

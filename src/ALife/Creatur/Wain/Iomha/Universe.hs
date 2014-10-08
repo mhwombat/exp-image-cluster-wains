@@ -138,19 +138,18 @@ cImageHeight = requiredSetting "imageHeight"
 
 cClassifierSizeRange :: Setting (Word8, Word8)
 cClassifierSizeRange
-  = requiredSetting "initialPopClassifierSizeRange"
+  = requiredSetting "classifierSizeRange"
 
 cDeciderSizeRange :: Setting (Word8, Word8)
 cDeciderSizeRange
-  = requiredSetting "initialPopDeciderSizeRange"
+  = requiredSetting "deciderSizeRange"
     
 cDevotionRange :: Setting (Double, Double)
 cDevotionRange
-  = requiredSetting "initialPopDevotionRange"
+  = requiredSetting "devotionRange"
 
 cMaturityRange :: Setting (Word16, Word16)
-cMaturityRange
-  = requiredSetting "initialPopMaturityRange"
+cMaturityRange = requiredSetting "maturityRange"
 
 cPopulationSize :: Setting Int
 cPopulationSize = requiredSetting "initialPopSize"
