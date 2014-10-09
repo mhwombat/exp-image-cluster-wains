@@ -318,9 +318,6 @@ fillInSummary s = s
           + _rEasementAgreementDeltaE s
           + _rFlirtingDeltaE s
           + _rMatingDeltaE s
-          + _rOtherMatingDeltaE s
-          + _rOtherAgreementDeltaE s
-          + _rOtherEasementAgreementDeltaE s
         otherDeltaE = _rOtherMatingDeltaE s
           + _rOtherAgreementDeltaE s
           + _rOtherEasementAgreementDeltaE s

@@ -24,7 +24,7 @@ imageHeight=1
 # The daemon will stop if the population falls outside this
 # range. This gives you a chance to analyse the problem and
 # perhaps adjust your configuration.
-popSizeRange=(0,100)
+popSizeRange=(10,100)
 
 # Size of the initial population.
 initialPopSize=50
@@ -41,7 +41,7 @@ energyPoolSize=1000.0
 # over larger agents, part of the metabolic cost is fixed.
 # Compare with maxSizeBasedMetabolismDeltaE.
 # This is normally an energy LOSS, so it should be negative.
-baseMetabDeltaE=-0.75
+baseMetabDeltaE=-0.075
 
 # To ensure that agents use resources efficiently, part of their
 # metabolic cost is based on their size.
