@@ -18,10 +18,10 @@ module ALife.Creatur.Wain.Iomha.Wain
     run,
     randomImageWain,
     finishRound,
-    summarise,
     energy,
     passion,
-    schemaQuality
+    schemaQuality,
+    printStats
   ) where
 
 import Prelude hiding (lookup)
@@ -47,14 +47,15 @@ import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage, randomImage)
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
-  clearStats, summarise)
-import ALife.Creatur.Wain.Statistics (lookup)
+  clearStats)
+import ALife.Creatur.Wain.Statistics (lookup, summarise)
 import Control.Lens hiding (Action, universe)
 import Control.Monad (replicateM, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get,
   gets)
+import Data.List (intercalate)
 import Data.Word (Word8)
 import Math.Geometry.GridMap (elems)
 import System.Directory (createDirectoryIfMissing)
@@ -272,7 +273,8 @@ run u (me:xs) = do
   let modifiedAgents = addIfAgent (view directObject e')
         . addIfAgent (view indirectObject e')
             $ (view subject e'):(view weanlings e')
-  U.writeToLog $ "Modified agents: " ++ show (map agentId modifiedAgents)
+  U.writeToLog $
+    "Modified agents: " ++ show (map agentId modifiedAgents)
   return modifiedAgents
 run _ _ = error "no more wains"
 
@@ -350,7 +352,8 @@ childRearingCost b f x a = x * (sum . map g $ litter a)
     where g c = metabolismCost b f c
 
 schemaQuality :: ImageWain -> Int
-schemaQuality = SQ.discrimination . elems . counterMap . classifier . brain
+schemaQuality
+  = SQ.discrimination . elems . counterMap . classifier . brain
 
 chooseAction' :: StateT Experiment IO (Label, Double, Response Action)
 chooseAction' = do
@@ -367,10 +370,10 @@ chooseAction' = do
   assign (summary.rDirectObjectAdjustedNovelty) dObjNoveltyAdj
   assign (summary.rIndirectObjectNovelty) iObjNovelty
   assign (summary.rIndirectObjectAdjustedNovelty) iObjNoveltyAdj
-  withUniverse . U.writeToLog $ "To " ++ agentId a ++ ", " ++ objectId dObj
-    ++ " has adjusted novelty " ++ show dObjNoveltyAdj
-  withUniverse . U.writeToLog $ "To " ++ agentId a ++ ", " ++ objectId iObj
-    ++ " has adjusted novelty " ++ show iObjNoveltyAdj
+  withUniverse . U.writeToLog $ "To " ++ agentId a ++ ", "
+    ++ objectId dObj ++ " has adjusted novelty " ++ show dObjNoveltyAdj
+  withUniverse . U.writeToLog $ "To " ++ agentId a ++ ", "
+    ++ objectId iObj ++ " has adjusted novelty " ++ show iObjNoveltyAdj
   withUniverse . U.writeToLog $ agentId a ++ " labels "
     ++ objectId dObj ++ " as " ++ show dObjLabel
     ++ ", " ++ objectId iObj ++ " as " ++ show iObjLabel
@@ -442,7 +445,8 @@ runAction Flirt _ _ = do
 runAction Ignore _ _ = do
   a <- use subject
   dObj <- use directObject
-  withUniverse . U.writeToLog $ agentId a ++ " ignores " ++ objectId dObj
+  withUniverse . U.writeToLog $
+    agentId a ++ " ignores " ++ objectId dObj
   (summary.rIgnoreCount) += 1
 
 --
@@ -522,7 +526,8 @@ applyEarlyAgreementEffects = do
     let bonus = eab*(t0 - t)/t0
     let reason = "early agreement bonus"
     adjustSubjectEnergy bonus rEasementAgreementDeltaE reason
-    adjustObjectEnergy indirectObject bonus rOtherEasementAgreementDeltaE reason
+    adjustObjectEnergy indirectObject bonus
+      rOtherEasementAgreementDeltaE reason
 
 flirt :: StateT Experiment IO ()
 flirt = do
@@ -561,7 +566,8 @@ weanChildren = do
   assign weanlings as
   (summary.rWeanCount) += length as
 
-withUniverse :: Monad m => StateT (U.Universe ImageWain) m a -> StateT Experiment m a
+withUniverse
+  :: Monad m => StateT (U.Universe ImageWain) m a -> StateT Experiment m a
 withUniverse f = do
   e <- get
   stateMap (\u -> set universe u e) (view universe) f
@@ -569,9 +575,15 @@ withUniverse f = do
 finishRound :: FilePath -> StateT (U.Universe ImageWain) IO ()
 finishRound f = do
   xss <- readStats f
-  summarise xss
-  checkStats . concat $ xss
+  let yss = summarise xss
+  printStats yss
+  checkStats . concat $ yss
   clearStats f
+
+printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
+printStats = mapM_ f
+  where f xs = U.writeToLog $
+                 "Summary - " ++ intercalate "," (map pretty xs)
 
 checkStats :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
 checkStats xs = do
@@ -680,8 +692,11 @@ letSubjectReflect r = do
   assign subject x'
   assign (summary . rErr) err
 
-writeRawStats :: String -> FilePath -> [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
+writeRawStats
+  :: String -> FilePath -> [Stats.Statistic]
+    -> StateT (U.Universe ImageWain) IO ()
 writeRawStats n f xs = do
   liftIO $ createDirectoryIfMissing True (dropFileName f)
   t <- U.currentTime
-  liftIO . appendFile f $ "time=" ++ show t ++ ",agent=" ++ n ++ ',':raw xs ++ "\n"
+  liftIO . appendFile f $
+    "time=" ++ show t ++ ",agent=" ++ n ++ ',':raw xs ++ "\n"

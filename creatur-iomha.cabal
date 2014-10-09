@@ -1,5 +1,5 @@
 name:                creatur-wains-iomha
-version:             2.3
+version:             2.4
 synopsis:            Agent for categorising images.
 description:         ALife agent that works co-operatively with other
                      agents to develop a classification scheme for
@@ -22,7 +22,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains-iomha.git
-  tag:      2.3
+  tag:      2.4
 
 executable iomha-daemon
   main-is:          ALife/Creatur/Wain/Iomha/Daemon.hs
@@ -34,7 +34,7 @@ executable iomha-daemon
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.6.9,
-                    creatur-wains ==3.8.4,
+                    creatur-wains ==3.9.0,
                     directory ==1.2.*,
                     factory ==0.2.*,
                     filepath ==1.3.*,
@@ -66,7 +66,7 @@ executable iomha-init
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.6.9,
-                    creatur-wains ==3.8.4,
+                    creatur-wains ==3.9.0,
                     directory ==1.2.*,
                     filepath ==1.3.*,
                     grid ==7.6.*,
@@ -95,7 +95,7 @@ executable iomha-examine
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.6.9,
-                    creatur-wains ==3.8.4,
+                    creatur-wains ==3.9.0,
                     directory ==1.2.*,
                     filepath ==1.3.*,
                     grid ==7.* && >7.1,
@@ -124,7 +124,7 @@ executable iomha-fmri
                     cereal ==0.4.*,
                     colour ==2.3.*,
                     creatur ==5.6.9,
-                    creatur-wains ==3.8.4,
+                    creatur-wains ==3.9.0,
                     diagrams-lib ==1.2.*,
                     diagrams-cairo ==1.2.*,
                     directory ==1.2.*,
@@ -156,7 +156,7 @@ executable iomha-photo
                     cereal ==0.4.*,
                     colour ==2.3.*,
                     creatur ==5.6.9,
-                    creatur-wains ==3.8.4,
+                    creatur-wains ==3.9.0,
                     diagrams-lib ==1.2.*,
                     diagrams-cairo ==1.2.*,
                     directory ==1.2.*,
@@ -190,7 +190,7 @@ Test-suite iomha-tests
                     cereal ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.6.9,
-                    creatur-wains ==3.8.4,
+                    creatur-wains ==3.9.0,
                     directory ==1.2.*,
                     filepath ==1.3.*,
                     grid ==7.6.*,
