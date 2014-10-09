@@ -24,11 +24,11 @@ module ALife.Creatur.Wain.Iomha.Wain
     schemaQuality
   ) where
 
+import Prelude hiding (lookup)
 import ALife.Creatur (agentId)
 import ALife.Creatur.Database (size)
--- import ALife.Creatur.Universe (Universe, Agent, writeToLog,
---   withdrawEnergy, currentTime, popSize)
 import ALife.Creatur.Util (stateMap)
+import ALife.Creatur.Task (requestShutdown)
 import ALife.Creatur.Wain (Wain(..), Label, adjustEnergy, adjustPassion,
   chooseAction, buildWainAndGenerateGenome, classify, teachLabel,
   incAge, weanMatureChildren, tryMating, energy,
@@ -48,11 +48,13 @@ import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats, summarise)
+import ALife.Creatur.Wain.Statistics (lookup)
 import Control.Lens hiding (Action, universe)
 import Control.Monad (replicateM, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
-import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
+import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get,
+  gets)
 import Data.Word (Word8)
 import Math.Geometry.GridMap (elems)
 import System.Directory (createDirectoryIfMissing)
@@ -566,9 +568,53 @@ withUniverse f = do
 
 finishRound :: FilePath -> StateT (U.Universe ImageWain) IO ()
 finishRound f = do
-  xs <- readStats f
-  summarise xs
+  xss <- readStats f
+  summarise xss
+  checkStats . concat $ xss
   clearStats f
+
+checkStats :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
+checkStats xs = do
+  t <- U.currentTime
+  enforceMin "avg. energy" U.uMinAvgEnergy xs "low energy"
+  enforceMin "avg. classifier IQ" U.uMinAvgClassifierIQ xs
+      "small classifiers"
+  enforceMin "avg. decider IQ" U.uMinAvgDeciderIQ xs
+      "small deciders"
+  enforceMin "avg. flirted" U.uMinAvgFlirted xs
+    "not flirting often"
+  enforceMin "avg. net  Δe" U.uMinAvgNetDeltaE xs
+    "losing energy too quickly"
+  enforceMin "avg. co-operated" U.uMinAvgCooperation xs
+    "not co-operating often"
+  phase1 <- gets U.uPhase1
+  when (t >= phase1) $ do
+    enforceMin "avg. age" U.uPhase1MinAvgAge xs "young population"
+    enforceMin "avg. SQ" U.uPhase1MinAvgSQ xs "low SQ"
+    enforceMin "avg. agreed" U.uPhase1MinAvgAgreed xs
+      "not agreeing often"
+
+enforceMin
+  :: String -> (U.Universe ImageWain -> Double) -> [Stats.Statistic]
+    -> String -> StateT (U.Universe ImageWain) IO ()
+enforceMin key limit xs message = do
+  x <- gets limit
+  checkStat key xs (< x) message
+
+-- enforceMax
+--   :: String -> (U.Universe ImageWain -> Double) -> [Stats.Statistic]
+--     -> String -> StateT (U.Universe ImageWain) IO ()
+-- enforceMax key limit xs message = do
+--   x <- gets limit
+--   checkStat key xs (> x) message
+
+checkStat
+  :: String -> [Stats.Statistic] -> (Double -> Bool) -> String
+    -> StateT (U.Universe ImageWain) IO ()
+checkStat key xs f message = do
+  let (Just x) = lookup key xs
+  when (f x) $
+    requestShutdown (message ++ ' ':show key ++ "=" ++ show x)
 
 adjustSubjectEnergy
   :: Double -> Simple Lens Summary Double -> String

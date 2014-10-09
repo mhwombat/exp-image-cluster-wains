@@ -190,4 +190,17 @@ deciderWfRange=(0.0,5.0)
 # for the decider in the initial population.
 deciderTfRange=(0.0,10000.0)
 
+#####
+# Health checks
+#####
+minAvgEnergy=0
+minAvgClassifierIQ=0
+minAvgDeciderIQ=0
+minAgvFlirted=0
+minAvgCooperation=0
+minAvgNetDeltaE=-1
+phase1milestone=0
+phase1MinAvgAge=0
+phase1MinAvgSQ=0
+phase1MinAvgAgreed=0
 

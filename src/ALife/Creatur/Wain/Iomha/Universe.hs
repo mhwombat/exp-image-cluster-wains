@@ -87,7 +87,17 @@ data Universe a = Universe
     uDeciderRfRange :: (Double,Double),
     uDeciderW0Range :: (Double,Double),
     uDeciderWfRange :: (Double,Double),
-    uDeciderTfRange :: (Double,Double)
+    uDeciderTfRange :: (Double,Double),
+    uMinAvgEnergy :: Double,
+    uMinAvgClassifierIQ :: Double,
+    uMinAvgDeciderIQ :: Double,
+    uMinAvgFlirted :: Double,
+    uMinAvgCooperation :: Double,
+    uMinAvgNetDeltaE :: Double,
+    uPhase1 :: Int,
+    uPhase1MinAvgAge :: Double,
+    uPhase1MinAvgSQ :: Double,
+    uPhase1MinAvgAgreed :: Double
   } deriving (Show, Eq)
 
 instance (A.Agent a, D.SizedRecord a) => U.Universe (Universe a) where
@@ -221,42 +231,35 @@ cDeciderWfRange = requiredSetting "deciderWfRange"
 cDeciderTfRange :: Setting (Double,Double)
 cDeciderTfRange = requiredSetting "deciderTfRange"
 
--- defaultConfig :: DefaultConfig
--- defaultConfig = getDefaultConfig $ do
---   setting cExperimentName
---   setting cWorkingDir
---   setting cCacheSize
---   setting cSleepBetweenTasks
---   setting cImageDir
---   setting cImageWidth
---   setting cImageHeight
---   setting cClassifierSizeRange
---   setting cDeciderSizeRange
---   setting cDevotionRange
---   setting cMaturityRange
---   setting cSize
---   setting cPopulationSizeRange
---   setting cEnergyPoolSize
---   setting cBaseMetabolismDeltaE
---   setting cEnergyCostPerByte
---   setting cChildCostFactor
---   setting cEasementTime
---   setting cEasementCooperationDeltaE
---   setting cEasementAgreementDeltaE
---   setting cFlirtingDeltaE
---   setting cCooperationDeltaE
---   setting cNoveltyBasedAgreementDeltaE
---   setting cMinAgreementDeltaE
---   setting cClassifierR0Range
---   setting cClassifierRfRange
---   setting cClassifierW0Range
---   setting cClassifierWfRange
---   setting cClassifierTfRange
---   setting cDeciderR0Range
---   setting cDeciderRfRange
---   setting cDeciderW0Range
---   setting cDeciderWfRange
---   setting cDeciderTfRange
+cMinAvgEnergy :: Setting Double
+cMinAvgEnergy = requiredSetting "minAvgEnergy"
+
+cMinAvgClassifierIQ :: Setting Double
+cMinAvgClassifierIQ = requiredSetting "minAvgClassifierIQ"
+
+cMinAvgDeciderIQ :: Setting Double
+cMinAvgDeciderIQ = requiredSetting "minAvgDeciderIQ"
+
+cMinAvgFlirted :: Setting Double
+cMinAvgFlirted = requiredSetting "minAgvFlirted"
+
+cMinAvgCooperation :: Setting Double
+cMinAvgCooperation = requiredSetting "minAvgCooperation"
+
+cMinAvgNetDeltaE :: Setting Double
+cMinAvgNetDeltaE = requiredSetting "minAvgNetDeltaE"
+
+cPhase1 :: Setting Int
+cPhase1 = requiredSetting "phase1milestone"
+
+cPhase1MinAvgAge :: Setting Double
+cPhase1MinAvgAge = requiredSetting "phase1MinAvgAge"
+
+cPhase1MinAvgSQ :: Setting Double
+cPhase1MinAvgSQ = requiredSetting "phase1MinAvgSQ"
+
+cPhase1MinAvgAgreed :: Setting Double
+cPhase1MinAvgAgreed = requiredSetting "phase1MinAvgAgreed"
 
 loadUniverse :: IO (Universe a)
 loadUniverse = do
@@ -314,7 +317,17 @@ config2Universe getSetting =
       uDeciderRfRange = getSetting cDeciderRfRange,
       uDeciderW0Range = getSetting cDeciderW0Range,
       uDeciderWfRange = getSetting cDeciderWfRange,
-      uDeciderTfRange = getSetting cDeciderTfRange
+      uDeciderTfRange = getSetting cDeciderTfRange,
+      uMinAvgEnergy = getSetting cMinAvgEnergy,
+      uMinAvgClassifierIQ = getSetting cMinAvgClassifierIQ,
+      uMinAvgDeciderIQ = getSetting cMinAvgDeciderIQ,
+      uMinAvgFlirted = getSetting cMinAvgFlirted,
+      uMinAvgCooperation = getSetting cMinAvgCooperation,
+      uMinAvgNetDeltaE = getSetting cMinAvgNetDeltaE,
+      uPhase1 = getSetting cPhase1,
+      uPhase1MinAvgAge = getSetting cPhase1MinAvgAge,
+      uPhase1MinAvgSQ = getSetting cPhase1MinAvgSQ,
+      uPhase1MinAvgAgreed = getSetting cPhase1MinAvgAgreed
     }
   where en = getSetting cExperimentName
         workDir = getSetting cWorkingDir
