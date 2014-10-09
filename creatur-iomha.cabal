@@ -1,5 +1,5 @@
 name:                creatur-wains-iomha
-version:             2.2
+version:             2.3
 synopsis:            Agent for categorising images.
 description:         ALife agent that works co-operatively with other
                      agents to develop a classification scheme for
@@ -22,7 +22,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains-iomha.git
-  tag:      2.2
+  tag:      2.3
 
 executable iomha-daemon
   main-is:          ALife/Creatur/Wain/Iomha/Daemon.hs
@@ -40,7 +40,6 @@ executable iomha-daemon
                     filepath ==1.3.*,
                     grid ==7.6.*,
                     hdaemonize ==0.5.*,
-                    -- ini ==0.2.*,
                     JuicyPixels ==3.1.*,
                     lens ==4.4.*,
                     MonadRandom ==0.3.*,
@@ -71,7 +70,6 @@ executable iomha-init
                     directory ==1.2.*,
                     filepath ==1.3.*,
                     grid ==7.6.*,
-                    ini ==0.2.*,
                     JuicyPixels ==3.1.*,
                     lens ==4.4.*,
                     MonadRandom ==0.3.*,
@@ -102,7 +100,6 @@ executable iomha-examine
                     filepath ==1.3.*,
                     grid ==7.* && >7.1,
                     JuicyPixels ==3.1.*,
-                    ini ==0.2.*,
                     lens ==4.4.*,
                     MonadRandom ==0.3.*,
                     mtl ==2.2.*,
@@ -134,7 +131,6 @@ executable iomha-fmri
                     factory ==0.2.*,
                     filepath ==1.3.*,
                     grid ==7.* && >7.1,
-                    ini ==0.2.*,
                     JuicyPixels ==3.1.*,
                     lens ==4.4.*,
                     MonadRandom ==0.3.*,
@@ -167,7 +163,6 @@ executable iomha-photo
                     factory ==0.2.*,
                     filepath ==1.3.*,
                     grid ==7.* && >7.1,
-                    ini ==0.2.*,
                     JuicyPixels ==3.1.*,
                     lens ==4.4.*,
                     MonadRandom ==0.3.*,

@@ -611,10 +611,11 @@ enforceMin key limit xs message = do
 checkStat
   :: String -> [Stats.Statistic] -> (Double -> Bool) -> String
     -> StateT (U.Universe ImageWain) IO ()
-checkStat key xs f message = do
-  let (Just x) = lookup key xs
-  when (f x) $
-    requestShutdown (message ++ ' ':show key ++ "=" ++ show x)
+checkStat key xs f message =
+  case lookup key xs of
+    Just x -> when (f x) $ requestShutdown 
+               (message ++ ' ':show key ++ "=" ++ show x)
+    Nothing -> requestShutdown $ "Cannot find statistic: " ++ key
 
 adjustSubjectEnergy
   :: Double -> Simple Lens Summary Double -> String
