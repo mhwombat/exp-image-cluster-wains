@@ -595,7 +595,7 @@ checkStats xs = do
       "small deciders"
   enforceMin "avg. flirted" U.uMinAvgFlirted xs
     "not flirting often"
-  enforceMin "avg. net  Δe" U.uMinAvgNetDeltaE xs
+  enforceMin "avg. net Δe" U.uMinAvgNetDeltaE xs
     "losing energy too quickly"
   enforceMin "avg. co-operated" U.uMinAvgCooperation xs
     "not co-operating often"
