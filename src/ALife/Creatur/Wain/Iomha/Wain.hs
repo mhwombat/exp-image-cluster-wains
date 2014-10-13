@@ -645,7 +645,7 @@ adjustSubjectEnergy deltaE selector reason = do
   (summary . selector) += deltaE'
   assign subject (adjustEnergy deltaE' x)
   after <- fmap energy $ use subject
-  reportAdjustment x reason before deltaE after
+  reportAdjustment x reason before deltaE' after
 
 adjustObjectEnergy
   :: Simple Lens Experiment Object -> Double
@@ -660,7 +660,7 @@ adjustObjectEnergy objectSelector deltaE statSelector reason = do
       let a' = adjustEnergy deltaE' a
       let after = energy a'
       assign objectSelector (AObject a')
-      reportAdjustment a reason before deltaE after
+      reportAdjustment a reason before deltaE' after
     IObject _ _ -> return ()
 
 reportAdjustment
