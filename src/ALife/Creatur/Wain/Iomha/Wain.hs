@@ -677,11 +677,16 @@ adjustedDeltaE deltaE headroom =
   if deltaE <= 0
     then return deltaE
     else do
-      deltaE' <- withUniverse (U.withdrawEnergy $ min deltaE headroom)
-      when (deltaE' < deltaE) $ do
+      withUniverse . U.writeToLog $ "DEBUG headroom=" ++ show headroom
+      let deltaE2 = min deltaE headroom
+      when (deltaE2 < deltaE) $ do
+        withUniverse . U.writeToLog $ "Wain at or near max energy, can only give "
+          ++ show deltaE2
+      deltaE3 <- withUniverse $ U.withdrawEnergy deltaE2
+      when (deltaE3 < deltaE2) $ do
         withUniverse . U.writeToLog $ "Energy pool exhausted, only "
-          ++ show deltaE' ++ " available"
-      return deltaE'
+          ++ show deltaE3 ++ " available"
+      return deltaE3
 
 adjustSubjectPassion
   :: StateT Experiment IO ()
