@@ -94,7 +94,6 @@ data Universe a = Universe
     uMinAvgFlirted :: Double,
     uMinAvgCooperation :: Double,
     uMinAvgNetDeltaE :: Double,
-    uPhase1 :: Int,
     uPhase1MinAvgAge :: Double,
     uPhase1MinAvgSQ :: Double,
     uPhase1MinAvgAgreed :: Double
@@ -232,34 +231,32 @@ cDeciderTfRange :: Setting (Double,Double)
 cDeciderTfRange = requiredSetting "deciderTfRange"
 
 cMinAvgEnergy :: Setting Double
-cMinAvgEnergy = requiredSetting "minAvgEnergy"
+cMinAvgEnergy = requiredSetting "stopIfAvgEnergyLessThan"
 
 cMinAvgClassifierIQ :: Setting Double
-cMinAvgClassifierIQ = requiredSetting "minAvgClassifierIQ"
+cMinAvgClassifierIQ = requiredSetting "stopIfAvgClassifierIQLessThan"
 
 cMinAvgDeciderIQ :: Setting Double
-cMinAvgDeciderIQ = requiredSetting "minAvgDeciderIQ"
-
-cMinAvgFlirted :: Setting Double
-cMinAvgFlirted = requiredSetting "minAgvFlirted"
+cMinAvgDeciderIQ = requiredSetting "stopIfAvgDeciderIQLessThan"
 
 cMinAvgCooperation :: Setting Double
-cMinAvgCooperation = requiredSetting "minAvgCooperation"
+cMinAvgCooperation = requiredSetting "stopIfAvgCooperationLessThan"
 
 cMinAvgNetDeltaE :: Setting Double
-cMinAvgNetDeltaE = requiredSetting "minAvgNetDeltaE"
-
-cPhase1 :: Setting Int
-cPhase1 = requiredSetting "phase1milestone"
+cMinAvgNetDeltaE = requiredSetting "stopIfAvgNetDeltaELessThan"
 
 cPhase1MinAvgAge :: Setting Double
-cPhase1MinAvgAge = requiredSetting "phase1MinAvgAge"
+cPhase1MinAvgAge = requiredSetting "afterEasementStopIfAvgAgeLessThan"
 
 cPhase1MinAvgSQ :: Setting Double
-cPhase1MinAvgSQ = requiredSetting "phase1MinAvgSQ"
+cPhase1MinAvgSQ = requiredSetting "afterEasementStopIfAvgSQLessThan"
 
 cPhase1MinAvgAgreed :: Setting Double
-cPhase1MinAvgAgreed = requiredSetting "phase1MinAvgAgreed"
+cPhase1MinAvgAgreed
+  = requiredSetting "afterEasementStopIfAvgAgreedLessThan"
+
+cMinAvgFlirted :: Setting Double
+cMinAvgFlirted = requiredSetting "afterEasementStopIfAgvFlirtedLessThan"
 
 loadUniverse :: IO (Universe a)
 loadUniverse = do
@@ -324,7 +321,6 @@ config2Universe getSetting =
       uMinAvgFlirted = getSetting cMinAvgFlirted,
       uMinAvgCooperation = getSetting cMinAvgCooperation,
       uMinAvgNetDeltaE = getSetting cMinAvgNetDeltaE,
-      uPhase1 = getSetting cPhase1,
       uPhase1MinAvgAge = getSetting cPhase1MinAvgAge,
       uPhase1MinAvgSQ = getSetting cPhase1MinAvgSQ,
       uPhase1MinAvgAgreed = getSetting cPhase1MinAvgAgreed
