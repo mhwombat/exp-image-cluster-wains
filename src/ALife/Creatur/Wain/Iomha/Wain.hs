@@ -480,7 +480,7 @@ disagree aLabel bLabel = do
   withUniverse . U.writeToLog $ agentId b ++ " disagrees with "
     ++ agentId a ++ ", says that " ++ objectId dObj ++ " has label "
     ++ show bLabel
-  if age a > age b
+  if schemaQuality a > schemaQuality b
     then do
       b' <- withUniverse $ teachLabel dObjApp aLabel b
       assign indirectObject (AObject b')
