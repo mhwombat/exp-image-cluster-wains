@@ -665,10 +665,10 @@ adjustObjectEnergy objectSelector deltaE statSelector reason = do
 
 reportAdjustment
   :: ImageWain -> String -> Double -> Double -> Double -> StateT Experiment IO ()
-reportAdjustment x reason before amount after
+reportAdjustment x reason before deltaE after =
   withUniverse . U.writeToLog $ "Adjusted energy of " ++ agentId x
     ++ " because of " ++ reason
-    ++ ". " ++ printf "%.3f" before ++ " + " ++ printf "%.3f" deltaE'
+    ++ ". " ++ printf "%.3f" before ++ " + " ++ printf "%.3f" deltaE
     ++ " = " ++ printf "%.3f" after
 
 adjustedDeltaE
