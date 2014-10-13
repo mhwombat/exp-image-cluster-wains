@@ -539,7 +539,7 @@ flirt = do
       assign subject a'
       assign directObject (AObject b')
       recordBirths
-      applyMatingEffects (energy a' - energy a) (energy b' - energy b)
+      applyMatingEffects a a' b b'
     else return ()
 
 recordBirths :: StateT Experiment IO ()
@@ -553,11 +553,16 @@ applyFlirtationEffects = do
   adjustSubjectEnergy deltaE rFlirtingDeltaE "flirting"
   (summary.rFlirtCount) += 1
 
-applyMatingEffects :: Double -> Double -> StateT Experiment IO ()
-applyMatingEffects e1 e2 = do
+applyMatingEffects
+  :: ImageWain -> ImageWain -> ImageWain -> ImageWain -> StateT Experiment IO ()
+applyMatingEffects aBefore aAfter bBefore bAfter = do
+  let e1 = energy aAfter - energy aBefore
   (summary . rMatingDeltaE) += e1
+  let e2 = energy bAfter - energy bBefore
   (summary . rOtherMatingDeltaE) += e2
-  (summary.rMateCount) += 1
+  (summary . rMateCount) += 1
+  reportAdjustment aBefore "mating" (energy aBefore) e1 (energy aAfter)
+  reportAdjustment bBefore "mating" (energy bBefore) e2 (energy bAfter)
 
 weanChildren :: StateT Experiment IO ()
 weanChildren = do
@@ -640,10 +645,7 @@ adjustSubjectEnergy deltaE selector reason = do
   (summary . selector) += deltaE'
   assign subject (adjustEnergy deltaE' x)
   after <- fmap energy $ use subject
-  withUniverse . U.writeToLog $ "Adjusting energy of " ++ agentId x
-    ++ " because of " ++ reason
-    ++ ". " ++ printf "%.3f" before ++ " + " ++ printf "%.3f" deltaE'
-    ++ " = " ++ printf "%.3f" after
+  reportAdjustment x reason before deltaE after
 
 adjustObjectEnergy
   :: Simple Lens Experiment Object -> Double
@@ -658,11 +660,16 @@ adjustObjectEnergy objectSelector deltaE statSelector reason = do
       let a' = adjustEnergy deltaE' a
       let after = energy a'
       assign objectSelector (AObject a')
-      withUniverse . U.writeToLog $ "Adjusting energy of " ++ agentId a
-        ++ " because of " ++ reason
-        ++ ". " ++ printf "%.3f" before ++ " + "
-        ++ printf "%.3f" deltaE' ++ " = " ++ printf "%.3f" after
+      reportAdjustment a reason before deltaE after
     IObject _ _ -> return ()
+
+reportAdjustment
+  :: ImageWain -> String -> Double -> Double -> Double -> StateT Experiment IO ()
+reportAdjustment x reason before amount after
+  withUniverse . U.writeToLog $ "Adjusted energy of " ++ agentId x
+    ++ " because of " ++ reason
+    ++ ". " ++ printf "%.3f" before ++ " + " ++ printf "%.3f" deltaE'
+    ++ " = " ++ printf "%.3f" after
 
 adjustedDeltaE
   :: Double -> Double -> StateT Experiment IO Double
