@@ -126,7 +126,7 @@ randomImage w h = fmap (mkImage w h . take (w*h)) getRandoms
 -- Used for generating the initial brain models in the initial
 -- population.
 blankImage :: Int -> Int -> Image
-blankImage w h = Image w h $ replicate (w*n) 0
+blankImage w h = Image w h $ replicate (w*h) 0
 
 indices :: Int -> Int -> [(Int, Int)]
 indices w h = [(i,j) | i <- [0..h-1], j <- [0..w-1]]
