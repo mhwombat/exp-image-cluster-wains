@@ -483,9 +483,13 @@ disagree aLabel bLabel = do
     ++ show bLabel
   if schemaQuality a > schemaQuality b
     then do
+      withUniverse . U.writeToLog $ agentId b ++ " learns that "
+        ++ objectId dObj ++ " has label " ++ show aLabel
       b' <- withUniverse $ teachLabel dObjApp aLabel b
       assign indirectObject (AObject b')
     else do
+      withUniverse . U.writeToLog $ agentId a ++ " learns that "
+        ++ objectId dObj ++ " has label " ++ show bLabel
       a' <- withUniverse $ teachLabel dObjApp bLabel a
       assign subject a'
 
