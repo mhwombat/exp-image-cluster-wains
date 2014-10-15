@@ -57,6 +57,7 @@ examine a = do
     ++ show (childrenWeanedLifetime a)
   putStrLn $ "litter size: " ++ show (length $ litter a)
   putStrLn $ "counts=" ++ show (elems . counterMap . classifier $ brain a)
+  putStrLn $ "swagger: " ++ show (swagger a)
   putStrLn $ "size: " ++ show (wainSize a)
   putStrLn $ "SQ: " ++ show (schemaQuality a)
   putStrLn $ "Classifier size: " ++ show (size . classifier . brain $ a)
