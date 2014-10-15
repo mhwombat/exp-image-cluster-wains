@@ -18,6 +18,7 @@ module ALife.Creatur.Wain.Iomha.Image
     pixelCount,
     pixelAt,
     pixelArray,
+    blankImage,
     stripedImage,
     randomImage,
     readImage,
@@ -121,6 +122,11 @@ instance Diploid Image where
 -- population.
 randomImage :: RandomGen r => Int -> Int -> Rand r Image
 randomImage w h = fmap (mkImage w h . take (w*h)) getRandoms
+
+-- Used for generating the initial brain models in the initial
+-- population.
+blankImage :: Int -> Int -> Image
+blankImage w h = Image w h $ repeat 0
 
 indices :: Int -> Int -> [(Int, Int)]
 indices w h = [(i,j) | i <- [0..h-1], j <- [0..w-1]]

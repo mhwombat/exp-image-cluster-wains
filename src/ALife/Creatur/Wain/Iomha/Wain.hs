@@ -43,7 +43,7 @@ import ALife.Creatur.Wain.Response (Response, randomResponse, action)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
-import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage, randomImage)
+import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage, blankImage)
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
@@ -104,7 +104,8 @@ randomImageWain wainName u classifierSize deciderSize = do
   let n = fromIntegral $ 3*classifierSize*classifierSize
   let w = U.uImageWidth u
   let h = U.uImageHeight u
-  imgs <- replicateM n (randomImage w h)
+  -- imgs <- replicateM n (randomImage w h)
+  let imgs = replicate n $ blankImage w h
   let fcp = RandomDecayingGaussianParams
                { r0Range = U.uClassifierR0Range u,
                  rfRange = U.uClassifierRfRange u,
