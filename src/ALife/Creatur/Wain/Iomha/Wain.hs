@@ -31,7 +31,7 @@ import ALife.Creatur.Util (stateMap)
 import ALife.Creatur.Task (requestShutdown)
 import ALife.Creatur.Wain (Wain(..), Label, adjustEnergy, adjustPassion,
   chooseAction, buildWainAndGenerateGenome, classify, teachLabel,
-  incAge, weanMatureChildren, tryMating, energy,
+  incAge, incSwagger, weanMatureChildren, tryMating, energy,
   passion, hasLitter, reflect)
 import ALife.Creatur.Wain.Brain (classifier, buildBrain)
 import qualified ALife.Creatur.Wain.ClassificationMetrics as SQ
@@ -463,8 +463,8 @@ agree label noveltyToMe noveltyToOther = do
   withUniverse . U.writeToLog $ agentId b ++ " agrees with "
     ++  agentId a ++ " that " ++ objectId dObj ++ " has label "
     ++ show label
-  a' <- withUniverse $ teachLabel dObjApp label a -- reinforce
-  b' <- withUniverse $ teachLabel dObjApp label b -- reinforce
+  a' <- withUniverse $ (teachLabel dObjApp label a >>= incSwagger) -- reinforce
+  b' <- withUniverse $ (teachLabel dObjApp label b >>= incSwagger) -- reinforce
   assign subject a'
   assign indirectObject (AObject b')
   applyAgreementEffects noveltyToMe noveltyToOther
@@ -481,17 +481,22 @@ disagree aLabel bLabel = do
   withUniverse . U.writeToLog $ agentId b ++ " disagrees with "
     ++ agentId a ++ ", says that " ++ objectId dObj ++ " has label "
     ++ show bLabel
-  if schemaQuality a > schemaQuality b
+  if swagger a > swagger b
     then do
       withUniverse . U.writeToLog $ agentId b ++ " learns that "
         ++ objectId dObj ++ " has label " ++ show aLabel
       b' <- withUniverse $ teachLabel dObjApp aLabel b
       assign indirectObject (AObject b')
-    else do
-      withUniverse . U.writeToLog $ agentId a ++ " learns that "
-        ++ objectId dObj ++ " has label " ++ show bLabel
-      a' <- withUniverse $ teachLabel dObjApp bLabel a
-      assign subject a'
+    else
+      if swagger b > swagger a
+        then do
+          withUniverse . U.writeToLog $ agentId a ++ " learns that "
+            ++ objectId dObj ++ " has label " ++ show bLabel
+          a' <- withUniverse $ teachLabel dObjApp bLabel a
+          assign subject a'
+        else 
+          withUniverse . U.writeToLog $ agentId a ++ " and "
+            ++ agentId b ++ " tied"
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
