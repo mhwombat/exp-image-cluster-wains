@@ -11,24 +11,18 @@
 --
 ------------------------------------------------------------------------
 {-# LANGUAGE TypeFamilies, FlexibleContexts, NoMonomorphismRestriction, ScopedTypeVariables #-}
-module Main where
+module ALife.Creatur.Wain.Iomha.FMRI
+  (
+    drawClassifier
+  ) where
 
-import ALife.Creatur.Wain
-import ALife.Creatur.Wain.Brain
-import ALife.Creatur.Wain.GeneticSOM
-import ALife.Creatur.Wain.Iomha.Wain
 import ALife.Creatur.Wain.Iomha.Image
-import ALife.Creatur.Wain.Iomha.Universe
-import Control.Monad.State
 import Data.Colour.SRGB
 import Data.Function
 import Data.List
 import Data.Word
-import Diagrams.Backend.Cairo
 import Diagrams.Prelude
 import Diagrams.TwoD.Text
-import System.Environment
-import Text.Printf (printf)
 
 grey2colour :: Word8 -> Colour Double
 grey2colour x = sRGB x' x' x'
@@ -68,7 +62,8 @@ drawHexagon
 drawHexagon (index, img) = label `atop` pic `atop` hex
   where hex = hexagon 2 # lw (Local 0.05) # fc cream # rotateBy (1/4)
         label = translateY (1.3) $ text (show index) # fc black # fontSize (Local 0.4)
-        pic = translateY 1 . translateX (-1) $ image2diagram img
+        imgSizeSpec = mkSizeSpec (Just 2) (Just 2)
+        pic = translateY 1 . translateX (-1) . sized imgSizeSpec $ image2diagram img
 
 drawHexRow
   :: (Renderable Text b, Renderable (Path R2) b)
@@ -99,34 +94,10 @@ rowColumnOrder ((x1, y1), _) ((x2, y2), _)
 -- classifierDiagram =
 --   vcat . map (visualiseDeciderModel . parseDeciderModel) . lines
 
-getWain :: String -> StateT (Universe ImageWain) IO ImageWain
-getWain s = do
-  a <- getAgent s
-  case a of
-    (Right agent) -> return agent
-    (Left msg)    -> error msg 
-  
 -- examine :: ImageWain -> IO ()
 -- examine a = do
 --   putStrLn $ "name: " ++ show (name a)
 --   print (rows . toList . classifier . brain $ a)
 
-formatVector :: String -> [Double] -> String
-formatVector fmt = intercalate " " . map (printf fmt)
-
-getWainName :: IO String
-getWainName = do
-  args <- getArgs
-  if null args
-    then error "Need to supply a wain name!"
-    else return (head args)
-
-main :: IO ()
-main = do
-  u <- loadUniverse
-  n <- getWainName
-  w <- evalStateT (getWain n) u
-  let ss = mkSizeSpec (Just 500) Nothing
-  let diagram = drawClassifier . toList . classifier . brain $ w :: Diagram B R2
-  let outputFileName = n ++ ".svg"
-  renderCairo outputFileName ss diagram
+-- formatVector :: String -> [Double] -> String
+-- formatVector fmt = intercalate " " . map (printf fmt)

@@ -126,7 +126,7 @@ randomImage w h = fmap (mkImage w h . take (w*h)) getRandoms
 -- Used for generating the initial brain models in the initial
 -- population.
 blankImage :: Int -> Int -> Image
-blankImage w h = Image w h $ replicate (w*h) 0
+blankImage w h = Image w h $ replicate (w*h) 128
 
 indices :: Int -> Int -> [(Int, Int)]
 indices w h = [(i,j) | i <- [0..h-1], j <- [0..w-1]]
@@ -144,11 +144,14 @@ stripedImage w h = Image w h . map f $ indices w h
 
 readImage :: FilePath -> IO Image
 readImage filePath = do
-  (Right x) <- P.readImage filePath -- TODO: handle errors better
-  let (P.ImageY8 img) = x
-  let ps = toList $ P.imageData img
-  return $ Image (P.imageWidth img) (P.imageHeight img) ps
-  -- I.runIL $ fmap arrayToImage $ I.readImage filePath
+  result <- P.readImage filePath
+  case result of
+    Right x -> do
+      let (P.ImageY8 img) = x
+      let ps = toList $ P.imageData img
+      return $ Image (P.imageWidth img) (P.imageHeight img) ps
+      -- I.runIL $ fmap arrayToImage $ I.readImage filePath
+    Left msg -> error $ "Unable to read " ++ filePath ++ ": " ++ msg
   
 writeImage :: FilePath -> Image -> IO ()
 writeImage filePath img = do
