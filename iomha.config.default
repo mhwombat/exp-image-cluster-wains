@@ -143,16 +143,6 @@ classifierR0Range=(0.0,1.0)
 # classifier in the initial population.
 classifierRfRange=(0.0,1.0)
 
-# The range of values allowed for w0 (the neighbourhood width at
-# time 0) in the learning function for the classifier in the
-# initial population.
-classifierW0Range=(0.0,5.0)
-
-# The range of values allowed for wf (the neighbourhood width at
-# time tf) in the learning function for the classifier in the
-# initial population.
-classifierWfRange=(0.0,5.0)
-
 # The range of values allowed for tf (the time at which the
 # learning rate becomes negligible) in the learning function
 # for the classifier in the initial population.
@@ -174,16 +164,6 @@ deciderR0Range=(0.0,1.0)
 # to the BMU at time tf) in the learning function for the
 # decider in the initial population.
 deciderRfRange=(0.0,1.0)
-
-# The range of values allowed for w0 (the neighbourhood width at
-# time 0) in the learning function for the decider in the
-# initial population.
-deciderW0Range=(0.0,5.0)
-
-# The range of values allowed for wf (the neighbourhood width at
-# time tf) in the learning function for the decider in the
-# initial population.
-deciderWfRange=(0.0,5.0)
 
 # The range of values allowed for tf (the time at which the
 # learning rate becomes negligible) in the learning function

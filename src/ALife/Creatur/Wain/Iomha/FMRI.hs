@@ -28,6 +28,9 @@ grey2colour :: Word8 -> Colour Double
 grey2colour x = sRGB x' x' x'
   where x' = (fromIntegral x)/255
 
+-- grey2colour :: Word8 -> AlphaColour Double
+-- grey2colour n = opaque $ sRGB24 (255 - n) (255 - n) (255 - n) 
+
 colour2square
   :: (HasStyle b, Transformable b, TrailLike b, V b ~ R2)
     => Colour Double -> b
@@ -45,9 +48,6 @@ image2diagram
      => Image -> c
 image2diagram = vcat . map imageRow . pixelArray
 
--- grey2colour :: Word8 -> AlphaColour Double
--- grey2colour n = opaque $ sRGB24 (255 - n) (255 - n) (255 - n)
- 
 -- image2raster :: Image -> DImage Embedded
 -- image2raster img = raster f (iWidth img) (iHeight img)
 --   where f r c = grey2colour (pixelAt img r c)
@@ -59,10 +59,11 @@ image2diagram = vcat . map imageRow . pixelArray
 drawNode
   :: (Renderable Text b, Renderable (Path R2) b)
     => (Label, Image) -> Diagram b R2
-drawNode (index, img) = label `atop` pic
-  where label = translateY (1.3) $ text (show index) # fc black # fontSize (Local 0.4)
-        imgSizeSpec = mkSizeSpec (Just 2) (Just 2)
-        pic = translateY 1 . translateX (-1) . sized imgSizeSpec $ image2diagram img
+drawNode (index, img) = label `atop` pic `atop` area
+  where area = rect 1 1.1 # lw none
+        label = translateY (0.475) $ text (show index) # fc black # fontSize (Local 0.08)
+        imgSizeSpec = mkSizeSpec (Just 0.95) (Just 0.95)
+        pic = translateY 0.4 . centerX . sized imgSizeSpec $ image2diagram img
 
 drawRow
   :: (Renderable Text b, Renderable (Path R2) b)
@@ -72,4 +73,4 @@ drawRow = hcat . map drawNode
 drawClassifier
   :: (Renderable Text b, Renderable (Path R2) b)
      => [(Label, Image)] -> Diagram b R2
-drawClassifier = mconcat . zipWith translateY [0,-3..] . map (centerX . drawRow) . chunksOf 8
+drawClassifier = mconcat . zipWith translateY [0,-1.2..] . map (alignL . drawRow) . chunksOf 6

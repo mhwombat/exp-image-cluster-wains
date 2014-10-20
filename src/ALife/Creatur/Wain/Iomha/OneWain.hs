@@ -26,19 +26,18 @@ import ALife.Creatur.Wain.Iomha.Wain
 import qualified ALife.Creatur.Wain.Response as R
 import qualified ALife.Creatur.Wain.Scenario as S
 import Control.Monad
+import Control.Monad.Random
 import Control.Monad.State
 import qualified Data.Datamining.Clustering.SSOM as SOM
 import Diagrams.Backend.Cairo
 import Diagrams.Prelude
 
-testWain :: Int -> Int -> ImageWain
-testWain w h = buildWainAndGenerateGenome "Fred" app b 0 m p
-  where cCount = 12
-        c = buildGeneticSOM cf ps
-        cf = SOM.Exponential 0.3 0.001 10000
-        ps = replicate cCount $ blankImage w h
+testWain :: Int -> Int -> [Image] -> ImageWain
+testWain w h ps = buildWainAndGenerateGenome "Fred" app b 0 m p
+  where c = buildGeneticSOM cf ps
+        cf = SOM.Exponential 0.3 0.1 10000
         d = buildGeneticSOM df [] -- not used
-        df = SOM.Exponential 0.3 0.001 10000
+        df = SOM.Exponential 0.3 0.1 10000
         b = B.buildBrain c d
         m = 1
         p = 0.001
@@ -62,15 +61,17 @@ learnOne agent (img, imgName) = do
 
 learnBatch :: ImageWain -> ImageDB -> IO ImageWain
 learnBatch agent db = do
-  imageData <- evalStateT (replicateM 5000 anyImage) db
+  imageData <- evalStateT (replicateM 1000 anyImage) db
   foldM learnOne agent imageData
 
 main :: IO ()
 main = do
   u <- loadUniverse
-  let w0 = testWain (uImageWidth u) (uImageHeight u)
-  w <- learnBatch w0 (uImageDB u)
+  let (w, h) = (uImageWidth u, uImageHeight u)
+  ps <- evalRandIO (replicateM 15 $ randomImage w h)
+  let w0 = testWain w h ps
+  a <- learnBatch w0 (uImageDB u)
   let ss = mkSizeSpec (Just 500) Nothing
-  let diagram = drawClassifier . toList . B.classifier . brain $ w :: Diagram B R2
+  let diagram = drawClassifier . toList . B.classifier . brain $ a :: Diagram B R2
   renderCairo "oneWain.svg" ss diagram
  
