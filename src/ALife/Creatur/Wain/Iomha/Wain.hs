@@ -596,9 +596,9 @@ checkStats :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
 checkStats xs = do
   t <- U.currentTime
   enforceMin "avg. energy" U.uMinAvgEnergy xs "low energy"
-  enforceMin "avg. classifier IQ" U.uMinAvgClassifierIQ xs
+  enforceMin "avg. classifier num models" U.uMinAvgClassifierIQ xs
       "small classifiers"
-  enforceMin "avg. decider IQ" U.uMinAvgDeciderIQ xs
+  enforceMin "avg. decider num models" U.uMinAvgDeciderIQ xs
       "small deciders"
   enforceMin "avg. net Δe" U.uMinAvgNetDeltaE xs
     "losing energy too quickly"

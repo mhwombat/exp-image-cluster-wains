@@ -234,10 +234,10 @@ cMinAvgEnergy :: Setting Double
 cMinAvgEnergy = requiredSetting "stopIfAvgEnergyLessThan"
 
 cMinAvgClassifierIQ :: Setting Double
-cMinAvgClassifierIQ = requiredSetting "stopIfAvgClassifierIQLessThan"
+cMinAvgClassifierIQ = requiredSetting "stopIfAvgClassifierSizeLessThan"
 
 cMinAvgDeciderIQ :: Setting Double
-cMinAvgDeciderIQ = requiredSetting "stopIfAvgDeciderIQLessThan"
+cMinAvgDeciderIQ = requiredSetting "stopIfAvgDeciderSizeLessThan"
 
 cMinAvgCooperation :: Setting Double
 cMinAvgCooperation = requiredSetting "stopIfAvgCooperationLessThan"

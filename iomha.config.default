@@ -194,8 +194,8 @@ deciderTfRange=(0.0,10000.0)
 # Health checks
 #####
 stopIfAvgEnergyLessThan=0
-stopIfAvgClassifierIQLessThan=0
-stopIfAvgDeciderIQLessThan=0
+stopIfAvgClassifierSizeLessThan=0
+stopIfAvgDeciderSizeLessThan=0
 stopIfAvgCooperationLessThan=0
 stopIfAvgNetDeltaELessThan=-1
 afterEasementStopIfAvgAgeLessThan=0
