@@ -44,7 +44,7 @@ import qualified ALife.Creatur.Universe as U
 import Control.Exception (SomeException, try)
 import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
-import Data.Word (Word8, Word16)
+import Data.Word (Word16)
 import System.Directory (makeRelativeToCurrentDirectory)
 
 data Universe a = Universe
@@ -61,8 +61,8 @@ data Universe a = Universe
     uImageDB :: ImageDB,
     uImageWidth :: Int,
     uImageHeight :: Int,
-    uClassifierSizeRange :: (Word8, Word8),
-    uDeciderSizeRange :: (Word8, Word8),
+    uClassifierSizeRange :: (Word16, Word16),
+    uDeciderSizeRange :: (Word16, Word16),
     uDevotionRange :: (Double, Double),
     uMaturityRange :: (Word16, Word16),
     uPopulationSize :: Int,
@@ -145,11 +145,11 @@ cImageWidth = requiredSetting "imageWidth"
 cImageHeight :: Setting Int
 cImageHeight = requiredSetting "imageHeight"
 
-cClassifierSizeRange :: Setting (Word8, Word8)
+cClassifierSizeRange :: Setting (Word16, Word16)
 cClassifierSizeRange
   = requiredSetting "classifierSizeRange"
 
-cDeciderSizeRange :: Setting (Word8, Word8)
+cDeciderSizeRange :: Setting (Word16, Word16)
 cDeciderSizeRange
   = requiredSetting "deciderSizeRange"
     

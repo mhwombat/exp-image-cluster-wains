@@ -35,15 +35,15 @@ import ALife.Creatur.Wain (Wain(..), Label, adjustEnergy, adjustPassion,
   passion, hasLitter, reflect)
 import ALife.Creatur.Wain.Brain (classifier, buildBrain)
 import qualified ALife.Creatur.Wain.ClassificationMetrics as SQ
-import ALife.Creatur.Wain.GeneticSOM (RandomDecayingGaussianParams(..),
-  randomDecayingGaussian, buildGeneticSOM, numModels, counterMap)
+import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
+  randomExponential, buildGeneticSOM, numModels, counterMap)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
-import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage, blankImage)
+import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage, randomImage)
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
@@ -56,8 +56,8 @@ import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get,
   gets)
 import Data.List (intercalate)
-import Data.Word (Word8)
-import Math.Geometry.GridMap (elems)
+import Data.Map.Strict (elems)
+import Data.Word (Word16)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (dropFileName)
 import System.Random (randomIO, randomRIO)
@@ -99,43 +99,31 @@ type ImageWain = Wain Image Action
 
 randomImageWain
   :: RandomGen r
-    => String -> U.Universe ImageWain -> Word8 -> Word8 -> Rand r ImageWain
+    => String -> U.Universe ImageWain -> Word16 -> Word16 -> Rand r ImageWain
 randomImageWain wainName u classifierSize deciderSize = do
-  let n = fromIntegral $ 3*classifierSize*classifierSize
   let w = U.uImageWidth u
   let h = U.uImageHeight u
-  -- imgs <- replicateM n (randomImage w h)
-  let imgs = replicate n $ blankImage w h
-  let fcp = RandomDecayingGaussianParams
+  imgs <- replicateM (fromIntegral classifierSize) (randomImage w h)
+  -- let imgs = replicate classifierSize $ blankImage w h
+  let fcp = RandomExponentialParams
                { r0Range = U.uClassifierR0Range u,
                  rfRange = U.uClassifierRfRange u,
-                 w0Range = U.uClassifierW0Range u,
-                 wfRange = U.uClassifierWfRange u,
-                 tfRange = U.uClassifierTfRange u,
-                 sideLength = classifierSize }
-  fc <- randomDecayingGaussian fcp
-  let c = buildGeneticSOM classifierSize fc imgs
-  let fdp = RandomDecayingGaussianParams
+                 tfRange = U.uClassifierTfRange u }
+  fc <- randomExponential fcp
+  let c = buildGeneticSOM fc imgs
+  let fdp = RandomExponentialParams
               { r0Range = U.uDeciderR0Range u,
                 rfRange = U.uDeciderRfRange u,
-                w0Range = U.uDeciderW0Range u,
-                wfRange = U.uDeciderWfRange u,
-                tfRange = U.uDeciderTfRange u,
-                sideLength = deciderSize }
-  fd <- randomDecayingGaussian fdp
-  xs <- replicateM
-         (numTiles . snd . U.uDeciderSizeRange $ u)
-         $ randomResponse (numModels c) 
-  let b = buildBrain c (buildGeneticSOM deciderSize fd xs)
+                tfRange = U.uDeciderTfRange u }
+  fd <- randomExponential fdp
+  xs <- replicateM (fromIntegral deciderSize) $
+         randomResponse (numModels c) 
+  let b = buildBrain c (buildGeneticSOM fd xs)
   d <- getRandomR (U.uDevotionRange u)
   m <- getRandomR (U.uMaturityRange u)
   p <- getRandomR unitInterval
   let app = stripedImage w h
   return $ buildWainAndGenerateGenome wainName app b d m p
-
-numTiles :: Word8 -> Int
-numTiles s = 3*s'*(s'-1) + 1
-  where s' = fromIntegral s
 
 data Summary = Summary
   {

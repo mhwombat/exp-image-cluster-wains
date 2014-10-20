@@ -24,7 +24,7 @@ import ALife.Creatur.Wain.Iomha.Wain
 import ALife.Creatur.Wain.Iomha.Universe
 import Control.Monad.State
 import Data.List
-import Math.Geometry.GridMap (elems)
+import Data.Map.Strict (elems)
 import System.Environment
 import Text.Printf (printf)
 
@@ -60,10 +60,8 @@ examine a = do
   putStrLn $ "swagger: " ++ show (swagger a)
   putStrLn $ "size: " ++ show (wainSize a)
   putStrLn $ "SQ: " ++ show (schemaQuality a)
-  putStrLn $ "Classifier size: " ++ show (size . classifier . brain $ a)
   putStrLn $ "Number of classifier models: " ++ show (numModels . classifier . brain $ a)
   putStrLn $ "Classifier learning function " ++ show (learningFunction . classifier . brain $ a)
-  putStrLn $ "Decider size: " ++ show (size . decider . brain $ a)
   putStrLn $ "Number of decider models: " ++ show (numModels . decider . brain $ a)
   putStrLn $ "Decider learning function " ++ show (learningFunction . decider . brain $ a)
   -- putStrLn "------------------------"

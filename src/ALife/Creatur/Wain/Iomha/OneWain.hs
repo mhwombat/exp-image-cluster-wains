@@ -27,20 +27,18 @@ import qualified ALife.Creatur.Wain.Response as R
 import qualified ALife.Creatur.Wain.Scenario as S
 import Control.Monad
 import Control.Monad.State
-import qualified Data.Datamining.Clustering.SOM as SOM
+import qualified Data.Datamining.Clustering.SSOM as SOM
 import Diagrams.Backend.Cairo
 import Diagrams.Prelude
 
 testWain :: Int -> Int -> ImageWain
 testWain w h = buildWainAndGenerateGenome "Fred" app b 0 m p
-  where cSize = 5
-        cCount = 3*cSize*(cSize - 1) + 1
-        c = buildGeneticSOM cSize cf ps
-        cf = SOM.DecayingGaussian 0.3 0.1 0.01 0.001 10000
+  where cCount = 12
+        c = buildGeneticSOM cf ps
+        cf = SOM.Exponential 0.3 0.001 10000
         ps = replicate cCount $ blankImage w h
-        d = buildGeneticSOM 2 df xs
-        df = SOM.DecayingGaussian 0.3 0.1 0.01 0.001 10000
-        xs = initialResponses (numModels c)
+        d = buildGeneticSOM df [] -- not used
+        df = SOM.Exponential 0.3 0.001 10000
         b = B.buildBrain c d
         m = 1
         p = 0.001

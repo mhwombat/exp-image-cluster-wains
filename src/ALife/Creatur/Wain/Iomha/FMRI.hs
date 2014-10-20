@@ -16,10 +16,10 @@ module ALife.Creatur.Wain.Iomha.FMRI
     drawClassifier
   ) where
 
+import ALife.Creatur.Wain
 import ALife.Creatur.Wain.Iomha.Image
 import Data.Colour.SRGB
-import Data.Function
-import Data.List
+import Data.List.Split
 import Data.Word
 import Diagrams.Prelude
 import Diagrams.TwoD.Text
@@ -53,51 +53,23 @@ image2diagram = vcat . map imageRow . pixelArray
 --   where f r c = grey2colour (pixelAt img r c)
 -- -- raster :: (Int -> Int -> AlphaColour Double) -> Int -> Int -> DImage Embedded
 
-cream :: (Ord b, Floating b) => Colour b
-cream = sRGB24 255 255 224
+-- cream :: (Ord b, Floating b) => Colour b
+-- cream = sRGB24 255 255 224
 
-drawHexagon
+drawNode
   :: (Renderable Text b, Renderable (Path R2) b)
-    => ((Int, Int), Image) -> Diagram b R2
-drawHexagon (index, img) = label `atop` pic `atop` hex
-  where hex = hexagon 2 # lw (Local 0.05) # fc cream # rotateBy (1/4)
-        label = translateY (1.3) $ text (show index) # fc black # fontSize (Local 0.4)
+    => (Label, Image) -> Diagram b R2
+drawNode (index, img) = label `atop` pic
+  where label = translateY (1.3) $ text (show index) # fc black # fontSize (Local 0.4)
         imgSizeSpec = mkSizeSpec (Just 2) (Just 2)
         pic = translateY 1 . translateX (-1) . sized imgSizeSpec $ image2diagram img
 
-drawHexRow
+drawRow
   :: (Renderable Text b, Renderable (Path R2) b)
-     => [((Int, Int), Image)] -> Diagram b R2
-drawHexRow = hcat . map drawHexagon
+     => [(Label, Image)] -> Diagram b R2
+drawRow = hcat . map drawNode
 
 drawClassifier
   :: (Renderable Text b, Renderable (Path R2) b)
-     => [((Int, Int), Image)] -> Diagram b R2
-drawClassifier = mconcat . zipWith translateY [0,-3..] . map (centerX . drawHexRow) . rows
-  -- where rs = rows xs
-  --       w = maximum . map length $ rs
-  --       f r = strutX . (4*) . fromIntegral $ w - length r
-  --       spacers = map f rs
-
-rows :: [((Int, Int), Image)] -> [[((Int, Int), Image)]]
-rows = groupBy ((==) `on` (snd . fst)) . sortBy rowColumnOrder
-
-rowColumnOrder :: ((Int, Int), a) -> ((Int, Int), a) -> Ordering
-rowColumnOrder ((x1, y1), _) ((x2, y2), _)
-  | y1 < y2   = GT
-  | y1 > y2   = LT
-  | x1 < x2   = LT
-  | x1 > x2   = GT
-  | otherwise = EQ
-
--- classifierDiagram :: Classifier Image -> Diagram B R2
--- classifierDiagram =
---   vcat . map (visualiseDeciderModel . parseDeciderModel) . lines
-
--- examine :: ImageWain -> IO ()
--- examine a = do
---   putStrLn $ "name: " ++ show (name a)
---   print (rows . toList . classifier . brain $ a)
-
--- formatVector :: String -> [Double] -> String
--- formatVector fmt = intercalate " " . map (printf fmt)
+     => [(Label, Image)] -> Diagram b R2
+drawClassifier = mconcat . zipWith translateY [0,-3..] . map (centerX . drawRow) . chunksOf 8

@@ -131,7 +131,7 @@ maturityRange=(1,50)
 # The setting below controls the maximum length of one side of
 # the grid, for the /initial/ population. The processing time
 # required is proportional to the square of this value.
-classifierSizeRange=(2,5)
+classifierSizeRange=(2,10)
 
 # The range of values allowed for r0 (the learning rate applied
 # to the BMU at time 0) in the learning function for the
@@ -163,7 +163,7 @@ classifierTfRange=(0.0,10000.0)
 # the maximum length of one side of the grid, for the /initial/
 # population. The processing time required is proportional to
 # the square of this value.
-deciderSizeRange=(2,5)
+deciderSizeRange=(2,10)
 
 # The range of values allowed for r0 (the learning rate applied
 # to the BMU at time 0) in the learning function for the
