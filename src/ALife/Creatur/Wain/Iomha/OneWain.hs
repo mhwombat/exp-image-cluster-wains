@@ -35,9 +35,9 @@ import Diagrams.Prelude
 testWain :: Int -> Int -> [Image] -> ImageWain
 testWain w h ps = buildWainAndGenerateGenome "Fred" app b 0 m p
   where c = buildGeneticSOM cf ps
-        cf = SOM.Exponential 1 1
+        cf = SOM.Exponential 1 0.05
         d = buildGeneticSOM df [] -- not used
-        df = SOM.Exponential 1 1
+        df = SOM.Exponential 1 0.01
         b = B.buildBrain c d
         m = 1
         p = 0.001
@@ -61,13 +61,14 @@ learnOne agent (img, imgName) = do
 
 learnBatch :: ImageWain -> ImageDB -> IO ImageWain
 learnBatch agent db = do
-  imageData <- evalStateT (replicateM 1000 anyImage) db
+  imageData <- evalStateT (replicateM 10000 anyImage) db
   foldM learnOne agent imageData
 
 main :: IO ()
 main = do
   u <- loadUniverse
   let (w, h) = (uImageWidth u, uImageHeight u)
+  -- let ps = replicate 15 $ blankImage w h
   ps <- evalRandIO (replicateM 15 $ randomImage w h)
   let w0 = testWain w h ps
   a <- learnBatch w0 (uImageDB u)
