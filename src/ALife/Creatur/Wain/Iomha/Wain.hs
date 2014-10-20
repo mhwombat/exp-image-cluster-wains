@@ -107,14 +107,12 @@ randomImageWain wainName u classifierSize deciderSize = do
   -- let imgs = replicate classifierSize $ blankImage w h
   let fcp = RandomExponentialParams
                { r0Range = U.uClassifierR0Range u,
-                 rfRange = U.uClassifierRfRange u,
-                 tfRange = U.uClassifierTfRange u }
+                 dRange = U.uClassifierDRange u }
   fc <- randomExponential fcp
   let c = buildGeneticSOM fc imgs
   let fdp = RandomExponentialParams
               { r0Range = U.uDeciderR0Range u,
-                rfRange = U.uDeciderRfRange u,
-                tfRange = U.uDeciderTfRange u }
+                dRange = U.uDeciderDRange u }
   fd <- randomExponential fdp
   xs <- replicateM (fromIntegral deciderSize) $
          randomResponse (numModels c) 

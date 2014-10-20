@@ -35,9 +35,9 @@ import Diagrams.Prelude
 testWain :: Int -> Int -> [Image] -> ImageWain
 testWain w h ps = buildWainAndGenerateGenome "Fred" app b 0 m p
   where c = buildGeneticSOM cf ps
-        cf = SOM.Exponential 0.3 0.1 10000
+        cf = SOM.Exponential 1 1
         d = buildGeneticSOM df [] -- not used
-        df = SOM.Exponential 0.3 0.1 10000
+        df = SOM.Exponential 1 1
         b = B.buildBrain c d
         m = 1
         p = 0.001

@@ -79,11 +79,9 @@ data Universe a = Universe
     uNoveltyBasedAgreementDeltaE :: Double,
     uMinAgreementDeltaE :: Double,
     uClassifierR0Range :: (Double,Double),
-    uClassifierRfRange :: (Double,Double),
-    uClassifierTfRange :: (Double,Double),
+    uClassifierDRange :: (Double,Double),
     uDeciderR0Range :: (Double,Double),
-    uDeciderRfRange :: (Double,Double),
-    uDeciderTfRange :: (Double,Double),
+    uDeciderDRange :: (Double,Double),
     uMinAvgEnergy :: Double,
     uMinAvgClassifierIQ :: Double,
     uMinAvgDeciderIQ :: Double,
@@ -199,20 +197,14 @@ cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
 cClassifierR0Range :: Setting (Double,Double)
 cClassifierR0Range = requiredSetting "classifierR0Range"
 
-cClassifierRfRange :: Setting (Double,Double)
-cClassifierRfRange = requiredSetting "classifierRfRange"
-
-cClassifierTfRange :: Setting (Double,Double)
-cClassifierTfRange = requiredSetting "classifierTfRange"
+cClassifierDRange :: Setting (Double,Double)
+cClassifierDRange = requiredSetting "classifierDecayRange"
 
 cDeciderR0Range :: Setting (Double,Double)
 cDeciderR0Range = requiredSetting "deciderR0Range"
 
-cDeciderRfRange :: Setting (Double,Double)
-cDeciderRfRange = requiredSetting "deciderRfRange"
-
-cDeciderTfRange :: Setting (Double,Double)
-cDeciderTfRange = requiredSetting "deciderTfRange"
+cDeciderDRange :: Setting (Double,Double)
+cDeciderDRange = requiredSetting "deciderDecayRange"
 
 cMinAvgEnergy :: Setting Double
 cMinAvgEnergy = requiredSetting "stopIfAvgEnergyLessThan"
@@ -290,11 +282,9 @@ config2Universe getSetting =
         = getSetting cNoveltyBasedAgreementDeltaE,
       uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
       uClassifierR0Range = getSetting cClassifierR0Range,
-      uClassifierRfRange = getSetting cClassifierRfRange,
-      uClassifierTfRange = getSetting cClassifierTfRange,
+      uClassifierDRange = getSetting cClassifierDRange,
       uDeciderR0Range = getSetting cDeciderR0Range,
-      uDeciderRfRange = getSetting cDeciderRfRange,
-      uDeciderTfRange = getSetting cDeciderTfRange,
+      uDeciderDRange = getSetting cDeciderDRange,
       uMinAvgEnergy = getSetting cMinAvgEnergy,
       uMinAvgClassifierIQ = getSetting cMinAvgClassifierIQ,
       uMinAvgDeciderIQ = getSetting cMinAvgDeciderIQ,

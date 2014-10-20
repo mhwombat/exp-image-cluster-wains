@@ -138,15 +138,9 @@ classifierSizeRange=(2,10)
 # classifier in the initial population.
 classifierR0Range=(0.0,1.0)
 
-# The range of values allowed for rf (the learning rate applied
-# to the BMU at time tf) in the learning function for the
-# classifier in the initial population.
-classifierRfRange=(0.0,1.0)
-
-# The range of values allowed for tf (the time at which the
-# learning rate becomes negligible) in the learning function
-# for the classifier in the initial population.
-classifierTfRange=(0.0,10000.0)
+# The range of values allowed for d, the decay rate in the
+# learning function for the classifier in the initial population.
+classifierDecayRange=(0.0,1.0)
 
 # The decider portion of a wain's brain is also a SOM, using a
 # hexagonal grid with hexagonal tiles. The setting below controls
@@ -160,15 +154,9 @@ deciderSizeRange=(2,10)
 # decider in the initial population.
 deciderR0Range=(0.0,1.0)
 
-# The range of values allowed for rf (the learning rate applied
-# to the BMU at time tf) in the learning function for the
-# decider in the initial population.
-deciderRfRange=(0.0,1.0)
-
-# The range of values allowed for tf (the time at which the
-# learning rate becomes negligible) in the learning function
-# for the decider in the initial population.
-deciderTfRange=(0.0,10000.0)
+# The range of values allowed for d, the decay rate in the
+# learning function for the decider in the initial population.
+deciderDecayRange=(0.0,1.0)
 
 #####
 # Health checks
