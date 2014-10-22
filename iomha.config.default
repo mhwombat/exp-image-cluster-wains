@@ -29,6 +29,10 @@ popSizeRange=(10,100)
 # Size of the initial population.
 initialPopSize=50
 
+# The number of times to reinforce (re-learn) an image label
+# when two wains agree on it.
+reinforcementCount=3
+
 # The amount of energy that can be awarded to wains in a
 # single round.
 energyPoolSize=1000.0

@@ -67,6 +67,7 @@ data Universe a = Universe
     uMaturityRange :: (Word16, Word16),
     uPopulationSize :: Int,
     uPopulationSizeRange :: (Int, Int),
+    uReinforcementCount :: Int,
     uEnergyPoolSize :: Double,
     uBaseMetabolismDeltaE :: Double,
     uEnergyCostPerByte :: Double,
@@ -159,6 +160,9 @@ cPopulationSize = requiredSetting "initialPopSize"
 
 cPopulationSizeRange :: Setting (Int, Int)
 cPopulationSizeRange = requiredSetting "popSizeRange"
+
+cReinforcementCount :: Setting Int
+cReinforcementCount = requiredSetting "reinforcementCount"
 
 cEnergyPoolSize :: Setting Double
 cEnergyPoolSize = requiredSetting "energyPoolSize"
@@ -268,6 +272,7 @@ config2Universe getSetting =
       uMaturityRange = getSetting cMaturityRange,
       uPopulationSize = getSetting cPopulationSize,
       uPopulationSizeRange = getSetting cPopulationSizeRange,
+      uReinforcementCount = getSetting cReinforcementCount,
       uEnergyPoolSize = getSetting cEnergyPoolSize,
       uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       uEnergyCostPerByte = getSetting cEnergyCostPerByte,

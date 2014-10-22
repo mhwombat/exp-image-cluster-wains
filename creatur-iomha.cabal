@@ -1,5 +1,5 @@
 name:                creatur-wains-iomha
-version:             3.0
+version:             3.1
 synopsis:            Agent for categorising images.
 description:         ALife agent that works co-operatively with other
                      agents to develop a classification scheme for
@@ -22,7 +22,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains-iomha.git
-  tag:      3.0
+  tag:      3.1
 
 executable iomha-daemon
   main-is:          ALife/Creatur/Wain/Iomha/Daemon.hs

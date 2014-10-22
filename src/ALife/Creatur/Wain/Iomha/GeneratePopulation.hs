@@ -49,8 +49,8 @@ introduceRandomAgent name = do
 introduceRandomAgents
   :: [String] -> StateT (Universe ImageWain) IO ()
 introduceRandomAgents ns = do
-  xss <- mapM introduceRandomAgent ns
-  let yss = summarise xss
+  xs <- mapM introduceRandomAgent ns
+  let yss = summarise xs
   printStats yss
   
 main :: IO ()

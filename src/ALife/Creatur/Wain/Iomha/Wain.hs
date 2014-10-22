@@ -32,7 +32,7 @@ import ALife.Creatur.Task (requestShutdown)
 import ALife.Creatur.Wain (Wain(..), Label, adjustEnergy, adjustPassion,
   chooseAction, buildWainAndGenerateGenome, classify, teachLabel,
   incAge, weanMatureChildren, tryMating, energy,
-  passion, hasLitter, reflect)
+  passion, hasLitter, reflect, incSwagger)
 import ALife.Creatur.Wain.Brain (classifier, buildBrain)
 import qualified ALife.Creatur.Wain.ClassificationMetrics as SQ
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
@@ -50,7 +50,7 @@ import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
 import ALife.Creatur.Wain.Statistics (lookup, summarise)
 import Control.Lens hiding (Action, universe)
-import Control.Monad (replicateM, when)
+import Control.Monad (replicateM, foldM, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get,
@@ -450,14 +450,20 @@ agree label noveltyToMe noveltyToOther = do
   withUniverse . U.writeToLog $ agentId b ++ " agrees with "
     ++  agentId a ++ " that " ++ objectId dObj ++ " has label "
     ++ show label
-  -- a' <- withUniverse $ (teachLabel dObjApp label a >>= incSwagger) -- reinforce
-  -- b' <- withUniverse $ (teachLabel dObjApp label b >>= incSwagger) -- reinforce
-  a' <- withUniverse $ teachLabel dObjApp label a -- reinforce
-  b' <- withUniverse $ teachLabel dObjApp label b -- reinforce
+  a' <- withUniverse (reinforce label dObjApp a >>= incSwagger)
+  b' <- withUniverse (reinforce label dObjApp b >>= incSwagger)
   assign subject a'
   assign indirectObject (AObject b')
   applyAgreementEffects noveltyToMe noveltyToOther
   applyEarlyAgreementEffects
+
+reinforce
+  :: Label -> Image -> ImageWain
+    -> StateT (U.Universe ImageWain) IO ImageWain
+reinforce label app wain = do
+  n <- gets U.uReinforcementCount
+  let lessons = replicate n (app, label)
+  foldM (\w (a,l) -> teachLabel a l w) wain lessons
 
 -- TODO: factor out common code in agree, disagree
   
