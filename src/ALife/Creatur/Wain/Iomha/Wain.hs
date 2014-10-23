@@ -609,7 +609,7 @@ checkStats xs = do
   enforceMin "avg. co-operated" U.uMinAvgCooperation xs
     "not co-operating often"
   enforceMin "avg. maturity" U.uMinAvgMaturity xs
-    "not co-operating often"
+    "maturing too quickly"
   t1 <- gets U.uMilestone1
   when (t >= t1) $ do
     enforceMin "avg. age" U.uMilestone1MinAvgAge xs "young population"
