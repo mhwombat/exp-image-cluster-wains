@@ -21,19 +21,30 @@ import ALife.Creatur.Wain (programVersion)
 import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
   writeToLog, replenishEnergyPool, loadUniverse)
+import Control.Concurrent (MVar, newMVar, readMVar, swapMVar)
+import Control.Monad (when)
 import Control.Monad.State (StateT, execStateT, gets)
 import Data.Version (showVersion)
 import Paths_creatur_wains_iomha (version)
+import System.IO.Unsafe (unsafePerformIO)
 import System.Posix.Daemonize (CreateDaemon(name))
+
+shutdownMessagePrinted :: MVar Bool
+shutdownMessagePrinted = unsafePerformIO (newMVar False)
 
 startupHandler :: String -> Universe ImageWain -> IO (Universe ImageWain)
 startupHandler programName
   = execStateT (writeToLog $ "Starting " ++ programName)
 
 shutdownHandler :: String -> Universe ImageWain -> IO ()
-shutdownHandler programName u =
-  execStateT (writeToLog $ "Shutdown requested for " ++ programName) u
-  >> return ()
+shutdownHandler programName u = do
+  -- Only print the message once
+  handled <- readMVar shutdownMessagePrinted
+  when (not handled) $ do
+    _ <- execStateT (writeToLog $ "Shutdown requested for "
+                      ++ programName) u
+    _ <- swapMVar shutdownMessagePrinted True
+    return ()
 
 startRoundProgram :: StateT (Universe ImageWain) IO ()
 startRoundProgram = do
@@ -50,7 +61,7 @@ main = do
   universe <- loadUniverse
   let program = run universe
   let popRange = uPopulationSizeRange universe
-  let message = "creatur-wains-iomha" ++ showVersion version
+  let message = "creatur-wains-iomha-" ++ showVersion version
           ++ ", compiled with " ++ ALife.Creatur.Wain.programVersion
           ++ ", " ++ ALife.Creatur.programVersion
           ++ ", configuration=" ++ show universe
