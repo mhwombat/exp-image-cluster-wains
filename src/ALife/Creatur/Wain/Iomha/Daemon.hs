@@ -14,8 +14,9 @@
 module Main where
 
 import ALife.Creatur (programVersion)
-import ALife.Creatur.Daemon (Daemon(..), launch)
-import ALife.Creatur.Task (simpleDaemon, runInteractingAgents)
+import ALife.Creatur.Daemon (CreaturDaemon(..), Job(..),
+  simpleDaemon, launch)
+import ALife.Creatur.Task (runInteractingAgents, simpleJob)
 import ALife.Creatur.Wain (programVersion)
 import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
@@ -23,6 +24,7 @@ import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
 import Control.Monad.State (StateT, execStateT, gets)
 import Data.Version (showVersion)
 import Paths_creatur_wains_iomha (version)
+import System.Posix.Daemonize (CreateDaemon(name))
 
 startupHandler :: String -> Universe ImageWain -> IO (Universe ImageWain)
 startupHandler programName
@@ -52,10 +54,13 @@ main = do
           ++ ", compiled with " ++ ALife.Creatur.Wain.programVersion
           ++ ", " ++ ALife.Creatur.programVersion
           ++ ", configuration=" ++ show universe
-  let daemon = simpleDaemon
+  let j = simpleJob
         { task=runInteractingAgents program popRange
                  startRoundProgram endRoundProgram,
           onStartup=startupHandler message,
           onShutdown=shutdownHandler message,
           sleepTime=uSleepBetweenTasks universe }
-  launch daemon universe
+  let d = (simpleDaemon j universe)
+            { name=Just (uExperimentName universe) }
+  let cd = CreaturDaemon d j
+  launch cd

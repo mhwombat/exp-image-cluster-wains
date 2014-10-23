@@ -608,13 +608,15 @@ checkStats xs = do
     "losing energy too quickly"
   enforceMin "avg. co-operated" U.uMinAvgCooperation xs
     "not co-operating often"
-  tE <- gets U.uEasementTime
-  when (t >= tE) $ do
-    enforceMin "avg. age" U.uPhase1MinAvgAge xs "young population"
-    enforceMin "avg. SQ" U.uPhase1MinAvgSQ xs "low SQ"
-    enforceMin "avg. agreed" U.uPhase1MinAvgAgreed xs
+  enforceMin "avg. maturity" U.uMinAvgMaturity xs
+    "not co-operating often"
+  t1 <- gets U.uMilestone1
+  when (t >= t1) $ do
+    enforceMin "avg. age" U.uMilestone1MinAvgAge xs "young population"
+    enforceMin "avg. SQ" U.uMilestone1MinAvgSQ xs "low SQ"
+    enforceMin "avg. agreed" U.uMilestone1MinAvgAgreed xs
       "not agreeing often"
-    enforceMin "avg. flirted" U.uMinAvgFlirted xs
+    enforceMin "avg. flirted" U.uMilestone1MinAvgFlirted xs
       "not flirting often"
 
 enforceMin

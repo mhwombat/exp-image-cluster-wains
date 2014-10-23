@@ -49,6 +49,7 @@ import System.Directory (makeRelativeToCurrentDirectory)
 
 data Universe a = Universe
   {
+    uExperimentName :: String,
     uClock :: K.PersistentCounter,
     uLogger :: SL.SimpleLogger,
     uDB :: CFS.CachedFSDatabase a,
@@ -86,12 +87,14 @@ data Universe a = Universe
     uMinAvgEnergy :: Double,
     uMinAvgClassifierIQ :: Double,
     uMinAvgDeciderIQ :: Double,
-    uMinAvgFlirted :: Double,
     uMinAvgCooperation :: Double,
     uMinAvgNetDeltaE :: Double,
-    uPhase1MinAvgAge :: Double,
-    uPhase1MinAvgSQ :: Double,
-    uPhase1MinAvgAgreed :: Double
+    uMinAvgMaturity :: Double,
+    uMilestone1 :: Int,
+    uMilestone1MinAvgAge :: Double,
+    uMilestone1MinAvgFlirted :: Double,
+    uMilestone1MinAvgSQ :: Double,
+    uMilestone1MinAvgAgreed :: Double
   } deriving (Show, Eq)
 
 instance (A.Agent a, D.SizedRecord a) => U.Universe (Universe a) where
@@ -225,18 +228,24 @@ cMinAvgCooperation = requiredSetting "stopIfAvgCooperationLessThan"
 cMinAvgNetDeltaE :: Setting Double
 cMinAvgNetDeltaE = requiredSetting "stopIfAvgNetDeltaELessThan"
 
-cPhase1MinAvgAge :: Setting Double
-cPhase1MinAvgAge = requiredSetting "afterEasementStopIfAvgAgeLessThan"
+cMinAvgMaturity :: Setting Double
+cMinAvgMaturity = requiredSetting "stopIfAvgMaturityLessThan"
 
-cPhase1MinAvgSQ :: Setting Double
-cPhase1MinAvgSQ = requiredSetting "afterEasementStopIfAvgSQLessThan"
+cMilestone1 :: Setting Int
+cMilestone1 = requiredSetting "milestone1"
 
-cPhase1MinAvgAgreed :: Setting Double
-cPhase1MinAvgAgreed
-  = requiredSetting "afterEasementStopIfAvgAgreedLessThan"
+cMilestone1MinAvgAge :: Setting Double
+cMilestone1MinAvgAge = requiredSetting "afterMilestone1StopIfAvgAgeLessThan"
 
-cMinAvgFlirted :: Setting Double
-cMinAvgFlirted = requiredSetting "afterEasementStopIfAgvFlirtedLessThan"
+cMilestone1MinAvgFlirted :: Setting Double
+cMilestone1MinAvgFlirted = requiredSetting "afterMilestone1StopIfAgvFlirtedLessThan"
+
+cMilestone1MinAvgSQ :: Setting Double
+cMilestone1MinAvgSQ = requiredSetting "afterMilestone1StopIfAvgSQLessThan"
+
+cMilestone1MinAvgAgreed :: Setting Double
+cMilestone1MinAvgAgreed
+  = requiredSetting "afterMilestone1StopIfAvgAgreedLessThan"
 
 loadUniverse :: IO (Universe a)
 loadUniverse = do
@@ -252,6 +261,7 @@ config2Universe :: (forall a. Read a => Setting a -> a) -> Universe b
 config2Universe getSetting =
   Universe
     {
+      uExperimentName = en,
       uClock = K.mkPersistentCounter (workDir ++ "/clock"),
       uLogger = SL.mkSimpleLogger (workDir ++ "/log/" ++ en ++ ".log"),
       uDB
@@ -293,12 +303,14 @@ config2Universe getSetting =
       uMinAvgEnergy = getSetting cMinAvgEnergy,
       uMinAvgClassifierIQ = getSetting cMinAvgClassifierIQ,
       uMinAvgDeciderIQ = getSetting cMinAvgDeciderIQ,
-      uMinAvgFlirted = getSetting cMinAvgFlirted,
       uMinAvgCooperation = getSetting cMinAvgCooperation,
       uMinAvgNetDeltaE = getSetting cMinAvgNetDeltaE,
-      uPhase1MinAvgAge = getSetting cPhase1MinAvgAge,
-      uPhase1MinAvgSQ = getSetting cPhase1MinAvgSQ,
-      uPhase1MinAvgAgreed = getSetting cPhase1MinAvgAgreed
+      uMinAvgMaturity = getSetting cMinAvgMaturity,
+      uMilestone1 = getSetting cMilestone1,
+      uMilestone1MinAvgAge = getSetting cMilestone1MinAvgAge,
+      uMilestone1MinAvgFlirted = getSetting cMilestone1MinAvgFlirted,
+      uMilestone1MinAvgSQ = getSetting cMilestone1MinAvgSQ,
+      uMilestone1MinAvgAgreed = getSetting cMilestone1MinAvgAgreed
     }
   where en = getSetting cExperimentName
         workDir = getSetting cWorkingDir
