@@ -272,7 +272,6 @@ run' = do
     ++ "'s turn ----------"
   withUniverse . U.writeToLog $ "At beginning of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty (Stats.stats a)
-  -- forage
   (imgLabel, diff, nov, r) <- chooseAction'
   runAction (action r) imgLabel diff nov
   letSubjectReflect r
@@ -598,48 +597,25 @@ printStats = mapM_ f
 
 checkStats :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
 checkStats xs = do
-  t <- U.currentTime
-  enforceMin "avg. energy" U.uMinAvgEnergy xs "low energy"
-  enforceMin "avg. classifier num models" U.uMinAvgClassifierIQ xs
-      "small classifiers"
-  enforceMin "avg. decider num models" U.uMinAvgDeciderIQ xs
-      "small deciders"
-  enforceMin "avg. net Δe" U.uMinAvgNetDeltaE xs
-    "losing energy too quickly"
-  enforceMin "avg. co-operated" U.uMinAvgCooperation xs
-    "not co-operating often"
-  enforceMin "avg. maturity" U.uMinAvgMaturity xs
-    "maturing too quickly"
-  t1 <- gets U.uMilestone1
-  when (t >= t1) $ do
-    enforceMin "avg. age" U.uMilestone1MinAvgAge xs "young population"
-    enforceMin "avg. SQ" U.uMilestone1MinAvgSQ xs "low SQ"
-    enforceMin "avg. agreed" U.uMilestone1MinAvgAgreed xs
-      "not agreeing often"
-    enforceMin "avg. flirted" U.uMilestone1MinAvgFlirted xs
-      "not flirting often"
+  cs <- gets U.uCheckpoints
+  mapM_ (checkStat xs) cs
 
-enforceMin
-  :: String -> (U.Universe ImageWain -> Double) -> [Stats.Statistic]
-    -> String -> StateT (U.Universe ImageWain) IO ()
-enforceMin key limit xs message = do
-  x <- gets limit
-  checkStat key xs (< x) message
+satisfies :: Double -> U.Limit -> Bool
+satisfies v (U.In (a,b)) = a <= v && v <= b
+satisfies v (U.GE x) = v >= x
+satisfies v (U.LE x) = v <= x
 
--- enforceMax
---   :: String -> (U.Universe ImageWain -> Double) -> [Stats.Statistic]
---     -> String -> StateT (U.Universe ImageWain) IO ()
--- enforceMax key limit xs message = do
---   x <- gets limit
---   checkStat key xs (> x) message
+fails :: Double -> U.Limit -> Bool
+fails v l = not $ v `satisfies` l
 
 checkStat
-  :: String -> [Stats.Statistic] -> (Double -> Bool) -> String
+  :: [Stats.Statistic] -> U.Checkpoint
     -> StateT (U.Universe ImageWain) IO ()
-checkStat key xs f message =
+checkStat xs c@(U.Check start key lim) = do
+  t <- U.currentTime
   case lookup key xs of
-    Just x -> when (f x) $ requestShutdown 
-               (message ++ ' ':show key ++ "=" ++ show x)
+    Just x -> when (t >= start && x `fails` lim) $ requestShutdown 
+               ("failed check " ++ show c ++ " " ++ key ++ "=" ++ show x)
     Nothing -> requestShutdown $ "Cannot find statistic: " ++ key
 
 adjustSubjectEnergy

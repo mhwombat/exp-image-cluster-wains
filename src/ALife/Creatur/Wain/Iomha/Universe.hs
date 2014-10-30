@@ -20,6 +20,8 @@ module ALife.Creatur.Wain.Iomha.Universe
   (
     Universe(..),
     loadUniverse,
+    Checkpoint(..),
+    Limit(..),
     U.Agent,
     U.agentIds,
     U.currentTime,
@@ -46,6 +48,11 @@ import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
 import Data.Word (Word16)
 import System.Directory (makeRelativeToCurrentDirectory)
+
+data Checkpoint = Check Int String Limit deriving (Show, Read)
+
+data Limit = In (Double, Double) | GE Double | LE Double
+  deriving (Show, Read)
 
 data Universe a = Universe
   {
@@ -84,18 +91,8 @@ data Universe a = Universe
     uClassifierDRange :: (Double,Double),
     uDeciderR0Range :: (Double,Double),
     uDeciderDRange :: (Double,Double),
-    uMinAvgEnergy :: Double,
-    uMinAvgClassifierIQ :: Double,
-    uMinAvgDeciderIQ :: Double,
-    uMinAvgCooperation :: Double,
-    uMinAvgNetDeltaE :: Double,
-    uMinAvgMaturity :: Double,
-    uMilestone1 :: Int,
-    uMilestone1MinAvgAge :: Double,
-    uMilestone1MinAvgFlirted :: Double,
-    uMilestone1MinAvgSQ :: Double,
-    uMilestone1MinAvgAgreed :: Double
-  } deriving (Show, Eq)
+    uCheckpoints :: [Checkpoint]
+  } deriving Show
 
 instance (A.Agent a, D.SizedRecord a) => U.Universe (Universe a) where
   type Agent (Universe a) = a
@@ -213,39 +210,8 @@ cDeciderR0Range = requiredSetting "deciderR0Range"
 cDeciderDRange :: Setting (Double,Double)
 cDeciderDRange = requiredSetting "deciderDecayRange"
 
-cMinAvgEnergy :: Setting Double
-cMinAvgEnergy = requiredSetting "stopIfAvgEnergyLessThan"
-
-cMinAvgClassifierIQ :: Setting Double
-cMinAvgClassifierIQ = requiredSetting "stopIfAvgClassifierSizeLessThan"
-
-cMinAvgDeciderIQ :: Setting Double
-cMinAvgDeciderIQ = requiredSetting "stopIfAvgDeciderSizeLessThan"
-
-cMinAvgCooperation :: Setting Double
-cMinAvgCooperation = requiredSetting "stopIfAvgCooperationLessThan"
-
-cMinAvgNetDeltaE :: Setting Double
-cMinAvgNetDeltaE = requiredSetting "stopIfAvgNetDeltaELessThan"
-
-cMinAvgMaturity :: Setting Double
-cMinAvgMaturity = requiredSetting "stopIfAvgMaturityLessThan"
-
-cMilestone1 :: Setting Int
-cMilestone1 = requiredSetting "milestone1"
-
-cMilestone1MinAvgAge :: Setting Double
-cMilestone1MinAvgAge = requiredSetting "afterMilestone1StopIfAvgAgeLessThan"
-
-cMilestone1MinAvgFlirted :: Setting Double
-cMilestone1MinAvgFlirted = requiredSetting "afterMilestone1StopIfAgvFlirtedLessThan"
-
-cMilestone1MinAvgSQ :: Setting Double
-cMilestone1MinAvgSQ = requiredSetting "afterMilestone1StopIfAvgSQLessThan"
-
-cMilestone1MinAvgAgreed :: Setting Double
-cMilestone1MinAvgAgreed
-  = requiredSetting "afterMilestone1StopIfAvgAgreedLessThan"
+cCheckpoints :: Setting [Checkpoint]
+cCheckpoints = requiredSetting "checkpoints"
 
 loadUniverse :: IO (Universe a)
 loadUniverse = do
@@ -300,17 +266,7 @@ config2Universe getSetting =
       uClassifierDRange = getSetting cClassifierDRange,
       uDeciderR0Range = getSetting cDeciderR0Range,
       uDeciderDRange = getSetting cDeciderDRange,
-      uMinAvgEnergy = getSetting cMinAvgEnergy,
-      uMinAvgClassifierIQ = getSetting cMinAvgClassifierIQ,
-      uMinAvgDeciderIQ = getSetting cMinAvgDeciderIQ,
-      uMinAvgCooperation = getSetting cMinAvgCooperation,
-      uMinAvgNetDeltaE = getSetting cMinAvgNetDeltaE,
-      uMinAvgMaturity = getSetting cMinAvgMaturity,
-      uMilestone1 = getSetting cMilestone1,
-      uMilestone1MinAvgAge = getSetting cMilestone1MinAvgAge,
-      uMilestone1MinAvgFlirted = getSetting cMilestone1MinAvgFlirted,
-      uMilestone1MinAvgSQ = getSetting cMilestone1MinAvgSQ,
-      uMilestone1MinAvgAgreed = getSetting cMilestone1MinAvgAgreed
+      uCheckpoints = getSetting cCheckpoints
     }
   where en = getSetting cExperimentName
         workDir = getSetting cWorkingDir

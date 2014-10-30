@@ -165,15 +165,13 @@ deciderDecayRange=(0.0,1.0)
 #####
 # Health checks
 #####
-stopIfAvgEnergyLessThan=0
-stopIfAvgClassifierSizeLessThan=0
-stopIfAvgDeciderSizeLessThan=0
-stopIfAvgCooperationLessThan=0
-stopIfAvgNetDeltaELessThan=-1
-stopIfAvgMaturityLessThan=0
-milestone1=50
-afterMilestone1StopIfAvgAgeLessThan=0
-afterMilestone1StopIfAvgSQLessThan=0
-afterMilestone1StopIfAvgAgreedLessThan=0
-afterMilestone1StopIfAgvFlirtedLessThan=0
-
+checkpoints=[Check 0 "avg. energy" (GE 0),
+             Check 0 "avg. classifier num models" (GE 1),
+             Check 0 "avg. decider num models" (GE 1),
+             Check 0 "avg. co-operated" (GE 0),
+             Check 0 "avg. net Δe" (In (-0.01,0)),
+             Check 0 "avg. maturity" (GE 0),
+             Check 50 "avg. age" (GE 10),
+             Check 50 "avg. SQ" (GE 0),
+             Check 50 "avg. agreed" (GE 0),
+             Check 50 "avg. flirted" (GE 0)]
