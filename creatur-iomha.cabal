@@ -28,7 +28,7 @@ executable iomha-daemon
   main-is:          ALife/Creatur/Wain/Iomha/Daemon.hs
   ghc-options:      -Wall -Werror -O2 -rtsopts -threaded
   build-depends:
-                    app-settings ==0.2.*,
+                    app-settings ==0.2.* && >=0.2.0.5,
                     array ==0.5.*,
                     base ==4.*,
                     cereal ==0.4.*,
@@ -59,7 +59,7 @@ executable iomha-init
   main-is:          ALife/Creatur/Wain/Iomha/GeneratePopulation.hs
   ghc-options:      -Wall -Werror -O2 -rtsopts -threaded
   build-depends:
-                    app-settings ==0.2.*,
+                    app-settings ==0.2.* && >=0.2.0.5,
                     array ==0.5.*,
                     base ==4.*,
                     cereal ==0.4.*,
@@ -87,7 +87,7 @@ executable iomha-examine
   main-is:          ALife/Creatur/Wain/Iomha/ExamineAgent.hs
   ghc-options:      -Wall -Werror
   build-depends:
-                    app-settings ==0.2.*,
+                    app-settings ==0.2.* && >=0.2.0.5,
                     array ==0.5.*,
                     base ==4.*,
                     cereal ==0.4.*,
@@ -115,7 +115,7 @@ executable iomha-fmri
   main-is:          ALife/Creatur/Wain/Iomha/FMRIMain.hs
   ghc-options:      -Wall -Werror
   build-depends:
-                    app-settings ==0.2.*,
+                    app-settings ==0.2.* && >=0.2.0.5,
                     array ==0.5.*,
                     base ==4.*,
                     cereal ==0.4.*,
@@ -147,7 +147,7 @@ executable iomha-photo
   main-is:          ALife/Creatur/Wain/Iomha/Photo.hs
   ghc-options:      -Wall -Werror
   build-depends:
-                    app-settings ==0.2.*,
+                    app-settings ==0.2.* && >=0.2.0.5,
                     array ==0.5.*,
                     base ==4.*,
                     cereal ==0.4.*,
@@ -180,7 +180,7 @@ executable iomha-one-wain
   main-is:          ALife/Creatur/Wain/Iomha/OneWain.hs
   ghc-options:      -Wall -Werror
   build-depends:
-                    app-settings ==0.2.*,
+                    app-settings ==0.2.* && >=0.2.0.5,
                     array ==0.5.*,
                     base ==4.*,
                     cereal ==0.4.*,
