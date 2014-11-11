@@ -21,6 +21,7 @@ module ALife.Creatur.Wain.Iomha.Wain
     energy,
     passion,
     schemaQuality,
+    adjustEnvironment,
     printStats
   ) where
 
@@ -49,6 +50,7 @@ import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
 import ALife.Creatur.Wain.Statistics (lookup, summarise)
+import Control.Conditional (ifM)
 import Control.Lens hiding (Action, universe)
 import Control.Monad (replicateM, foldM, when)
 import Control.Monad.IO.Class (liftIO)
@@ -137,13 +139,10 @@ data Summary = Summary
     _rChildRearingDeltaE :: Double,
     _rCoopDeltaE :: Double,
     _rAgreementDeltaE :: Double,
-    _rEasementCoopDeltaE :: Double,
-    _rEasementAgreementDeltaE :: Double,
     _rFlirtingDeltaE :: Double,
     _rMatingDeltaE :: Double,
     _rOtherMatingDeltaE :: Double,
     _rOtherAgreementDeltaE :: Double,
-    _rOtherEasementAgreementDeltaE :: Double,
     _rNetSubjectDeltaE :: Double,
     _rNetDeltaE :: Double,
     _rErr :: Double,
@@ -173,13 +172,10 @@ initSummary p = Summary
     _rChildRearingDeltaE = 0,
     _rCoopDeltaE = 0,
     _rAgreementDeltaE = 0,
-    _rEasementCoopDeltaE = 0,
-    _rEasementAgreementDeltaE = 0,
     _rFlirtingDeltaE = 0,
     _rMatingDeltaE = 0,
     _rOtherMatingDeltaE = 0,
     _rOtherAgreementDeltaE = 0,
-    _rOtherEasementAgreementDeltaE = 0,
     _rNetSubjectDeltaE = 0,
     _rNetDeltaE = 0,
     _rErr = 0,
@@ -211,16 +207,11 @@ summaryStats r =
     Stats.uiStat "child rearing Δe" (view rChildRearingDeltaE r),
     Stats.uiStat "cooperation Δe" (view rCoopDeltaE r),
     Stats.uiStat "agreement Δe" (view rAgreementDeltaE r),
-    Stats.uiStat "easement cooperation Δe" (view rEasementCoopDeltaE r),
-    Stats.uiStat "easement agreement Δe"
-      (view rEasementAgreementDeltaE r),
     Stats.uiStat "flirting Δe" (view rFlirtingDeltaE r),
     Stats.uiStat "mating Δe" (view rMatingDeltaE r),
     Stats.uiStat "subject net Δe" (view rNetSubjectDeltaE r),
     Stats.uiStat "other mating Δe" (view rOtherMatingDeltaE r),
     Stats.uiStat "other agreement Δe" (view rOtherAgreementDeltaE r),
-    Stats.uiStat "other easement agreement Δe"
-      (view rOtherEasementAgreementDeltaE r),
     Stats.uiStat "net Δe" (view rNetDeltaE r),
     Stats.uiStat "err" (view rErr r),
     Stats.iStat "bore" (view rBirthCount r),
@@ -304,13 +295,10 @@ fillInSummary s = s
           + _rChildRearingDeltaE s
           + _rCoopDeltaE s
           + _rAgreementDeltaE s
-          + _rEasementCoopDeltaE s
-          + _rEasementAgreementDeltaE s
           + _rFlirtingDeltaE s
           + _rMatingDeltaE s
         otherDeltaE = _rOtherMatingDeltaE s
           + _rOtherAgreementDeltaE s
-          + _rOtherEasementAgreementDeltaE s
 
 applyMetabolismCost :: StateT Experiment IO ()
 applyMetabolismCost = do
@@ -394,7 +382,6 @@ runAction :: Action -> Label -> Double -> Double -> StateT Experiment IO ()
 --
 runAction Cooperate aLabel aDiff noveltyToMe = do
   applyCooperationEffects
-  applyEarlyCooperationEffects
   a <- use subject
   dObj <- use directObject
   iObj <- use indirectObject
@@ -454,7 +441,6 @@ agree label noveltyToMe noveltyToOther = do
   assign subject a'
   assign indirectObject (AObject b')
   applyAgreementEffects noveltyToMe noveltyToOther
-  applyEarlyAgreementEffects
 
 reinforce
   :: Label -> Image -> ImageWain
@@ -495,44 +481,20 @@ disagree aLabel aDiff bLabel bDiff = do
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
-  deltaE <- fmap U.uCooperationDeltaE $ use universe
+  deltaE <- withUniverse U.getCooperationDeltaE
   adjustSubjectEnergy deltaE rCoopDeltaE "cooperation"
   (summary.rCooperateCount) += 1
-
-applyEarlyCooperationEffects :: StateT Experiment IO ()
-applyEarlyCooperationEffects = do
-  t0 <- fmap (fromIntegral . U.uEasementTime) $ use universe
-  t <- fmap fromIntegral $ withUniverse U.currentTime
-  when (t < t0) $ do
-    eab <- fmap U.uEasementCooperationDeltaE $ use universe
-    let bonus = eab*(t0 - t)/t0
-    let reason = "early cooperation bonus"
-    adjustSubjectEnergy bonus rEasementCoopDeltaE reason
 
 applyAgreementEffects :: Double -> Double -> StateT Experiment IO ()
 applyAgreementEffects noveltyToMe noveltyToOther = do
   x <- fmap U.uNoveltyBasedAgreementDeltaE $ use universe
-  x0 <- fmap U.uMinAgreementDeltaE $ use universe
+  x0 <- withUniverse U.getMinAgreementDeltaE
   let reason = "agreement"
   let ra = x0 + x * noveltyToMe
   adjustSubjectEnergy ra rAgreementDeltaE reason
   let rb = x0 + x * noveltyToOther
   adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE reason
   (summary.rAgreeCount) += 1
-
--- | The first generation of wains gets a bonus to buy them some time
---   to learn about the universe.
-applyEarlyAgreementEffects :: StateT Experiment IO ()
-applyEarlyAgreementEffects = do
-  t0 <- fmap (fromIntegral . U.uEasementTime) $ use universe
-  t <- fmap fromIntegral $ withUniverse U.currentTime
-  when (t < t0) $ do
-    eab <- fmap U.uEasementAgreementDeltaE $ use universe
-    let bonus = eab*(t0 - t)/t0
-    let reason = "early agreement bonus"
-    adjustSubjectEnergy bonus rEasementAgreementDeltaE reason
-    adjustObjectEnergy indirectObject bonus
-      rOtherEasementAgreementDeltaE reason
 
 flirt :: StateT Experiment IO ()
 flirt = do
@@ -696,3 +658,18 @@ writeRawStats n f xs = do
   t <- U.currentTime
   liftIO . appendFile f $
     "time=" ++ show t ++ ",agent=" ++ n ++ ',':raw xs ++ "\n"
+
+adjustEnvironment :: StateT (U.Universe ImageWain) IO ()
+adjustEnvironment = do
+  p <- U.popSize
+  (a, b) <- gets U.uPopulationSizeRange
+  let midpoint = (fromIntegral a + fromIntegral b)/2 :: Double
+  when (fromIntegral p > midpoint) makeEnvironmentHarsher
+
+makeEnvironmentHarsher :: StateT (U.Universe ImageWain) IO ()
+makeEnvironmentHarsher = do
+  ifM U.canAdjustCooperationDeltaE
+    U.adjustCooperationDeltaE
+    $ ifM U.canAdjustMinAgreementDeltaE
+         U.adjustMinAgreementDeltaE
+         (U.writeToLog "Environment is maximally harsh")

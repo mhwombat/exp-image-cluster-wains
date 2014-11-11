@@ -20,8 +20,15 @@ module ALife.Creatur.Wain.Iomha.Universe
   (
     Universe(..),
     loadUniverse,
+    Ratchet,
     Checkpoint(..),
     Limit(..),
+    getCooperationDeltaE,
+    canAdjustCooperationDeltaE,
+    adjustCooperationDeltaE,
+    getMinAgreementDeltaE,
+    canAdjustMinAgreementDeltaE,
+    adjustMinAgreementDeltaE,
     U.Agent,
     U.agentIds,
     U.currentTime,
@@ -41,9 +48,15 @@ import qualified ALife.Creatur.Database as D
 import qualified ALife.Creatur.Database.CachedFileSystem as CFS
 import qualified ALife.Creatur.Logger.SimpleLogger as SL
 import qualified ALife.Creatur.EnergyPool as E
-import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
+import ALife.Creatur.Persistent (Persistent, mkPersistent, getPS,
+  modifyPS, runPS)
 import qualified ALife.Creatur.Universe as U
+import ALife.Creatur.Util (stateMap)
+import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
+import ALife.Creatur.Wain.Iomha.Ratchet
+  (RatchetSpec, Ratchet, mkRatchet, canAdjust, adjust, currentValue)
 import Control.Exception (SomeException, try)
+import Control.Monad.State.Lazy (StateT, get)
 import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
 import Data.Word (Word16)
@@ -80,13 +93,10 @@ data Universe a = Universe
     uBaseMetabolismDeltaE :: Double,
     uEnergyCostPerByte :: Double,
     uChildCostFactor :: Double,
-    uEasementTime :: Int,
-    uEasementCooperationDeltaE :: Double,
-    uEasementAgreementDeltaE :: Double,
     uFlirtingDeltaE :: Double,
-    uCooperationDeltaE :: Double,
+    uCooperationDeltaERatchet :: Persistent Ratchet,
     uNoveltyBasedAgreementDeltaE :: Double,
-    uMinAgreementDeltaE :: Double,
+    uMinAgreementDeltaERatchet :: Persistent Ratchet,
     uClassifierR0Range :: (Double,Double),
     uClassifierDRange :: (Double,Double),
     uDeciderR0Range :: (Double,Double),
@@ -176,27 +186,18 @@ cEnergyCostPerByte = requiredSetting "energyCostPerByte"
 cChildCostFactor :: Setting Double
 cChildCostFactor = requiredSetting "childCostFactor"
 
-cEasementTime :: Setting Int
-cEasementTime = requiredSetting "easementTime"
-
-cEasementCooperationDeltaE :: Setting Double
-cEasementCooperationDeltaE = requiredSetting "easementCooperationDeltaE"
-
-cEasementAgreementDeltaE :: Setting Double
-cEasementAgreementDeltaE = requiredSetting "easementAgreementDeltaE"
-
 cFlirtingDeltaE :: Setting Double
 cFlirtingDeltaE = requiredSetting "flirtingDeltaE"
 
-cCooperationDeltaE :: Setting Double
-cCooperationDeltaE = requiredSetting "cooperationDeltaE"
+cCooperationDeltaERatchet :: Setting RatchetSpec
+cCooperationDeltaERatchet = requiredSetting "cooperationDeltaERatchet"
 
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
   = requiredSetting "noveltyBasedAgreementDeltaE"
 
-cMinAgreementDeltaE :: Setting Double
-cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
+cMinAgreementDeltaERatchet :: Setting RatchetSpec
+cMinAgreementDeltaERatchet = requiredSetting "minAgreementDeltaERatchet"
 
 cClassifierR0Range :: Setting (Double,Double)
 cClassifierR0Range = requiredSetting "classifierR0Range"
@@ -253,15 +254,17 @@ config2Universe getSetting =
       uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       uEnergyCostPerByte = getSetting cEnergyCostPerByte,
       uChildCostFactor = getSetting cChildCostFactor,
-      uEasementTime = getSetting cEasementTime,
-      uEasementCooperationDeltaE
-        = getSetting cEasementCooperationDeltaE,
-      uEasementAgreementDeltaE = getSetting cEasementAgreementDeltaE,
       uFlirtingDeltaE = getSetting cFlirtingDeltaE,
-      uCooperationDeltaE = getSetting cCooperationDeltaE,
+      uCooperationDeltaERatchet
+        = mkPersistent
+            (mkRatchet . getSetting $ cCooperationDeltaERatchet)
+            (workDir ++ "/coop"),
       uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
-      uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
+      uMinAgreementDeltaERatchet
+        = mkPersistent
+            (mkRatchet . getSetting $ cMinAgreementDeltaERatchet)
+            (workDir ++ "/agree"),
       uClassifierR0Range = getSetting cClassifierR0Range,
       uClassifierDRange = getSetting cClassifierDRange,
       uDeciderR0Range = getSetting cDeciderR0Range,
@@ -271,3 +274,49 @@ config2Universe getSetting =
   where en = getSetting cExperimentName
         workDir = getSetting cWorkingDir
         imageDir = getSetting cImageDir
+
+getCooperationDeltaE :: StateT (Universe a) IO Double
+getCooperationDeltaE = fmap currentValue $ withCooperationDeltaE getPS
+
+canAdjustCooperationDeltaE :: StateT (Universe a) IO Bool
+canAdjustCooperationDeltaE = withCooperationDeltaE . runPS $ canAdjust
+
+adjustCooperationDeltaE
+  :: (A.Agent a, D.SizedRecord a)
+    => StateT (Universe a) IO ()
+adjustCooperationDeltaE = do
+  x <- withCooperationDeltaE getPS
+  withCooperationDeltaE . modifyPS $ adjust
+  x' <- withCooperationDeltaE getPS
+  U.writeToLog $
+    "Min agreement Δe changed from " ++ show x ++ " to " ++ show x'
+
+withCooperationDeltaE
+  :: Monad m => StateT (Persistent Ratchet) m b -> StateT (Universe a) m b
+withCooperationDeltaE f = do
+  u <- get
+  stateMap (\x -> u { uCooperationDeltaERatchet = x })
+        uCooperationDeltaERatchet f
+
+getMinAgreementDeltaE :: StateT (Universe a) IO Double
+getMinAgreementDeltaE = fmap currentValue $ withCooperationDeltaE getPS
+
+canAdjustMinAgreementDeltaE :: StateT (Universe a) IO Bool
+canAdjustMinAgreementDeltaE = withMinAgreementDeltaE . runPS $ canAdjust
+
+adjustMinAgreementDeltaE
+  :: (A.Agent a, D.SizedRecord a)
+    => StateT (Universe a) IO ()
+adjustMinAgreementDeltaE = do
+  x <- withMinAgreementDeltaE getPS
+  withMinAgreementDeltaE . modifyPS $ adjust
+  x' <- withMinAgreementDeltaE getPS
+  U.writeToLog $
+    "Min agreement Δe changed from " ++ show x ++ " to " ++ show x'
+
+withMinAgreementDeltaE
+  :: Monad m => StateT (Persistent Ratchet) m b -> StateT (Universe a) m b
+withMinAgreementDeltaE f = do
+  u <- get
+  stateMap (\x -> u { uMinAgreementDeltaERatchet = x })
+        uMinAgreementDeltaERatchet f

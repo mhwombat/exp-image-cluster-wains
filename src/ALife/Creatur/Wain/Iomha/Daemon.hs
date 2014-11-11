@@ -18,7 +18,8 @@ import ALife.Creatur.Daemon (CreaturDaemon(..), Job(..),
   simpleDaemon, launch)
 import ALife.Creatur.Task (runInteractingAgents, simpleJob)
 import ALife.Creatur.Wain (programVersion)
-import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound)
+import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound,
+  adjustEnvironment)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
   writeToLog, replenishEnergyPool, loadUniverse)
 import Control.Concurrent (MVar, newMVar, readMVar, swapMVar)
@@ -50,6 +51,7 @@ startRoundProgram :: StateT (Universe ImageWain) IO ()
 startRoundProgram = do
   p <- gets uEnergyPoolSize
   replenishEnergyPool p
+  adjustEnvironment
 
 endRoundProgram :: StateT (Universe ImageWain) IO ()
 endRoundProgram = do

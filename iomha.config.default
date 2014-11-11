@@ -61,33 +61,6 @@ energyCostPerByte=-1.0e-7
 childCostFactor=0.2
 
 #####
-# Easement period
-#####
-
-# A new population may not be able to agree on enough
-# classifications to survive. The "easement period" is a time
-# during which the wains are given higher energy rewards,
-# buying them some extra time to agree on a classification
-# scheme.
-easementTime=100
-
-# Controls the energy bonus given during the easement period
-# to any wains that agree on a classification. At the beginning
-# of the easement period, the bonus is the value specified below.
-# The bonus decreases linearly with time, so that by the end
-# of the easement period (and thereafter), it is zero.
-# This is normally an energy GAIN, so it should be positive.
-easementCooperationDeltaE=0.1
-
-# Controls the energy bonus given during the easement period
-# to any wains that choose to co-operate. At the beginning of
-# the easement period, the bonus is the value specified below.
-# The bonus decreases linearly with time, so that by the end
-# of the easement period (and thereafter), it is zero.
-# This is normally an energy GAIN, so it should be positive.
-easementAgreementDeltaE=0.9
-
-#####
 # Reproduction
 #####
 
@@ -103,7 +76,7 @@ flirtingDeltaE=-1.0e-2
 # When an agent initiates co-operation (trading classifications),
 # its energy changes by a fixed amount.
 # This is normally an energy LOSS, so it should be negative.
-cooperationDeltaE=-1.0e-2
+cooperationDeltaERatchet=RatchetSpec 0.1 (-0.01) (-0.01)
 
 # When two agents co-operate, and agree on a classification,
 # their energy changes by this amount, multiplied by the
@@ -116,7 +89,7 @@ noveltyBasedAgreementDeltaE=0.5
 # their energy changes by this amount.
 # This is in addition to the energy change based on novelty.
 # This is normally an energy GAIN, so it should be positive.
-minAgreementDeltaE=0.5
+minAgreementDeltaERatchet=RatchetSpec 1 0.12 (-0.01)
 
 #####
 # Configuring the initial gene pool
