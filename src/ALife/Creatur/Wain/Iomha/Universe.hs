@@ -289,7 +289,7 @@ adjustCooperationDeltaE = do
   withCooperationDeltaE . modifyPS $ adjust
   x' <- withCooperationDeltaE getPS
   U.writeToLog $
-    "Min agreement Δe changed from " ++ show (currentValue x)
+    "Co-operation Δe changed from " ++ show (currentValue x)
       ++ " to " ++ show (currentValue x')
 
 withCooperationDeltaE
