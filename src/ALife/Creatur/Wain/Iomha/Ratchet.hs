@@ -36,7 +36,13 @@ mkRatchet :: RatchetSpec -> Ratchet
 mkRatchet (RatchetSpec a b d) = Ratchet b d a
 
 canAdjust :: Ratchet -> Bool
-canAdjust r = rCurrent r < rStop r
+canAdjust r =
+  if rDelta r >= 0
+     -- going up
+    then rCurrent r < rStop r
+    -- going down
+    else rCurrent r > rStop r
+  
 
 adjust :: Ratchet -> Ratchet
 adjust r =

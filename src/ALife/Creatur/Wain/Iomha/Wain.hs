@@ -661,6 +661,7 @@ writeRawStats n f xs = do
 
 adjustEnvironment :: StateT (U.Universe ImageWain) IO ()
 adjustEnvironment = do
+  U.writeToLog "Evaluating environment harshness"
   p <- U.popSize
   (a, b) <- gets U.uPopulationSizeRange
   let midpoint = (fromIntegral a + fromIntegral b)/2 :: Double
@@ -668,6 +669,7 @@ adjustEnvironment = do
 
 makeEnvironmentHarsher :: StateT (U.Universe ImageWain) IO ()
 makeEnvironmentHarsher = do
+  U.writeToLog "Environment may need to be harsher"
   ifM U.canAdjustCooperationDeltaE
     U.adjustCooperationDeltaE
     $ ifM U.canAdjustMinAgreementDeltaE
