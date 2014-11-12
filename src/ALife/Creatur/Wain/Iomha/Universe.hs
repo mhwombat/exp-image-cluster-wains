@@ -289,7 +289,8 @@ adjustCooperationDeltaE = do
   withCooperationDeltaE . modifyPS $ adjust
   x' <- withCooperationDeltaE getPS
   U.writeToLog $
-    "Min agreement Δe changed from " ++ show x ++ " to " ++ show x'
+    "Min agreement Δe changed from " ++ show (currentValue x)
+      ++ " to " ++ show (currentValue x')
 
 withCooperationDeltaE
   :: Monad m => StateT (Persistent Ratchet) m b -> StateT (Universe a) m b

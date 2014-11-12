@@ -671,7 +671,9 @@ makeEnvironmentHarsher :: StateT (U.Universe ImageWain) IO ()
 makeEnvironmentHarsher = do
   U.writeToLog "Environment may need to be harsher"
   ifM U.canAdjustCooperationDeltaE
-    U.adjustCooperationDeltaE
-    $ ifM U.canAdjustMinAgreementDeltaE
-         U.adjustMinAgreementDeltaE
-         (U.writeToLog "Environment is maximally harsh")
+    (U.adjustCooperationDeltaE
+      >> U.writeToLog "Adjusting cooperation Δe")
+    (ifM U.canAdjustMinAgreementDeltaE
+       (U.adjustMinAgreementDeltaE
+         >> U.writeToLog "Adjusting agreement Δe")
+       (U.writeToLog "Environment is maximally harsh"))
