@@ -18,8 +18,7 @@ import ALife.Creatur.Daemon (CreaturDaemon(..), Job(..),
   simpleDaemon, launch)
 import ALife.Creatur.Task (runInteractingAgents, simpleJob)
 import ALife.Creatur.Wain (programVersion)
-import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound,
-  adjustEnvironment)
+import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
   writeToLog, replenishEnergyPool, loadUniverse)
 import Control.Concurrent (MVar, newMVar, readMVar, swapMVar)
@@ -48,15 +47,10 @@ shutdownHandler programName u = do
     return ()
 
 startRoundProgram :: StateT (Universe ImageWain) IO ()
-startRoundProgram = do
-  p <- gets uEnergyPoolSize
-  replenishEnergyPool p
-  adjustEnvironment
+startRoundProgram = gets uEnergyPoolSize >>= replenishEnergyPool
 
 endRoundProgram :: StateT (Universe ImageWain) IO ()
-endRoundProgram = do
-  f <- gets uStatsFile
-  finishRound f
+endRoundProgram = gets uStatsFile >>= finishRound
 
 main :: IO ()
 main = do

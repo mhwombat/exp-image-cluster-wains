@@ -549,7 +549,9 @@ finishRound f = do
   xss <- readStats f
   let yss = summarise xss
   printStats yss
-  checkStats . concat $ yss
+  let zs = concat yss
+  checkStats zs
+  adjustEnvironment zs
   clearStats f
 
 printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
@@ -659,13 +661,19 @@ writeRawStats n f xs = do
   liftIO . appendFile f $
     "time=" ++ show t ++ ",agent=" ++ n ++ ',':raw xs ++ "\n"
 
-adjustEnvironment :: StateT (U.Universe ImageWain) IO ()
-adjustEnvironment = do
+adjustEnvironment
+  :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
+adjustEnvironment xs = do
   U.writeToLog "Evaluating environment harshness"
-  p <- U.popSize
-  (a, b) <- gets U.uPopulationSizeRange
-  let midpoint = (fromIntegral a + fromIntegral b)/2 :: Double
-  when (fromIntegral p > midpoint) makeEnvironmentHarsher
+  trigger <- gets U.uNetDeltaETrigger
+  case lookup "avg. net Δe" xs of
+    Just x -> when (x > trigger) $ makeEnvironmentHarsher
+    Nothing -> return ()
+  -- p <- U.popSize
+  -- (a, b) <- gets U.uPopulationSizeRange
+  -- let midpoint = (fromIntegral a + fromIntegral b)/2 :: Double
+  -- when (fromIntegral p > midpoint) makeEnvironmentHarsher
+
 
 makeEnvironmentHarsher :: StateT (U.Universe ImageWain) IO ()
 makeEnvironmentHarsher = do
