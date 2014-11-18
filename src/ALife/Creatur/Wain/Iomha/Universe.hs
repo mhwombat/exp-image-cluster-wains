@@ -20,9 +20,6 @@ module ALife.Creatur.Wain.Iomha.Universe
   (
     Universe(..),
     loadUniverse,
-    Ratchet,
-    Checkpoint(..),
-    Limit(..),
     getCooperationDeltaE,
     canAdjustCooperationDeltaE,
     adjustCooperationDeltaE,
@@ -52,8 +49,9 @@ import ALife.Creatur.Persistent (Persistent, mkPersistent, getPS,
   modifyPS, runPS)
 import qualified ALife.Creatur.Universe as U
 import ALife.Creatur.Util (stateMap)
+import qualified ALife.Creatur.Wain.Checkpoint as CP
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
-import ALife.Creatur.Wain.Iomha.Ratchet
+import ALife.Creatur.Wain.Ratchet
   (RatchetSpec, Ratchet, mkRatchet, canAdjust, adjust, currentValue)
 import Control.Exception (SomeException, try)
 import Control.Monad.State.Lazy (StateT, get)
@@ -61,11 +59,6 @@ import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
 import Data.Word (Word16)
 import System.Directory (makeRelativeToCurrentDirectory)
-
-data Checkpoint = Check Int String Limit deriving (Show, Read)
-
-data Limit = In (Double, Double) | GE Double | LE Double
-  deriving (Show, Read)
 
 data Universe a = Universe
   {
@@ -102,7 +95,7 @@ data Universe a = Universe
     uDeciderR0Range :: (Double,Double),
     uDeciderDRange :: (Double,Double),
     uNetDeltaETrigger :: Double,
-    uCheckpoints :: [Checkpoint]
+    uCheckpoints :: [CP.Checkpoint]
   } deriving Show
 
 instance (A.Agent a, D.SizedRecord a) => U.Universe (Universe a) where
@@ -215,7 +208,7 @@ cDeciderDRange = requiredSetting "deciderDecayRange"
 cNetDeltaETrigger :: Setting Double
 cNetDeltaETrigger = requiredSetting "netDeltaETrigger"
 
-cCheckpoints :: Setting [Checkpoint]
+cCheckpoints :: Setting [CP.Checkpoint]
 cCheckpoints = requiredSetting "checkpoints"
 
 loadUniverse :: IO (Universe a)
@@ -260,14 +253,12 @@ config2Universe getSetting =
       uChildCostFactor = getSetting cChildCostFactor,
       uFlirtingDeltaE = getSetting cFlirtingDeltaE,
       uCooperationDeltaERatchet
-        = mkPersistent
-            (mkRatchet . getSetting $ cCooperationDeltaERatchet)
+        = readRatchet getSetting cCooperationDeltaERatchet
             (workDir ++ "/coop"),
       uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       uMinAgreementDeltaERatchet
-        = mkPersistent
-            (mkRatchet . getSetting $ cMinAgreementDeltaERatchet)
+        = readRatchet getSetting cMinAgreementDeltaERatchet
             (workDir ++ "/agree"),
       uClassifierR0Range = getSetting cClassifierR0Range,
       uClassifierDRange = getSetting cClassifierDRange,
@@ -279,6 +270,13 @@ config2Universe getSetting =
   where en = getSetting cExperimentName
         workDir = getSetting cWorkingDir
         imageDir = getSetting cImageDir
+
+readRatchet
+  :: (s -> RatchetSpec) -> s -> FilePath -> Persistent Ratchet
+readRatchet getSetting k f =
+  case (mkRatchet . getSetting $ k) of
+    Left  s -> error s
+    Right r -> mkPersistent r f
 
 getCooperationDeltaE :: StateT (Universe a) IO Double
 getCooperationDeltaE = fmap currentValue $ withCooperationDeltaE getPS

@@ -29,12 +29,12 @@ import Prelude hiding (lookup)
 import ALife.Creatur (agentId)
 import ALife.Creatur.Database (size)
 import ALife.Creatur.Util (stateMap)
-import ALife.Creatur.Task (requestShutdown)
 import ALife.Creatur.Wain (Wain(..), Label, adjustEnergy, adjustPassion,
   chooseAction, buildWainAndGenerateGenome, classify, teachLabel,
   incAge, weanMatureChildren, tryMating, energy,
   passion, hasLitter, reflect, incSwagger)
 import ALife.Creatur.Wain.Brain (classifier, buildBrain)
+import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import qualified ALife.Creatur.Wain.ClassificationMetrics as SQ
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
   randomExponential, buildGeneticSOM, numModels, counterMap)
@@ -550,7 +550,8 @@ finishRound f = do
   let yss = summarise xss
   printStats yss
   let zs = concat yss
-  checkStats zs
+  cs <- gets U.uCheckpoints
+  enforceAll zs cs
   adjustEnvironment zs
   clearStats f
 
@@ -558,29 +559,6 @@ printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
 printStats = mapM_ f
   where f xs = U.writeToLog $
                  "Summary - " ++ intercalate "," (map pretty xs)
-
-checkStats :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
-checkStats xs = do
-  cs <- gets U.uCheckpoints
-  mapM_ (checkStat xs) cs
-
-satisfies :: Double -> U.Limit -> Bool
-satisfies v (U.In (a,b)) = a <= v && v <= b
-satisfies v (U.GE x) = v >= x
-satisfies v (U.LE x) = v <= x
-
-fails :: Double -> U.Limit -> Bool
-fails v l = not $ v `satisfies` l
-
-checkStat
-  :: [Stats.Statistic] -> U.Checkpoint
-    -> StateT (U.Universe ImageWain) IO ()
-checkStat xs c@(U.Check start key lim) = do
-  t <- U.currentTime
-  case lookup key xs of
-    Just x -> when (t >= start && x `fails` lim) $ requestShutdown 
-               ("failed check " ++ show c ++ " " ++ key ++ "=" ++ show x)
-    Nothing -> requestShutdown $ "Cannot find statistic: " ++ key
 
 adjustSubjectEnergy
   :: Double -> Simple Lens Summary Double -> String
