@@ -1,4 +1,6 @@
-# Name of the experiment. Used in naming wains.
+# Name of the experiment. Used as the name of the daemon.
+# If you want to run multiple experiments simultaneously,
+# each must have a different name. Also used in naming wains.
 experimentName="Iomha"
 
 # The working directory, which contains all of the data for

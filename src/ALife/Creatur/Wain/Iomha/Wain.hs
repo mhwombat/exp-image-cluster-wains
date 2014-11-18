@@ -665,14 +665,13 @@ adjustEnvironment
   :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
 adjustEnvironment xs = do
   U.writeToLog "Evaluating environment harshness"
-  trigger <- gets U.uNetDeltaETrigger
+  deltaETrigger <- gets U.uNetDeltaETrigger
+  p <- U.popSize
+  popTrigger <- gets U.uPopulationSize  
   case lookup "avg. net Δe" xs of
-    Just x -> when (x > trigger) $ makeEnvironmentHarsher
+    Just e -> when (e > deltaETrigger && p > popTrigger) $
+               makeEnvironmentHarsher
     Nothing -> return ()
-  -- p <- U.popSize
-  -- (a, b) <- gets U.uPopulationSizeRange
-  -- let midpoint = (fromIntegral a + fromIntegral b)/2 :: Double
-  -- when (fromIntegral p > midpoint) makeEnvironmentHarsher
 
 
 makeEnvironmentHarsher :: StateT (U.Universe ImageWain) IO ()

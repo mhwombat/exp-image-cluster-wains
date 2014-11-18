@@ -17,13 +17,14 @@ import ALife.Creatur.Wain.Iomha.Wain (ImageWain, randomImageWain,
   printStats)
 import ALife.Creatur.Wain (adjustEnergy)
 import ALife.Creatur.Wain.Pretty (pretty)
+import ALife.Creatur.Wain.PersistentStatistics (clearStats)
 import ALife.Creatur.Wain.Statistics (Statistic, stats, summarise)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
   writeToLog, store, loadUniverse)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (evalRandIO)
 import Control.Monad.Random.Class (getRandomR)
-import Control.Monad.State.Lazy (StateT, evalStateT, get)
+import Control.Monad.State.Lazy (StateT, evalStateT, get, gets)
 
 introduceRandomAgent
   :: String -> StateT (Universe ImageWain) IO [Statistic]
@@ -52,6 +53,8 @@ introduceRandomAgents ns = do
   xs <- mapM introduceRandomAgent ns
   let yss = summarise xs
   printStats yss
+  statsFile <- gets uStatsFile
+  clearStats statsFile
   
 main :: IO ()
 main = do
