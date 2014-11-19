@@ -64,7 +64,7 @@ childCostFactor=0.2
 # Every time an agent flirts, its energy changes by a fixed
 # amount.
 # This is normally an energy LOSS, so it should be negative.
-flirtingDeltaE=-1.0e-2
+flirtingDeltaE=-0.01
 
 #####
 # Co-operation and agreement
@@ -73,7 +73,7 @@ flirtingDeltaE=-1.0e-2
 # When an agent initiates co-operation (trading classifications),
 # its energy changes by a fixed amount.
 # This is normally an energy LOSS, so it should be negative.
-cooperationDeltaERatchet=0.001
+cooperationDeltaE=0.001
 
 # When two agents co-operate, and agree on a classification,
 # their energy changes by this amount, multiplied by the

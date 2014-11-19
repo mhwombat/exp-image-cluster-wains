@@ -80,7 +80,6 @@ data Universe a = Universe
     uClassifierDRange :: (Double,Double),
     uDeciderR0Range :: (Double,Double),
     uDeciderDRange :: (Double,Double),
-    uNetDeltaETrigger :: Double,
     uCheckpoints :: [CP.Checkpoint]
   } deriving Show
 
@@ -194,9 +193,6 @@ cDeciderR0Range = requiredSetting "deciderR0Range"
 cDeciderDRange :: Setting (Double,Double)
 cDeciderDRange = requiredSetting "deciderDecayRange"
 
-cNetDeltaETrigger :: Setting Double
-cNetDeltaETrigger = requiredSetting "netDeltaETrigger"
-
 cCheckpoints :: Setting [CP.Checkpoint]
 cCheckpoints = requiredSetting "checkpoints"
 
@@ -250,7 +246,6 @@ config2Universe getSetting =
       uClassifierDRange = getSetting cClassifierDRange,
       uDeciderR0Range = getSetting cDeciderR0Range,
       uDeciderDRange = getSetting cDeciderDRange,
-      uNetDeltaETrigger = getSetting cNetDeltaETrigger,
       uCheckpoints = getSetting cCheckpoints
     }
   where en = getSetting cExperimentName
