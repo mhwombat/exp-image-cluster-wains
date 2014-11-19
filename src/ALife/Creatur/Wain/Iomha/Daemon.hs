@@ -16,11 +16,11 @@ module Main where
 import ALife.Creatur (programVersion)
 import ALife.Creatur.Daemon (CreaturDaemon(..), Job(..),
   simpleDaemon, launch)
-import ALife.Creatur.Task (runInteractingAgents, simpleJob)
+import ALife.Creatur.Task (runInteractingAgents, simpleJob, doNothing)
 import ALife.Creatur.Wain (programVersion)
 import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
-  writeToLog, replenishEnergyPool, loadUniverse)
+  writeToLog, loadUniverse)
 import Control.Concurrent (MVar, newMVar, readMVar, swapMVar)
 import Control.Monad (when)
 import Control.Monad.State (StateT, execStateT, gets)
@@ -46,11 +46,8 @@ shutdownHandler programName u = do
     _ <- swapMVar shutdownMessagePrinted True
     return ()
 
--- startRoundProgram :: StateT (Universe ImageWain) IO ()
--- startRoundProgram = gets uEnergyPoolSize >>= replenishEnergyPool
-
--- endRoundProgram :: StateT (Universe ImageWain) IO ()
--- endRoundProgram = gets uStatsFile >>= finishRound
+endRoundProgram :: StateT (Universe ImageWain) IO ()
+endRoundProgram = gets uStatsFile >>= finishRound
 
 main :: IO ()
 main = do
@@ -61,7 +58,7 @@ main = do
           ++ ", " ++ ALife.Creatur.programVersion
           ++ ", configuration=" ++ show universe
   let j = simpleJob
-        { task=runInteractingAgents program doNothing doNothing,
+        { task=runInteractingAgents program doNothing endRoundProgram,
           onStartup=startupHandler message,
           onShutdown=shutdownHandler message,
           sleepTime=uSleepBetweenTasks universe }
