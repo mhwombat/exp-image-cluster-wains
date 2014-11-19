@@ -26,6 +26,7 @@ module ALife.Creatur.Wain.Iomha.Wain
 
 import ALife.Creatur (agentId)
 import ALife.Creatur.Database (size)
+import ALife.Creatur.Task (checkPopSize)
 import ALife.Creatur.Util (stateMap)
 import ALife.Creatur.Wain (Wain(..), Label, adjustEnergy, adjustPassion,
   chooseAction, buildWainAndGenerateGenome, classify, teachLabel,
@@ -505,10 +506,10 @@ applyAgreementEffects noveltyToMe noveltyToOther = do
 controlPopSize :: StateT Experiment IO ()
 controlPopSize = do
   p <- withUniverse $ U.popSize
-  (a, b) <- fmap U.uPopulationAllowedRange $ use universe
-  shutdownIfNotIn p (a*p, b*p)
   (c, d) <- fmap U.uPopulationNormalRange $ use universe
-  adjustIfNotIn p (c*p, d*p)
+  adjustIfNotIn p (c, d)
+  (a, b) <- fmap U.uPopulationAllowedRange $ use universe
+  withUniverse $ checkPopSize (a, b)
 
 adjustIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
 adjustIfNotIn p (a, b)
@@ -518,16 +519,6 @@ adjustIfNotIn p (a, b)
   | p >= b     = do
       x <- fmap U.uOvercrowdingDeltaE $ use universe
       adjustSubjectEnergy x rOvercrowdingDeltaE "overcrowding"
-  | otherwise = return ()
-
-shutdownIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
-shutdownIfNotIn p (a, b)
-  | p <= a     = do
-      x <- fmap U.uUndercrowdingDeltaE $ use universe
-      adjustSubjectEnergy x rUndercrowdingDeltaE "population too small"
-  | p >= b     = do
-      x <- fmap U.uOvercrowdingDeltaE $ use universe
-      adjustSubjectEnergy x rOvercrowdingDeltaE "population too large"
   | otherwise = return ()
 
 flirt :: StateT Experiment IO ()
