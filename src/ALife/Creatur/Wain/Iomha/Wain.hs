@@ -21,11 +21,9 @@ module ALife.Creatur.Wain.Iomha.Wain
     energy,
     passion,
     schemaQuality,
-    adjustEnvironment,
     printStats
   ) where
 
-import Prelude hiding (lookup)
 import ALife.Creatur (agentId)
 import ALife.Creatur.Database (size)
 import ALife.Creatur.Util (stateMap)
@@ -49,8 +47,7 @@ import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
-import ALife.Creatur.Wain.Statistics (lookup, summarise)
-import Control.Conditional (ifM)
+import ALife.Creatur.Wain.Statistics (summarise)
 import Control.Lens hiding (Action, universe)
 import Control.Monad (replicateM, foldM, when)
 import Control.Monad.IO.Class (liftIO)
@@ -141,6 +138,8 @@ data Summary = Summary
     _rAgreementDeltaE :: Double,
     _rFlirtingDeltaE :: Double,
     _rMatingDeltaE :: Double,
+    _rUndercrowdingDeltaE :: Double,
+    _rOvercrowdingDeltaE :: Double,
     _rOtherMatingDeltaE :: Double,
     _rOtherAgreementDeltaE :: Double,
     _rNetSubjectDeltaE :: Double,
@@ -174,6 +173,8 @@ initSummary p = Summary
     _rAgreementDeltaE = 0,
     _rFlirtingDeltaE = 0,
     _rMatingDeltaE = 0,
+    _rUndercrowdingDeltaE = 0,
+    _rOvercrowdingDeltaE = 0,
     _rOtherMatingDeltaE = 0,
     _rOtherAgreementDeltaE = 0,
     _rNetSubjectDeltaE = 0,
@@ -209,6 +210,8 @@ summaryStats r =
     Stats.uiStat "agreement Δe" (view rAgreementDeltaE r),
     Stats.uiStat "flirting Δe" (view rFlirtingDeltaE r),
     Stats.uiStat "mating Δe" (view rMatingDeltaE r),
+    Stats.uiStat "undercrowding Δe" (view rUndercrowdingDeltaE r),
+    Stats.uiStat "overcrowding Δe" (view rOvercrowdingDeltaE r),
     Stats.uiStat "subject net Δe" (view rNetSubjectDeltaE r),
     Stats.uiStat "other mating Δe" (view rOtherMatingDeltaE r),
     Stats.uiStat "other agreement Δe" (view rOtherAgreementDeltaE r),
@@ -270,6 +273,7 @@ run' = do
   when (hasLitter a) applyChildrearingCost
   weanChildren
   applyMetabolismCost
+  controlPopSize
   incSubjectAge
   a' <- use subject
   withUniverse . U.writeToLog $ "End of " ++ agentId a ++ "'s turn"
@@ -297,6 +301,8 @@ fillInSummary s = s
           + _rAgreementDeltaE s
           + _rFlirtingDeltaE s
           + _rMatingDeltaE s
+          + _rUndercrowdingDeltaE s
+          + _rOvercrowdingDeltaE s
         otherDeltaE = _rOtherMatingDeltaE s
           + _rOtherAgreementDeltaE s
 
@@ -481,20 +487,48 @@ disagree aLabel aDiff bLabel bDiff = do
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
-  deltaE <- withUniverse U.getCooperationDeltaE
+  deltaE <- fmap U.uCooperationDeltaE $ use universe
   adjustSubjectEnergy deltaE rCoopDeltaE "cooperation"
   (summary.rCooperateCount) += 1
 
 applyAgreementEffects :: Double -> Double -> StateT Experiment IO ()
 applyAgreementEffects noveltyToMe noveltyToOther = do
   x <- fmap U.uNoveltyBasedAgreementDeltaE $ use universe
-  x0 <- withUniverse U.getMinAgreementDeltaE
+  x0 <- fmap U.uMinAgreementDeltaE $ use universe
   let reason = "agreement"
   let ra = x0 + x * noveltyToMe
   adjustSubjectEnergy ra rAgreementDeltaE reason
   let rb = x0 + x * noveltyToOther
   adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE reason
   (summary.rAgreeCount) += 1
+
+controlPopSize :: StateT Experiment IO ()
+controlPopSize = do
+  p <- withUniverse $ U.popSize
+  (a, b) <- fmap U.uPopulationAllowedRange $ use universe
+  shutdownIfNotIn p (a*p, b*p)
+  (c, d) <- fmap U.uPopulationNormalRange $ use universe
+  adjustIfNotIn p (c*p, d*p)
+
+adjustIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
+adjustIfNotIn p (a, b)
+  | p <= a     = do
+      x <- fmap U.uUndercrowdingDeltaE $ use universe
+      adjustSubjectEnergy x rUndercrowdingDeltaE "undercrowding"
+  | p >= b     = do
+      x <- fmap U.uOvercrowdingDeltaE $ use universe
+      adjustSubjectEnergy x rOvercrowdingDeltaE "overcrowding"
+  | otherwise = return ()
+
+shutdownIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
+shutdownIfNotIn p (a, b)
+  | p <= a     = do
+      x <- fmap U.uUndercrowdingDeltaE $ use universe
+      adjustSubjectEnergy x rUndercrowdingDeltaE "population too small"
+  | p >= b     = do
+      x <- fmap U.uOvercrowdingDeltaE $ use universe
+      adjustSubjectEnergy x rOvercrowdingDeltaE "population too large"
+  | otherwise = return ()
 
 flirt :: StateT Experiment IO ()
 flirt = do
@@ -552,7 +586,6 @@ finishRound f = do
   let zs = concat yss
   cs <- gets U.uCheckpoints
   enforceAll zs cs
-  adjustEnvironment zs
   clearStats f
 
 printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
@@ -603,7 +636,6 @@ adjustedDeltaE deltaE headroom =
   if deltaE <= 0
     then return deltaE
     else do
-      withUniverse . U.writeToLog $ "DEBUG headroom=" ++ show headroom
       let deltaE2 = min deltaE headroom
       when (deltaE2 < deltaE) $ do
         withUniverse . U.writeToLog $ "Wain at or near max energy, can only give "
@@ -638,27 +670,3 @@ writeRawStats n f xs = do
   t <- U.currentTime
   liftIO . appendFile f $
     "time=" ++ show t ++ ",agent=" ++ n ++ ',':raw xs ++ "\n"
-
-adjustEnvironment
-  :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
-adjustEnvironment xs = do
-  U.writeToLog "Evaluating environment harshness"
-  deltaETrigger <- gets U.uNetDeltaETrigger
-  p <- U.popSize
-  popTrigger <- gets U.uPopulationSize  
-  case lookup "avg. net Δe" xs of
-    Just e -> when (e > deltaETrigger && p > popTrigger) $
-               makeEnvironmentHarsher
-    Nothing -> return ()
-
-
-makeEnvironmentHarsher :: StateT (U.Universe ImageWain) IO ()
-makeEnvironmentHarsher = do
-  U.writeToLog "Environment may need to be harsher"
-  ifM U.canAdjustCooperationDeltaE
-    (U.adjustCooperationDeltaE
-      >> U.writeToLog "Adjusting cooperation Δe")
-    (ifM U.canAdjustMinAgreementDeltaE
-       (U.adjustMinAgreementDeltaE
-         >> U.writeToLog "Adjusting agreement Δe")
-       (U.writeToLog "Environment is maximally harsh"))

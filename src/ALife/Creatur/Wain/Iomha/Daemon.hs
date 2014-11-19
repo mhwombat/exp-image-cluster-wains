@@ -46,24 +46,22 @@ shutdownHandler programName u = do
     _ <- swapMVar shutdownMessagePrinted True
     return ()
 
-startRoundProgram :: StateT (Universe ImageWain) IO ()
-startRoundProgram = gets uEnergyPoolSize >>= replenishEnergyPool
+-- startRoundProgram :: StateT (Universe ImageWain) IO ()
+-- startRoundProgram = gets uEnergyPoolSize >>= replenishEnergyPool
 
-endRoundProgram :: StateT (Universe ImageWain) IO ()
-endRoundProgram = gets uStatsFile >>= finishRound
+-- endRoundProgram :: StateT (Universe ImageWain) IO ()
+-- endRoundProgram = gets uStatsFile >>= finishRound
 
 main :: IO ()
 main = do
   universe <- loadUniverse
   let program = run universe
-  let popRange = uPopulationSizeRange universe
   let message = "creatur-wains-iomha-" ++ showVersion version
           ++ ", compiled with " ++ ALife.Creatur.Wain.programVersion
           ++ ", " ++ ALife.Creatur.programVersion
           ++ ", configuration=" ++ show universe
   let j = simpleJob
-        { task=runInteractingAgents program popRange
-                 startRoundProgram endRoundProgram,
+        { task=runInteractingAgents program doNothing doNothing,
           onStartup=startupHandler message,
           onShutdown=shutdownHandler message,
           sleepTime=uSleepBetweenTasks universe }

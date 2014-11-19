@@ -23,21 +23,9 @@ imageWidth=1
 # Image height. All images must have the same dimensions.
 imageHeight=1
 
-# The daemon will stop if the population falls outside this
-# range. This gives you a chance to analyse the problem and
-# perhaps adjust your configuration.
-popSizeRange=(10,100)
-
-# Size of the initial population.
-initialPopSize=50
-
 # The number of times to reinforce (re-learn) an image label
 # when two wains agree on it.
 reinforcementCount=3
-
-# The amount of energy that can be awarded to wains in a
-# single round.
-energyPoolSize=1000.0
 
 #####
 # Metabolism
@@ -85,7 +73,7 @@ flirtingDeltaE=-1.0e-2
 # When an agent initiates co-operation (trading classifications),
 # its energy changes by a fixed amount.
 # This is normally an energy LOSS, so it should be negative.
-cooperationDeltaERatchet=RatchetSpec 0.1 (-0.01) (-0.01)
+cooperationDeltaERatchet=0.001
 
 # When two agents co-operate, and agree on a classification,
 # their energy changes by this amount, multiplied by the
@@ -98,12 +86,41 @@ noveltyBasedAgreementDeltaE=0.5
 # their energy changes by this amount.
 # This is in addition to the energy change based on novelty.
 # This is normally an energy GAIN, so it should be positive.
-minAgreementDeltaERatchet=RatchetSpec 1 0.12 (-0.01)
+minAgreementDeltaE=0.12
 
 # When the average energy change per wain rises above this
 # value, the environment will be made a bit harsher in the
 # next round.
 netDeltaETrigger=0.01
+
+#####
+# Population size control
+#####
+
+# Size of the initial population, and ideal size for the
+# population.
+desiredPopSize=50
+
+# The daemon will make adjustments (see undercrowdingDeltaE
+# and overcrowdingDeltaE) if the population falls outside this
+# range, which is expressed as a fraction of desiredPopSize.
+popNormalRange=(0.8,1.2)
+
+# The daemon will stop if the population falls outside this
+# range, which is expressed as a fraction of desiredPopSize.
+# This gives you a chance to analyse the problem and
+# perhaps adjust your configuration.
+popAllowedRange=(0.2,2)
+
+# Whenever the population is too small, the energy of 
+# remaining wains is changed by this amount.
+# This is normally an energy GAIN, so it should be positive.
+undercrowdingDeltaE=0.1
+
+# Whenever the population is too large, the energy of 
+# remaining wains is changed by this amount.
+# This is normally an energy LOSS, so it should be negative.
+overcrowdingDeltaE=-0.1
 
 #####
 # Configuring the initial gene pool

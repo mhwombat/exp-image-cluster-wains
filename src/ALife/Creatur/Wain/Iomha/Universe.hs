@@ -20,18 +20,11 @@ module ALife.Creatur.Wain.Iomha.Universe
   (
     Universe(..),
     loadUniverse,
-    getCooperationDeltaE,
-    canAdjustCooperationDeltaE,
-    adjustCooperationDeltaE,
-    getMinAgreementDeltaE,
-    canAdjustMinAgreementDeltaE,
-    adjustMinAgreementDeltaE,
     U.Agent,
     U.agentIds,
     U.currentTime,
     U.getAgent,
     U.popSize,
-    U.replenishEnergyPool,
     U.store,
     U.withdrawEnergy,
     U.writeToLog
@@ -44,17 +37,10 @@ import qualified ALife.Creatur.Counter as K
 import qualified ALife.Creatur.Database as D
 import qualified ALife.Creatur.Database.CachedFileSystem as CFS
 import qualified ALife.Creatur.Logger.SimpleLogger as SL
-import qualified ALife.Creatur.EnergyPool as E
-import ALife.Creatur.Persistent (Persistent, mkPersistent, getPS,
-  modifyPS, runPS)
 import qualified ALife.Creatur.Universe as U
-import ALife.Creatur.Util (stateMap)
 import qualified ALife.Creatur.Wain.Checkpoint as CP
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
-import ALife.Creatur.Wain.Ratchet
-  (RatchetSpec, Ratchet, mkRatchet, canAdjust, adjust, currentValue)
 import Control.Exception (SomeException, try)
-import Control.Monad.State.Lazy (StateT, get)
 import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
 import Data.Word (Word16)
@@ -68,7 +54,6 @@ data Universe a = Universe
     uDB :: CFS.CachedFSDatabase a,
     uNamer :: N.SimpleNamer,
     uChecklist :: CL.PersistentChecklist,
-    uEnergyPool :: E.PersistentEnergyPool,
     uStatsFile :: FilePath,
     uRawStatsFile :: FilePath,
     uSleepBetweenTasks :: Int,
@@ -80,16 +65,18 @@ data Universe a = Universe
     uDevotionRange :: (Double, Double),
     uMaturityRange :: (Word16, Word16),
     uPopulationSize :: Int,
-    uPopulationSizeRange :: (Int, Int),
+    uPopulationNormalRange :: (Int, Int),
+    uPopulationAllowedRange :: (Int, Int),
     uReinforcementCount :: Int,
-    uEnergyPoolSize :: Double,
     uBaseMetabolismDeltaE :: Double,
     uEnergyCostPerByte :: Double,
     uChildCostFactor :: Double,
     uFlirtingDeltaE :: Double,
-    uCooperationDeltaERatchet :: Persistent Ratchet,
+    uCooperationDeltaE :: Double,
     uNoveltyBasedAgreementDeltaE :: Double,
-    uMinAgreementDeltaERatchet :: Persistent Ratchet,
+    uMinAgreementDeltaE :: Double,
+    uUndercrowdingDeltaE :: Double,
+    uOvercrowdingDeltaE :: Double,
     uClassifierR0Range :: (Double,Double),
     uClassifierDRange :: (Double,Double),
     uDeciderR0Range :: (Double,Double),
@@ -115,9 +102,6 @@ instance (A.Agent a, D.SizedRecord a) => U.Universe (Universe a) where
   type Checklist (Universe a) = CL.PersistentChecklist
   checklist = uChecklist
   setChecklist u cl = u { uChecklist=cl }
-  type EnergyPool (Universe a) = E.PersistentEnergyPool
-  energyPool = uEnergyPool
-  setEnergyPool u cl = u { uEnergyPool=cl }
 
 requiredSetting :: String -> Setting a
 requiredSetting key
@@ -160,16 +144,16 @@ cMaturityRange :: Setting (Word16, Word16)
 cMaturityRange = requiredSetting "maturityRange"
 
 cPopulationSize :: Setting Int
-cPopulationSize = requiredSetting "initialPopSize"
+cPopulationSize = requiredSetting "desiredPopSize"
 
-cPopulationSizeRange :: Setting (Int, Int)
-cPopulationSizeRange = requiredSetting "popSizeRange"
+cPopulationNormalRange :: Setting (Int, Int)
+cPopulationNormalRange = requiredSetting "popNormalRange"
+
+cPopulationAllowedRange :: Setting (Int, Int)
+cPopulationAllowedRange = requiredSetting "popAllowedRange"
 
 cReinforcementCount :: Setting Int
 cReinforcementCount = requiredSetting "reinforcementCount"
-
-cEnergyPoolSize :: Setting Double
-cEnergyPoolSize = requiredSetting "energyPoolSize"
 
 cBaseMetabolismDeltaE :: Setting Double
 cBaseMetabolismDeltaE = requiredSetting "baseMetabDeltaE"
@@ -183,15 +167,21 @@ cChildCostFactor = requiredSetting "childCostFactor"
 cFlirtingDeltaE :: Setting Double
 cFlirtingDeltaE = requiredSetting "flirtingDeltaE"
 
-cCooperationDeltaERatchet :: Setting RatchetSpec
-cCooperationDeltaERatchet = requiredSetting "cooperationDeltaERatchet"
+cCooperationDeltaE :: Setting Double
+cCooperationDeltaE = requiredSetting "cooperationDeltaE"
 
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
   = requiredSetting "noveltyBasedAgreementDeltaE"
 
-cMinAgreementDeltaERatchet :: Setting RatchetSpec
-cMinAgreementDeltaERatchet = requiredSetting "minAgreementDeltaERatchet"
+cMinAgreementDeltaE :: Setting Double
+cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
+
+cUndercrowdingDeltaE :: Setting Double
+cUndercrowdingDeltaE = requiredSetting "undercrowdingDeltaE"
+
+cOvercrowdingDeltaE :: Setting Double
+cOvercrowdingDeltaE = requiredSetting "overcrowdingDeltaE"
 
 cClassifierR0Range :: Setting (Double,Double)
 cClassifierR0Range = requiredSetting "classifierR0Range"
@@ -233,7 +223,6 @@ config2Universe getSetting =
           (getSetting cCacheSize),
       uNamer = N.mkSimpleNamer (en ++ "_") (workDir ++ "/namer"),
       uChecklist = CL.mkPersistentChecklist (workDir ++ "/todo"),
-      uEnergyPool = E.mkPersistentEnergyPool (workDir ++ "/energy"),
       uStatsFile = workDir ++ "/statsFile",
       uRawStatsFile = workDir ++ "/rawStatsFile",
       uSleepBetweenTasks = getSetting cSleepBetweenTasks,
@@ -245,21 +234,19 @@ config2Universe getSetting =
       uDevotionRange = getSetting cDevotionRange,
       uMaturityRange = getSetting cMaturityRange,
       uPopulationSize = getSetting cPopulationSize,
-      uPopulationSizeRange = getSetting cPopulationSizeRange,
+      uPopulationNormalRange = getSetting cPopulationNormalRange,
+      uPopulationAllowedRange = getSetting cPopulationAllowedRange,
       uReinforcementCount = getSetting cReinforcementCount,
-      uEnergyPoolSize = getSetting cEnergyPoolSize,
       uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       uEnergyCostPerByte = getSetting cEnergyCostPerByte,
       uChildCostFactor = getSetting cChildCostFactor,
       uFlirtingDeltaE = getSetting cFlirtingDeltaE,
-      uCooperationDeltaERatchet
-        = readRatchet getSetting cCooperationDeltaERatchet
-            (workDir ++ "/coop"),
+      uCooperationDeltaE = getSetting cCooperationDeltaE,
       uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
-      uMinAgreementDeltaERatchet
-        = readRatchet getSetting cMinAgreementDeltaERatchet
-            (workDir ++ "/agree"),
+      uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
+      uUndercrowdingDeltaE = getSetting cUndercrowdingDeltaE,
+      uOvercrowdingDeltaE = getSetting cOvercrowdingDeltaE,
       uClassifierR0Range = getSetting cClassifierR0Range,
       uClassifierDRange = getSetting cClassifierDRange,
       uDeciderR0Range = getSetting cDeciderR0Range,
@@ -270,57 +257,3 @@ config2Universe getSetting =
   where en = getSetting cExperimentName
         workDir = getSetting cWorkingDir
         imageDir = getSetting cImageDir
-
-readRatchet
-  :: (s -> RatchetSpec) -> s -> FilePath -> Persistent Ratchet
-readRatchet getSetting k f =
-  case (mkRatchet . getSetting $ k) of
-    Left  s -> error s
-    Right r -> mkPersistent r f
-
-getCooperationDeltaE :: StateT (Universe a) IO Double
-getCooperationDeltaE = fmap currentValue $ withCooperationDeltaE getPS
-
-canAdjustCooperationDeltaE :: StateT (Universe a) IO Bool
-canAdjustCooperationDeltaE = withCooperationDeltaE . runPS $ canAdjust
-
-adjustCooperationDeltaE
-  :: (A.Agent a, D.SizedRecord a)
-    => StateT (Universe a) IO ()
-adjustCooperationDeltaE = do
-  x <- withCooperationDeltaE getPS
-  withCooperationDeltaE . modifyPS $ adjust
-  x' <- withCooperationDeltaE getPS
-  U.writeToLog $
-    "Co-operation Δe changed from " ++ show (currentValue x)
-      ++ " to " ++ show (currentValue x')
-
-withCooperationDeltaE
-  :: Monad m => StateT (Persistent Ratchet) m b -> StateT (Universe a) m b
-withCooperationDeltaE f = do
-  u <- get
-  stateMap (\x -> u { uCooperationDeltaERatchet = x })
-        uCooperationDeltaERatchet f
-
-getMinAgreementDeltaE :: StateT (Universe a) IO Double
-getMinAgreementDeltaE = fmap currentValue $ withCooperationDeltaE getPS
-
-canAdjustMinAgreementDeltaE :: StateT (Universe a) IO Bool
-canAdjustMinAgreementDeltaE = withMinAgreementDeltaE . runPS $ canAdjust
-
-adjustMinAgreementDeltaE
-  :: (A.Agent a, D.SizedRecord a)
-    => StateT (Universe a) IO ()
-adjustMinAgreementDeltaE = do
-  x <- withMinAgreementDeltaE getPS
-  withMinAgreementDeltaE . modifyPS $ adjust
-  x' <- withMinAgreementDeltaE getPS
-  U.writeToLog $
-    "Min agreement Δe changed from " ++ show x ++ " to " ++ show x'
-
-withMinAgreementDeltaE
-  :: Monad m => StateT (Persistent Ratchet) m b -> StateT (Universe a) m b
-withMinAgreementDeltaE f = do
-  u <- get
-  stateMap (\x -> u { uMinAgreementDeltaERatchet = x })
-        uMinAgreementDeltaERatchet f
