@@ -26,7 +26,6 @@ module ALife.Creatur.Wain.Iomha.Universe
     U.getAgent,
     U.popSize,
     U.store,
-    U.withdrawEnergy,
     U.writeToLog
   ) where
 
