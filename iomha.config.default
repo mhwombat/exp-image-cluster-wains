@@ -88,11 +88,6 @@ noveltyBasedAgreementDeltaE=0.5
 # This is normally an energy GAIN, so it should be positive.
 minAgreementDeltaE=0.12
 
-# When the average energy change per wain rises above this
-# value, the environment will be made a bit harsher in the
-# next round.
-netDeltaETrigger=0.01
-
 #####
 # Population size control
 #####

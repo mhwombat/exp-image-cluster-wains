@@ -144,10 +144,10 @@ cMaturityRange = requiredSetting "maturityRange"
 cPopulationSize :: Setting Int
 cPopulationSize = requiredSetting "desiredPopSize"
 
-cPopulationNormalRange :: Setting (Int, Int)
+cPopulationNormalRange :: Setting (Double, Double)
 cPopulationNormalRange = requiredSetting "popNormalRange"
 
-cPopulationAllowedRange :: Setting (Int, Int)
+cPopulationAllowedRange :: Setting (Double, Double)
 cPopulationAllowedRange = requiredSetting "popAllowedRange"
 
 cReinforcementCount :: Setting Int
