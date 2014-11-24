@@ -514,8 +514,10 @@ controlPopSize = do
 adjustIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
 adjustIfNotIn p (a, b)
   | p <= a     = do
-      x <- fmap U.uUndercrowdingDeltaE $ use universe
-      adjustSubjectEnergy x rUndercrowdingDeltaE "undercrowding"
+      w <- use subject
+      when (energy w < 0) $ do
+        x <- fmap U.uUndercrowdingDeltaE $ use universe
+        adjustSubjectEnergy x rUndercrowdingDeltaE "undercrowding"
   | p >= b     = do
       x <- fmap U.uOvercrowdingDeltaE $ use universe
       adjustSubjectEnergy x rOvercrowdingDeltaE "overcrowding"
