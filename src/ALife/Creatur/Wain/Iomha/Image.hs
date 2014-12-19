@@ -104,11 +104,11 @@ instance Pretty Image where
 instance Pattern Image where
   type Metric Image = Double
   difference a b = avgDelta / 255
-    where xs = take l $ pixels a ++ repeat 0
-          ys = take l $ pixels b ++ repeat 0
+    where xs = map fromIntegral . take l $ pixels a ++ repeat 0 :: [Double]
+          ys = map fromIntegral . take l $ pixels b ++ repeat 0 :: [Double]
           l = max (pixelCount a) (pixelCount b)
           diff = sum . map abs $ zipWith (-) xs ys
-          avgDelta = fromIntegral diff / fromIntegral l
+          avgDelta = diff / fromIntegral l
   makeSimilar target amount a
     = a { pixels=adjust (pixels target) amount (pixels a) }
 
@@ -146,11 +146,11 @@ readImage :: FilePath -> IO Image
 readImage filePath = do
   result <- P.readImage filePath
   case result of
-    Right x -> do
-      let (P.ImageY8 img) = x
+    Right (P.ImageY8 img) -> do
       let ps = toList $ P.imageData img
       return $ Image (P.imageWidth img) (P.imageHeight img) ps
       -- I.runIL $ fmap arrayToImage $ I.readImage filePath
+    Right _ -> error $ "Wrong image format: " ++ filePath
     Left msg -> error $ "Unable to read " ++ filePath ++ ": " ++ msg
   
 writeImage :: FilePath -> Image -> IO ()

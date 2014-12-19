@@ -13,16 +13,20 @@
 {-# LANGUAGE TypeFamilies, FlexibleContexts, NoMonomorphismRestriction, ScopedTypeVariables #-}
 module ALife.Creatur.Wain.Iomha.FMRI
   (
-    drawClassifier
+    drawClassifier,
+    writeFmri
   ) where
 
 import ALife.Creatur.Wain
+import ALife.Creatur.Wain.Brain (classifier)
+import ALife.Creatur.Wain.GeneticSOM (toList)
 import ALife.Creatur.Wain.Iomha.Image
 import Data.Colour.SRGB
 import Data.List.Split
 import Data.Word
 import Diagrams.Prelude
 import Diagrams.TwoD.Text
+import Diagrams.Backend.Cairo
 
 grey2colour :: Word8 -> Colour Double
 grey2colour x = sRGB x' x' x'
@@ -74,3 +78,8 @@ drawClassifier
   :: (Renderable Text b, Renderable (Path R2) b)
      => [(Label, Image)] -> Diagram b R2
 drawClassifier = mconcat . zipWith translateY [0,-1.2..] . map (alignL . drawRow) . chunksOf 6
+
+writeFmri :: Wain Image a -> FilePath -> IO ()
+writeFmri w f = renderCairo f ss diagram
+  where ss = mkSizeSpec (Just 500) Nothing
+        diagram = drawClassifier . toList . classifier . brain $ w :: Diagram B R2

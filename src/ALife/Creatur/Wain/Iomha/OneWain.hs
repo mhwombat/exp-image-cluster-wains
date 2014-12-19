@@ -56,7 +56,7 @@ initialResponses n = replicate 7 (initialResponse n)
 learnOne :: ImageWain -> (Image, String) -> IO ImageWain
 learnOne agent (img, imgName) = do
   putStrLn $ "Examining " ++ imgName
-  let (_, _, _, _, agent') = classify img agent
+  let (_, _, _, _, _, agent') = classify img agent
   return agent'
 
 learnBatch :: ImageWain -> ImageDB -> IO ImageWain

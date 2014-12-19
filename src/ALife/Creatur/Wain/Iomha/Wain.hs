@@ -43,6 +43,7 @@ import ALife.Creatur.Wain.Response (Response, randomResponse, action)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
+import qualified ALife.Creatur.Wain.Iomha.FMRI as F
 import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage, randomImage)
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
@@ -289,6 +290,15 @@ run' = do
   withUniverse $ updateStats agentStats sf
   rsf <- fmap U.uRawStatsFile $ use universe
   withUniverse $ writeRawStats (agentId a) rsf agentStats
+  writeFmri
+
+writeFmri :: StateT Experiment IO ()
+writeFmri = do
+  w <- use subject
+  t <- withUniverse U.currentTime
+  d <- fmap U.uFmriDir $ use universe
+  let f = d ++ "/" ++ name w ++ '_' : show t ++ ".png"
+  liftIO . F.writeFmri w $ f
 
 fillInSummary :: Summary -> Summary
 fillInSummary s = s
@@ -397,7 +407,7 @@ runAction Cooperate aLabel aDiff noveltyToMe = do
       withUniverse . U.writeToLog $ agentId a ++ " tells " ++ agentId b
         ++ " that image " ++ objectId dObj ++ " has label "
         ++ show aLabel
-      let (bLabel, bDiff, noveltyToOther, adjustedNoveltyToOther, b')
+      let (bLabel, bDiff, _, noveltyToOther, adjustedNoveltyToOther, b')
             = classify (objectAppearance dObj) b
       assign (summary.rOtherNovelty) noveltyToOther
       assign (summary.rOtherAdjustedNovelty) adjustedNoveltyToOther
