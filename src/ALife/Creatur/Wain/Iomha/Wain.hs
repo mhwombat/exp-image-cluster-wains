@@ -28,10 +28,9 @@ import ALife.Creatur (agentId)
 import ALife.Creatur.Database (size)
 import ALife.Creatur.Task (checkPopSize)
 import ALife.Creatur.Util (stateMap)
-import ALife.Creatur.Wain (Wain(..), Label, adjustEnergy, adjustPassion,
-  chooseAction, buildWainAndGenerateGenome, classify, teachLabel,
-  incAge, weanMatureChildren, tryMating, energy,
-  passion, hasLitter, reflect, incSwagger)
+import ALife.Creatur.Wain (Wain(..), adjustEnergy, adjustPassion,
+  chooseAction, buildWainAndGenerateGenome, incAge, weanMatureChildren,
+  tryMating, energy, passion, hasLitter, reflect)
 import ALife.Creatur.Wain.Brain (classifier, buildBrain)
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import qualified ALife.Creatur.Wain.ClassificationMetrics as SQ
@@ -51,7 +50,7 @@ import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
 import ALife.Creatur.Wain.Statistics (summarise)
 import Control.Lens hiding (Action, universe)
-import Control.Monad (replicateM, foldM, when)
+import Control.Monad (replicateM, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get,
@@ -268,8 +267,8 @@ run' = do
     ++ "'s turn ----------"
   withUniverse . U.writeToLog $ "At beginning of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty (Stats.stats a)
-  (imgLabel, diff, nov, r) <- chooseAction'
-  runAction (action r) imgLabel diff nov
+  (nov, r) <- chooseSubjectAction
+  runAction (action r) nov
   letSubjectReflect r
   adjustSubjectPassion
   when (hasLitter a) applyChildrearingCost
@@ -346,33 +345,53 @@ schemaQuality :: ImageWain -> Int
 schemaQuality
   = SQ.discrimination . elems . counterMap . classifier . brain
 
-chooseAction'
-  :: StateT Experiment IO (Label, Double, Double, Response Action)
-chooseAction' = do
+chooseSubjectAction
+  :: StateT Experiment IO (Double, Response Action)
+chooseSubjectAction = do
   a <- use subject
   dObj <- use directObject
   iObj <- use indirectObject
-  withUniverse . U.writeToLog $ agentId a ++ " sees " ++ objectId dObj
-    ++ " and " ++ objectId iObj
-  (dObjLabel, dObjDiff, dObjNovelty, dObjNoveltyAdj,
-    iObjLabel, _, iObjNovelty, iObjNoveltyAdj, r, a')
-    <- withUniverse $
-        chooseAction (objectAppearance dObj) (objectAppearance iObj) a
+  (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, a')
+    <- withUniverse $ chooseAction3 a dObj iObj
   assign (summary.rDirectObjectNovelty) dObjNovelty
   assign (summary.rDirectObjectAdjustedNovelty) dObjNoveltyAdj
   assign (summary.rIndirectObjectNovelty) iObjNovelty
   assign (summary.rIndirectObjectAdjustedNovelty) iObjNoveltyAdj
-  withUniverse . U.writeToLog $ "To " ++ agentId a ++ ", "
-    ++ objectId dObj ++ " has adjusted novelty " ++ show dObjNoveltyAdj
-  withUniverse . U.writeToLog $ "To " ++ agentId a ++ ", "
-    ++ objectId iObj ++ " has adjusted novelty " ++ show iObjNoveltyAdj
-  withUniverse . U.writeToLog $ agentId a ++ " labels "
-    ++ objectId dObj ++ " as " ++ show dObjLabel
-    ++ ", " ++ objectId iObj ++ " as " ++ show iObjLabel
-    ++ ", and chooses to "
-    ++ describe (objectId dObj) (objectId iObj) (action r)
   assign subject a'
-  return (dObjLabel, dObjDiff, dObjNovelty, r)
+  return (dObjNovelty, r)
+
+choosePartnerAction
+  :: StateT Experiment IO (Double, Response Action)
+choosePartnerAction = do
+  a <- use subject
+  dObj <- use directObject
+  (AObject b) <- use indirectObject
+  (dObjNovelty, dObjNoveltyAdj, _, _, r, b')
+    <- withUniverse $ chooseAction3 b dObj (AObject a)
+  assign (summary.rOtherNovelty) dObjNovelty
+  assign (summary.rOtherAdjustedNovelty) dObjNoveltyAdj
+  assign indirectObject (AObject b')
+  return (dObjNovelty, r)
+
+chooseAction3
+  :: ImageWain -> Object -> Object
+    -> StateT (U.Universe ImageWain) IO
+        (Double, Int, Double, Int, Response Action, ImageWain)
+chooseAction3 w dObj iObj = do
+  U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
+    ++ " and " ++ objectId iObj
+  (_, _, dObjNovelty, dObjNoveltyAdj,
+    _, _, iObjNovelty, iObjNoveltyAdj, r, w')
+      <- chooseAction (objectAppearance dObj) (objectAppearance iObj) w
+  U.writeToLog $ "To " ++ agentId w ++ ", "
+    ++ objectId dObj ++ " has adjusted novelty " ++ show dObjNoveltyAdj
+  U.writeToLog $ "To " ++ agentId w ++ ", "
+    ++ objectId iObj ++ " has adjusted novelty " ++ show iObjNoveltyAdj
+  U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
+    ++ " and chooses to "
+    ++ describe (action r)
+  return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
+  
 
 incSubjectAge :: StateT Experiment IO ()
 incSubjectAge = do
@@ -380,10 +399,10 @@ incSubjectAge = do
   a' <- withUniverse (incAge a)
   assign subject a'
 
-describe :: String -> String -> Action -> String
-describe _ iObj Cooperate = "share that classification with " ++ iObj
-describe _ _    Flirt = "flirt"
-describe _ _    Ignore = "do nothing"
+describe :: Action -> String
+describe Flirt = "flirt"
+describe Ignore = "do nothing"
+describe _ = "co-operate"
 
 chooseObjects :: [ImageWain] -> ImageDB -> StateT u IO (Object, Object)
 chooseObjects xs db = do
@@ -392,35 +411,12 @@ chooseObjects xs db = do
   (x:y:_) <- liftIO . randomlyInsertImages db . map AObject $ xs
   return (x, y)
 
-runAction :: Action -> Label -> Double -> Double -> StateT Experiment IO ()
+runAction :: Action -> Double -> StateT Experiment IO ()
 
---
--- Co-operate
---
-runAction Cooperate aLabel aDiff noveltyToMe = do
-  applyCooperationEffects
-  a <- use subject
-  dObj <- use directObject
-  iObj <- use indirectObject
-  case iObj of
-    AObject b   -> do
-      withUniverse . U.writeToLog $ agentId a ++ " tells " ++ agentId b
-        ++ " that image " ++ objectId dObj ++ " has label "
-        ++ show aLabel
-      let (bLabel, bDiff, _, noveltyToOther, adjustedNoveltyToOther, b')
-            = classify (objectAppearance dObj) b
-      assign (summary.rOtherNovelty) noveltyToOther
-      assign (summary.rOtherAdjustedNovelty) adjustedNoveltyToOther
-      assign indirectObject (AObject b')
-      if aLabel == bLabel
-        then agree aLabel noveltyToMe noveltyToOther
-        else disagree aLabel aDiff bLabel bDiff
-    IObject _ _ -> return ()
-  
 --
 -- Flirt
 --
-runAction Flirt _ _ _ = do
+runAction Flirt _ = do
   applyFlirtationEffects
   a <- use subject
   dObj <- use directObject
@@ -433,7 +429,7 @@ runAction Flirt _ _ _ = do
 --
 -- Ignore
 --
-runAction Ignore _ _ _ = do
+runAction Ignore _ = do
   a <- use subject
   dObj <- use directObject
   withUniverse . U.writeToLog $
@@ -441,60 +437,35 @@ runAction Ignore _ _ _ = do
   (summary.rIgnoreCount) += 1
 
 --
+-- Co-operate
+--
+runAction aAction noveltyToMe = do
+  applyCooperationEffects
+  a <- use subject
+  dObj <- use directObject
+  iObj <- use indirectObject
+  case iObj of
+    AObject b   -> do
+      withUniverse . U.writeToLog $ agentId a ++ " tells " ++ agentId b
+        ++ " that image " ++ objectId dObj ++ " has label "
+        ++ show aAction
+      (noveltyToOther, r) <- choosePartnerAction
+      let bAction = action r
+      if aAction == bAction
+        then do
+          withUniverse . U.writeToLog $ agentId b ++ " agrees with "
+            ++  agentId a ++ " that " ++ objectId dObj
+            ++ " has label " ++ show aAction
+          applyAgreementEffects noveltyToMe noveltyToOther
+        else
+          withUniverse . U.writeToLog $ agentId b ++ " disagrees with "
+            ++ agentId a ++ ", says that " ++ objectId dObj
+            ++ " has label " ++ show bAction
+    IObject _ _ -> return ()
+  
+--
 -- Utility functions
 --
-
-agree :: Label -> Double -> Double -> StateT Experiment IO ()
-agree label noveltyToMe noveltyToOther = do
-  a <- use subject
-  dObj <- use directObject
-  (AObject b) <- use indirectObject
-  let dObjApp = objectAppearance dObj
-  withUniverse . U.writeToLog $ agentId b ++ " agrees with "
-    ++  agentId a ++ " that " ++ objectId dObj ++ " has label "
-    ++ show label
-  a' <- withUniverse (reinforce label dObjApp a >>= incSwagger)
-  b' <- withUniverse (reinforce label dObjApp b >>= incSwagger)
-  assign subject a'
-  assign indirectObject (AObject b')
-  applyAgreementEffects noveltyToMe noveltyToOther
-
-reinforce
-  :: Label -> Image -> ImageWain
-    -> StateT (U.Universe ImageWain) IO ImageWain
-reinforce label app wain = do
-  n <- gets U.uReinforcementCount
-  let lessons = replicate n (app, label)
-  foldM (\w (a,l) -> teachLabel a l w) wain lessons
-
--- TODO: factor out common code in agree, disagree
-  
-disagree :: Label -> Double -> Label -> Double -> StateT Experiment IO ()
-disagree aLabel aDiff bLabel bDiff = do
-  a <- use subject
-  dObj <- use directObject
-  (AObject b) <- use indirectObject
-  let dObjApp = objectAppearance dObj
-  withUniverse . U.writeToLog $ agentId b ++ " disagrees with "
-    ++ agentId a ++ ", says that " ++ objectId dObj ++ " has label "
-    ++ show bLabel
-  if aDiff < bDiff
-    then do
-      withUniverse . U.writeToLog $ agentId b ++ " learns that "
-        ++ objectId dObj ++ " has label " ++ show aLabel
-      b' <- withUniverse $ teachLabel dObjApp aLabel b
-      assign indirectObject (AObject b')
-    else
-      -- if swagger b > swagger a
-      if swagger b > swagger a
-        then do
-          withUniverse . U.writeToLog $ agentId a ++ " learns that "
-            ++ objectId dObj ++ " has label " ++ show bLabel
-          a' <- withUniverse $ teachLabel dObjApp bLabel a
-          assign subject a'
-        else 
-          withUniverse . U.writeToLog $ agentId a ++ " and "
-            ++ agentId b ++ " tied"
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
