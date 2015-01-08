@@ -24,9 +24,13 @@ import GHC.Generics (Generic)
 import System.Random (Random, random, randomR)
 
 -- The actions are listed in order of decreasing genetic dominance.
-data Action = Cooperate_0 | Cooperate_1 | Cooperate_2 | Cooperate_3
-                | Cooperate_4 | Cooperate_5 | Cooperate_6 | Cooperate_7
-                | Cooperate_8 | Cooperate_9 | Flirt | Ignore
+data Action = Cooperate_a | Cooperate_b | Cooperate_c | Cooperate_d
+                | Cooperate_e | Cooperate_f | Cooperate_g | Cooperate_h
+                | Cooperate_i | Cooperate_j | Cooperate_k | Cooperate_l
+                | Cooperate_m | Cooperate_n | Cooperate_o | Cooperate_p
+                | Cooperate_q | Cooperate_r | Cooperate_s | Cooperate_t
+                | Cooperate_u | Cooperate_v | Cooperate_w | Cooperate_x
+                | Cooperate_y | Cooperate_z | Flirt | Ignore
   deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 instance Serialize Action
 instance Genetic Action
