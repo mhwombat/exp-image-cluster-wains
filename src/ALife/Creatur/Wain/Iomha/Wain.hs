@@ -34,7 +34,7 @@ import ALife.Creatur.Util (stateMap)
 import ALife.Creatur.Wain (Wain(..), adjustEnergy, adjustPassion,
   chooseAction, buildWainAndGenerateGenome, incAge, weanMatureChildren,
   tryMating, energy, passion, hasLitter, reflect)
-import ALife.Creatur.Wain.Brain (classifier, buildBrain)
+import ALife.Creatur.Wain.Brain (decider, buildBrain)
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import qualified ALife.Creatur.Wain.ClassificationMetrics as SQ
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
@@ -348,7 +348,7 @@ childRearingCost b f x a = x * (sum . map g $ litter a)
 
 schemaQuality :: ImageWain -> Int
 schemaQuality
-  = SQ.discrimination . elems . counterMap . classifier . brain
+  = SQ.discrimination . elems . counterMap . decider . brain
 
 chooseSubjectAction
   :: StateT Experiment IO (Double, Response Action)

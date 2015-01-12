@@ -68,7 +68,6 @@ data Universe a = Universe
     uPopulationSize :: Int,
     uPopulationNormalRange :: (Int, Int),
     uPopulationAllowedRange :: (Int, Int),
-    uReinforcementCount :: Int,
     uBaseMetabolismDeltaE :: Double,
     uEnergyCostPerByte :: Double,
     uChildCostFactor :: Double,
@@ -155,9 +154,6 @@ cPopulationNormalRange = requiredSetting "popNormalRange"
 cPopulationAllowedRange :: Setting (Double, Double)
 cPopulationAllowedRange = requiredSetting "popAllowedRange"
 
-cReinforcementCount :: Setting Int
-cReinforcementCount = requiredSetting "reinforcementCount"
-
 cBaseMetabolismDeltaE :: Setting Double
 cBaseMetabolismDeltaE = requiredSetting "baseMetabDeltaE"
 
@@ -238,7 +234,6 @@ config2Universe getSetting =
       uPopulationSize = p,
       uPopulationNormalRange = (a', b'),
       uPopulationAllowedRange = (c', d'),
-      uReinforcementCount = getSetting cReinforcementCount,
       uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       uEnergyCostPerByte = getSetting cEnergyCostPerByte,
       uChildCostFactor = getSetting cChildCostFactor,
