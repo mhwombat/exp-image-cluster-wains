@@ -13,7 +13,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE OverloadedStrings #-}
 module ALife.Creatur.Wain.Iomha.Universe
@@ -39,6 +38,7 @@ import qualified ALife.Creatur.Logger.SimpleLogger as SL
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Checkpoint as CP
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
+import Control.Applicative ((<$>))
 import Control.Exception (SomeException, try)
 import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
@@ -56,6 +56,7 @@ data Universe a = Universe
     uStatsFile :: FilePath,
     uRawStatsFile :: FilePath,
     uFmriDir :: FilePath,
+    uGenFmris :: Bool,
     uSleepBetweenTasks :: Int,
     uImageDB :: ImageDB,
     uImageWidth :: Int,
@@ -114,6 +115,9 @@ cWorkingDir = requiredSetting "workingDir"
 
 cCacheSize :: Setting Int
 cCacheSize = requiredSetting "cacheSize"
+
+cGenFmris :: Setting Bool
+cGenFmris = requiredSetting "genFMRIs"
 
 cSleepBetweenTasks :: Setting Int
 cSleepBetweenTasks = requiredSetting "sleepTimeBetweenTasks"
@@ -199,7 +203,7 @@ cCheckpoints = requiredSetting "checkpoints"
 
 loadUniverse :: IO (Universe a)
 loadUniverse = do
-  configFile <- fmap Path $ makeRelativeToCurrentDirectory "iomha.config"
+  configFile <- Path <$> makeRelativeToCurrentDirectory "iomha.config"
   readResult <- try $ readSettings configFile
   case readResult of
  	  Right (_, GetSetting getSetting) -> return $
@@ -222,6 +226,7 @@ config2Universe getSetting =
       uStatsFile = workDir ++ "/statsFile",
       uRawStatsFile = workDir ++ "/rawStatsFile",
       uFmriDir = workDir ++ "/log",
+      uGenFmris = getSetting cGenFmris,
       uSleepBetweenTasks = getSetting cSleepBetweenTasks,
       uImageDB = mkImageDB imageDir,
       uImageWidth = getSetting cImageWidth,

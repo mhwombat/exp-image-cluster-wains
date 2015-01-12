@@ -36,7 +36,7 @@ data ImageDB = ImageDB
   } deriving (Eq)
 
 instance Show ImageDB where
-  show db = mainDir db
+  show = mainDir
 
 -- | @'mkImageDB' d@ (re)creates the ImageDB in the
 --   directory @d@.

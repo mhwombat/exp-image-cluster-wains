@@ -10,7 +10,10 @@
 -- ???
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies, FlexibleContexts, NoMonomorphismRestriction, ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
 import ALife.Creatur.Wain
@@ -26,7 +29,7 @@ import System.Environment
 
 grey2colour :: Word8 -> Colour Double
 grey2colour x = sRGB x' x' x'
-  where x' = (fromIntegral x)/255
+  where x' = fromIntegral x / 255
 
 colour2square
   :: (HasStyle b, Transformable b, TrailLike b, V b ~ R2)

@@ -10,7 +10,8 @@
 -- The daemon that runs the Créatúr experiment.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Main where
 
 import ALife.Creatur (programVersion)
@@ -22,7 +23,7 @@ import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
   writeToLog, loadUniverse)
 import Control.Concurrent (MVar, newMVar, readMVar, swapMVar)
-import Control.Monad (when)
+import Control.Monad (unless)
 import Control.Monad.State (StateT, execStateT, gets)
 import Data.Version (showVersion)
 import Paths_creatur_wains_iomha (version)
@@ -30,6 +31,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import System.Posix.Daemonize (CreateDaemon(name))
 
 shutdownMessagePrinted :: MVar Bool
+{-# NOINLINE shutdownMessagePrinted #-}
 shutdownMessagePrinted = unsafePerformIO (newMVar False)
 
 startupHandler :: String -> Universe ImageWain -> IO (Universe ImageWain)
@@ -40,7 +42,7 @@ shutdownHandler :: String -> Universe ImageWain -> IO ()
 shutdownHandler programName u = do
   -- Only print the message once
   handled <- readMVar shutdownMessagePrinted
-  when (not handled) $ do
+  unless handled $ do
     _ <- execStateT (writeToLog $ "Shutdown requested for "
                       ++ programName) u
     _ <- swapMVar shutdownMessagePrinted True

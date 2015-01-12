@@ -10,7 +10,8 @@
 -- Image utilities.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.Iomha.Image
   (
     Image(..),

@@ -10,7 +10,10 @@
 -- ???
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies, FlexibleContexts, NoMonomorphismRestriction, ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module ALife.Creatur.Wain.Iomha.FMRI
   (
     drawClassifier,
@@ -30,7 +33,7 @@ import Diagrams.Backend.Cairo
 
 grey2colour :: Word8 -> Colour Double
 grey2colour x = sRGB x' x' x'
-  where x' = (fromIntegral x)/255
+  where x' = fromIntegral x / 255
 
 -- grey2colour :: Word8 -> AlphaColour Double
 -- grey2colour n = opaque $ sRGB24 (255 - n) (255 - n) (255 - n) 
@@ -65,7 +68,7 @@ drawNode
     => (Label, Image) -> Diagram b R2
 drawNode (index, img) = label `atop` pic `atop` area
   where area = rect 1 1.1 # lw none
-        label = translateY (0.475) $ text (show index) # fc black # fontSize (Local 0.08)
+        label = translateY 0.475 $ text (show index) # fc black # fontSize (Local 0.08)
         imgSizeSpec = mkSizeSpec (Just 0.95) (Just 0.95)
         pic = translateY 0.4 . centerX . sized imgSizeSpec $ image2diagram img
 

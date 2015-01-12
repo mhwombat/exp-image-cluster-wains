@@ -10,8 +10,11 @@
 -- A data mining agent, designed for the Créatúr framework.
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies, FlexibleContexts, ScopedTypeVariables,
-    TemplateHaskell, Rank2Types #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE Rank2Types #-}
 module ALife.Creatur.Wain.Iomha.Wain
   (
     ImageWain,
@@ -49,8 +52,10 @@ import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
 import ALife.Creatur.Wain.Statistics (summarise)
+import Control.Applicative ((<$>))
+import Control.Conditional (whenM)
 import Control.Lens hiding (Action, universe)
-import Control.Monad (replicateM, when)
+import Control.Monad (replicateM, when, unless)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get,
@@ -254,7 +259,7 @@ run u (me:xs) = do
   e' <- liftIO $ execStateT run' e
   let modifiedAgents = addIfAgent (view directObject e')
         . addIfAgent (view indirectObject e')
-            $ (view subject e'):(view weanlings e')
+            $ view subject e' : view weanlings e'
   U.writeToLog $
     "Modified agents: " ++ show (map agentId modifiedAgents)
   return modifiedAgents
@@ -281,21 +286,21 @@ run' = do
   -- assign (summary.rNetDeltaE) (energy a' - energy a)
   assign (summary.rSchemaQuality) (schemaQuality a')
   when (energy a' < 0) $ assign (summary.rDeathCount) 1
-  sf <- fmap U.uStatsFile $ use universe
-  agentStats <- fmap ((Stats.stats a' ++) . summaryStats . fillInSummary)
-                 $ use summary
+  sf <- U.uStatsFile <$> use universe
+  agentStats <- ((Stats.stats a' ++) . summaryStats . fillInSummary)
+                 <$> use summary
   withUniverse . U.writeToLog $ "At end of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty agentStats
   withUniverse $ updateStats agentStats sf
-  rsf <- fmap U.uRawStatsFile $ use universe
+  rsf <- U.uRawStatsFile <$> use universe
   withUniverse $ writeRawStats (agentId a) rsf agentStats
-  writeFmri
+  whenM (U.uGenFmris <$> use universe) writeFmri
 
 writeFmri :: StateT Experiment IO ()
 writeFmri = do
   w <- use subject
   t <- withUniverse U.currentTime
-  d <- fmap U.uFmriDir $ use universe
+  d <- U.uFmriDir <$> use universe
   let f = d ++ "/" ++ name w ++ '_' : show t ++ ".png"
   liftIO . F.writeFmri w $ f
 
@@ -319,17 +324,17 @@ fillInSummary s = s
 applyMetabolismCost :: StateT Experiment IO ()
 applyMetabolismCost = do
   a <- use subject
-  bms <- fmap U.uBaseMetabolismDeltaE $ use universe
-  cps <- fmap U.uEnergyCostPerByte $ use universe
+  bms <- U.uBaseMetabolismDeltaE <$> use universe
+  cps <- U.uEnergyCostPerByte <$> use universe
   let deltaE = metabolismCost bms cps a
   adjustSubjectEnergy deltaE rMetabolismDeltaE "metabolism"
 
 applyChildrearingCost :: StateT Experiment IO ()
 applyChildrearingCost = do
   a <- use subject
-  ccf <- fmap U.uChildCostFactor $ use universe
-  bms <- fmap U.uBaseMetabolismDeltaE $ use universe
-  cps <- fmap U.uEnergyCostPerByte $ use universe
+  ccf <- U.uChildCostFactor <$> use universe
+  bms <- U.uBaseMetabolismDeltaE <$> use universe
+  cps <- U.uEnergyCostPerByte <$> use universe
   let deltaE = childRearingCost bms cps ccf a
   adjustSubjectEnergy deltaE rChildRearingDeltaE "child rearing"
 
@@ -339,7 +344,7 @@ metabolismCost b f a = b + f*s
 
 childRearingCost :: Double -> Double -> Double -> ImageWain -> Double
 childRearingCost b f x a = x * (sum . map g $ litter a)
-    where g c = metabolismCost b f c
+    where g = metabolismCost b f
 
 schemaQuality :: ImageWain -> Int
 schemaQuality
@@ -422,9 +427,7 @@ runAction Flirt _ = do
   dObj <- use directObject
   withUniverse . U.writeToLog $
     agentId a ++ " flirts with " ++ objectId dObj
-  if isImage dObj
-    then return ()
-    else flirt
+  unless (isImage dObj) flirt
 
 --
 -- Ignore
@@ -469,14 +472,14 @@ runAction aAction noveltyToMe = do
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
-  deltaE <- fmap U.uCooperationDeltaE $ use universe
+  deltaE <- U.uCooperationDeltaE <$> use universe
   adjustSubjectEnergy deltaE rCoopDeltaE "cooperation"
   (summary.rCooperateCount) += 1
 
 applyAgreementEffects :: Double -> Double -> StateT Experiment IO ()
 applyAgreementEffects noveltyToMe noveltyToOther = do
-  x <- fmap U.uNoveltyBasedAgreementDeltaE $ use universe
-  x0 <- fmap U.uMinAgreementDeltaE $ use universe
+  x <- U.uNoveltyBasedAgreementDeltaE <$> use universe
+  x0 <- U.uMinAgreementDeltaE <$> use universe
   let reason = "agreement"
   let ra = x0 + x * noveltyToMe
   adjustSubjectEnergy ra rAgreementDeltaE reason
@@ -486,10 +489,10 @@ applyAgreementEffects noveltyToMe noveltyToOther = do
 
 controlPopSize :: StateT Experiment IO ()
 controlPopSize = do
-  p <- withUniverse $ U.popSize
-  (c, d) <- fmap U.uPopulationNormalRange $ use universe
+  p <- withUniverse U.popSize
+  (c, d) <- U.uPopulationNormalRange <$> use universe
   adjustIfNotIn p (c, d)
-  (a, b) <- fmap U.uPopulationAllowedRange $ use universe
+  (a, b) <- U.uPopulationAllowedRange <$> use universe
   withUniverse $ checkPopSize (a, b)
 
 adjustIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
@@ -497,10 +500,10 @@ adjustIfNotIn p (a, b)
   | p <= a     = do
       w <- use subject
       when (energy w < 0) $ do
-        x <- fmap U.uUndercrowdingDeltaE $ use universe
+        x <- U.uUndercrowdingDeltaE <$> use universe
         adjustSubjectEnergy x rUndercrowdingDeltaE "undercrowding"
   | p >= b     = do
-      x <- fmap U.uOvercrowdingDeltaE $ use universe
+      x <- U.uOvercrowdingDeltaE <$> use universe
       adjustSubjectEnergy x rOvercrowdingDeltaE "overcrowding"
   | otherwise = return ()
 
@@ -509,13 +512,11 @@ flirt = do
   a <- use subject
   (AObject b) <- use directObject
   (a':b':_, mated) <- withUniverse (tryMating a b)
-  if mated
-    then do
-      assign subject a'
-      assign directObject (AObject b')
-      recordBirths
-      applyMatingEffects a a' b b'
-    else return ()
+  when mated $ do
+    assign subject a'
+    assign directObject (AObject b')
+    recordBirths
+    applyMatingEffects a a' b b'
 
 recordBirths :: StateT Experiment IO ()
 recordBirths = do
@@ -524,7 +525,7 @@ recordBirths = do
 
 applyFlirtationEffects :: StateT Experiment IO ()
 applyFlirtationEffects = do
-  deltaE <- fmap U.uFlirtingDeltaE $ use universe
+  deltaE <- U.uFlirtingDeltaE <$> use universe
   adjustSubjectEnergy deltaE rFlirtingDeltaE "flirting"
   (summary.rFlirtCount) += 1
 
@@ -577,7 +578,7 @@ adjustSubjectEnergy deltaE selector reason = do
   -- assign (summary . selector) deltaE'
   (summary . selector) += deltaE'
   assign subject (adjustEnergy deltaE' x)
-  after <- fmap energy $ use subject
+  after <- energy <$> use subject
   reportAdjustment x reason before deltaE' after
 
 adjustObjectEnergy
@@ -611,7 +612,7 @@ adjustedDeltaE deltaE headroom =
     then return deltaE
     else do
       let deltaE2 = min deltaE headroom
-      when (deltaE2 < deltaE) $ do
+      when (deltaE2 < deltaE) $
         withUniverse . U.writeToLog $ "Wain at or near max energy, can only give "
           ++ show deltaE2
       return deltaE2
@@ -626,8 +627,8 @@ letSubjectReflect
   :: Response Action -> StateT Experiment IO ()
 letSubjectReflect r = do
   x <- use subject
-  p1 <- fmap objectAppearance $ use directObject
-  p2 <- fmap objectAppearance $ use indirectObject
+  p1 <- objectAppearance <$> use directObject
+  p2 <- objectAppearance <$> use indirectObject
   (x', err) <- withUniverse (reflect p1 p2 r x)
   assign subject x'
   assign (summary . rErr) err

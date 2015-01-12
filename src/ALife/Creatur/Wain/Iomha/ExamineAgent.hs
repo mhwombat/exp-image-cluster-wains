@@ -23,7 +23,6 @@ import ALife.Creatur.Wain.Iomha.Action
 import ALife.Creatur.Wain.Iomha.Wain
 import ALife.Creatur.Wain.Iomha.Universe
 import Control.Monad.State
-import Data.List
 import Data.Map.Strict (elems)
 import System.Environment
 import Text.Printf (printf)
@@ -78,7 +77,7 @@ examine a = do
   -- putStrLn $ show a
 
 prettyResponseModel :: (Label, Response Action) -> [String]
-prettyResponseModel (l, r) = do
+prettyResponseModel (l, r) =
   [ "Model " ++ show l,
     "Differences: "
       ++ formatVector "%5.3f" (Scenario.directObject . scenario $ r),
@@ -90,7 +89,7 @@ prettyResponseModel (l, r) = do
     "-----" ]
 
 formatVector :: String -> [Double] -> String
-formatVector fmt = intercalate " " . map (printf fmt)
+formatVector fmt = unwords . map (printf fmt)
 
 main :: IO ()
 main = do
