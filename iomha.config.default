@@ -26,10 +26,6 @@ imageWidth=1
 # Image height. All images must have the same dimensions.
 imageHeight=1
 
-# The number of times to reinforce (re-learn) an image label
-# when two wains agree on it.
-reinforcementCount=3
-
 #####
 # Metabolism
 #####
