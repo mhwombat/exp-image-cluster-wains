@@ -34,25 +34,24 @@ imageHeight=1
 # over larger agents, part of the metabolic cost is fixed.
 # Compare with maxSizeBasedMetabolismDeltaE.
 # This is normally an energy LOSS, so it should be negative.
-baseMetabDeltaE=-0.075
+baseMetabDeltaE=-0.049
 
 # To ensure that agents use resources efficiently, part of their
 # metabolic cost is based on their size.
 # This is normally an energy LOSS, so it should be negative.
 # To set this value, create the initial population and note the
 # "avg. size" value reported in the log summary.
-# Multiply the "avg. size" by -0.02 to get a good value for
+# Multiply the "avg. size" by -8e-14 to get a good value for
 # energyCostPerByte. (You can round it off, the exact value is
 # not critical.)
-# This will result in avg. metabolism Δe ≅ -0.1, at least for
+# This will result in avg. metabolism Δe ≅ -0.05, at least for
 # the first few rounds.
 energyCostPerByte=-1.0e-7
 
 # A wain rearing a child pays a fraction of the metabolic cost
 # that the child would pay if it were full-grown. It's only a
-# fraction because, biologically speaking, a child is only
-# completely helpless when it's small (so the resource
-# cost of raising it would be small).
+# fraction because children do not require as much processor 
+# time.
 # You probably won't need to alter this field.
 childCostFactor=0.2
 
@@ -99,22 +98,6 @@ desiredPopSize=50
 # and overcrowdingDeltaE) if the population falls outside this
 # range, which is expressed as a fraction of desiredPopSize.
 popNormalRange=(0.8,1.2)
-
-# The daemon will stop if the population falls outside this
-# range, which is expressed as a fraction of desiredPopSize.
-# This gives you a chance to analyse the problem and
-# perhaps adjust your configuration.
-popAllowedRange=(0.2,2)
-
-# Whenever the population is too small, the energy of 
-# remaining wains is changed by this amount.
-# This is normally an energy GAIN, so it should be positive.
-undercrowdingDeltaE=0.1
-
-# Whenever the population is too large, the energy of 
-# remaining wains is changed by this amount.
-# This is normally an energy LOSS, so it should be negative.
-overcrowdingDeltaE=-0.1
 
 #####
 # Configuring the initial gene pool

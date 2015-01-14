@@ -21,24 +21,21 @@ module ALife.Creatur.Wain.Iomha.Wain
     run,
     randomImageWain,
     finishRound,
-    energy,
-    passion,
     schemaQuality,
     printStats
   ) where
 
-import ALife.Creatur (agentId)
-import ALife.Creatur.Database (size)
+import ALife.Creatur (agentId, isAlive)
 import ALife.Creatur.Task (checkPopSize)
 import ALife.Creatur.Util (stateMap)
-import ALife.Creatur.Wain (Wain(..), adjustEnergy, adjustPassion,
-  chooseAction, buildWainAndGenerateGenome, incAge, weanMatureChildren,
-  tryMating, energy, passion, hasLitter, reflect)
-import ALife.Creatur.Wain.Brain (decider, buildBrain)
+import ALife.Creatur.Wain (Wain, buildWainAndGenerateGenome, appearance,
+  name, chooseAction, incAge, applyMetabolismCost, weanMatureChildren,
+  pruneDeadChildren, adjustEnergy, adjustPassion, reflect, tryMating,
+  litter, brain)
+import ALife.Creatur.Wain.Brain (decider, Brain(..))
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
-import qualified ALife.Creatur.Wain.ClassificationMetrics as SQ
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
-  randomExponential, buildGeneticSOM, numModels, counterMap)
+  randomExponential, buildGeneticSOM, numModels, schemaQuality)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action)
@@ -61,12 +58,10 @@ import Control.Monad.Random (Rand, RandomGen, getRandomR)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get,
   gets)
 import Data.List (intercalate)
-import Data.Map.Strict (elems)
 import Data.Word (Word16)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (dropFileName)
 import System.Random (randomIO, randomRIO)
-import Text.Printf (printf)
 
 data Object = IObject Image String | AObject ImageWain
 
@@ -121,7 +116,7 @@ randomImageWain wainName u classifierSize deciderSize = do
   fd <- randomExponential fdp
   xs <- replicateM (fromIntegral deciderSize) $
          randomResponse (numModels c) 
-  let b = buildBrain c (buildGeneticSOM fd xs)
+  let b = Brain c (buildGeneticSOM fd xs)
   d <- getRandomR (U.uDevotionRange u)
   m <- getRandomR (U.uMaturityRange u)
   p <- getRandomR unitInterval
@@ -139,7 +134,7 @@ data Summary = Summary
     _rOtherAdjustedNovelty :: Int,
     _rSchemaQuality :: Int,
     _rMetabolismDeltaE :: Double,
-    _rChildRearingDeltaE :: Double,
+    _rChildMetabolismDeltaE :: Double,
     _rCoopDeltaE :: Double,
     _rAgreementDeltaE :: Double,
     _rFlirtingDeltaE :: Double,
@@ -174,7 +169,7 @@ initSummary p = Summary
     _rOtherAdjustedNovelty = 0,
     _rSchemaQuality = 0,
     _rMetabolismDeltaE = 0,
-    _rChildRearingDeltaE = 0,
+    _rChildMetabolismDeltaE = 0,
     _rCoopDeltaE = 0,
     _rAgreementDeltaE = 0,
     _rFlirtingDeltaE = 0,
@@ -211,7 +206,7 @@ summaryStats r =
       (view rOtherAdjustedNovelty r),
     Stats.iStat "SQ" (view rSchemaQuality r),
     Stats.uiStat "metabolism Δe" (view rMetabolismDeltaE r),
-    Stats.uiStat "child rearing Δe" (view rChildRearingDeltaE r),
+    Stats.uiStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
     Stats.uiStat "cooperation Δe" (view rCoopDeltaE r),
     Stats.uiStat "agreement Δe" (view rAgreementDeltaE r),
     Stats.uiStat "flirting Δe" (view rFlirtingDeltaE r),
@@ -276,16 +271,13 @@ run' = do
   runAction (action r) nov
   letSubjectReflect r
   adjustSubjectPassion
-  when (hasLitter a) applyChildrearingCost
-  weanChildren
-  applyMetabolismCost
-  controlPopSize
+  runMetabolism
   incSubjectAge
   a' <- use subject
   withUniverse . U.writeToLog $ "End of " ++ agentId a ++ "'s turn"
   -- assign (summary.rNetDeltaE) (energy a' - energy a)
-  assign (summary.rSchemaQuality) (schemaQuality a')
-  when (energy a' < 0) $ assign (summary.rDeathCount) 1
+  assign (summary.rSchemaQuality) (schemaQuality . decider . brain $ a')
+  unless (isAlive a') $ assign (summary.rDeathCount) 1
   sf <- U.uStatsFile <$> use universe
   agentStats <- ((Stats.stats a' ++) . summaryStats . fillInSummary)
                  <$> use summary
@@ -295,6 +287,7 @@ run' = do
   rsf <- U.uRawStatsFile <$> use universe
   withUniverse $ writeRawStats (agentId a) rsf agentStats
   whenM (U.uGenFmris <$> use universe) writeFmri
+  updateChildren
 
 writeFmri :: StateT Experiment IO ()
 writeFmri = do
@@ -311,7 +304,7 @@ fillInSummary s = s
     _rNetDeltaE = myDeltaE + otherDeltaE
   }
   where myDeltaE = _rMetabolismDeltaE s
-          + _rChildRearingDeltaE s
+          + _rChildMetabolismDeltaE s
           + _rCoopDeltaE s
           + _rAgreementDeltaE s
           + _rFlirtingDeltaE s
@@ -321,34 +314,17 @@ fillInSummary s = s
         otherDeltaE = _rOtherMatingDeltaE s
           + _rOtherAgreementDeltaE s
 
-applyMetabolismCost :: StateT Experiment IO ()
-applyMetabolismCost = do
+runMetabolism :: StateT Experiment IO ()
+runMetabolism = do
   a <- use subject
   bms <- U.uBaseMetabolismDeltaE <$> use universe
   cps <- U.uEnergyCostPerByte <$> use universe
-  let deltaE = metabolismCost bms cps a
-  adjustSubjectEnergy deltaE rMetabolismDeltaE "metabolism"
-
-applyChildrearingCost :: StateT Experiment IO ()
-applyChildrearingCost = do
-  a <- use subject
   ccf <- U.uChildCostFactor <$> use universe
-  bms <- U.uBaseMetabolismDeltaE <$> use universe
-  cps <- U.uEnergyCostPerByte <$> use universe
-  let deltaE = childRearingCost bms cps ccf a
-  adjustSubjectEnergy deltaE rChildRearingDeltaE "child rearing"
-
-metabolismCost :: Double -> Double -> ImageWain -> Double
-metabolismCost b f a = b + f*s
-  where s = fromIntegral (size a)
-
-childRearingCost :: Double -> Double -> Double -> ImageWain -> Double
-childRearingCost b f x a = x * (sum . map g $ litter a)
-    where g = metabolismCost b f
-
-schemaQuality :: ImageWain -> Int
-schemaQuality
-  = SQ.discrimination . elems . counterMap . decider . brain
+  (a', adultCost, childCost)
+    <- withUniverse $ applyMetabolismCost bms cps ccf a
+  (summary . rMetabolismDeltaE) += adultCost
+  (summary . rChildMetabolismDeltaE) += childCost
+  assign subject a'
 
 chooseSubjectAction
   :: StateT Experiment IO (Double, Response Action)
@@ -487,36 +463,31 @@ applyAgreementEffects noveltyToMe noveltyToOther = do
   adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE reason
   (summary.rAgreeCount) += 1
 
-controlPopSize :: StateT Experiment IO ()
-controlPopSize = do
-  p <- withUniverse U.popSize
-  (c, d) <- U.uPopulationNormalRange <$> use universe
-  adjustIfNotIn p (c, d)
-  (a, b) <- U.uPopulationAllowedRange <$> use universe
-  withUniverse $ checkPopSize (a, b)
-
-adjustIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
-adjustIfNotIn p (a, b)
-  | p <= a     = do
-      w <- use subject
-      when (energy w < 0) $ do
-        x <- U.uUndercrowdingDeltaE <$> use universe
-        adjustSubjectEnergy x rUndercrowdingDeltaE "undercrowding"
-  | p >= b     = do
-      x <- U.uOvercrowdingDeltaE <$> use universe
-      adjustSubjectEnergy x rOvercrowdingDeltaE "overcrowding"
-  | otherwise = return ()
+-- adjustIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
+-- adjustIfNotIn p (a, b)
+--   | p <= a     = do
+--       w <- use subject
+--       unless (isAlive w) $ do
+--         x <- U.uUndercrowdingDeltaE <$> use universe
+--         adjustSubjectEnergy x rUndercrowdingDeltaE "undercrowding"
+--   | p >= b     = do
+--       x <- U.uOvercrowdingDeltaE <$> use universe
+--       adjustSubjectEnergy x rOvercrowdingDeltaE "overcrowding"
+--   | otherwise = return ()
 
 flirt :: StateT Experiment IO ()
 flirt = do
   a <- use subject
   (AObject b) <- use directObject
-  (a':b':_, mated) <- withUniverse (tryMating a b)
+  (a':b':_, mated, aMatingDeltaE, bMatingDeltaE)
+    <- withUniverse (tryMating a b)
   when mated $ do
     assign subject a'
     assign directObject (AObject b')
     recordBirths
-    applyMatingEffects a a' b b'
+    (summary . rMatingDeltaE) += aMatingDeltaE
+    (summary . rOtherMatingDeltaE) += bMatingDeltaE
+    (summary . rMateCount) += 1
 
 recordBirths :: StateT Experiment IO ()
 recordBirths = do
@@ -529,23 +500,14 @@ applyFlirtationEffects = do
   adjustSubjectEnergy deltaE rFlirtingDeltaE "flirting"
   (summary.rFlirtCount) += 1
 
-applyMatingEffects
-  :: ImageWain -> ImageWain -> ImageWain -> ImageWain -> StateT Experiment IO ()
-applyMatingEffects aBefore aAfter bBefore bAfter = do
-  let e1 = energy aAfter - energy aBefore
-  (summary . rMatingDeltaE) += e1
-  let e2 = energy bAfter - energy bBefore
-  (summary . rOtherMatingDeltaE) += e2
-  (summary . rMateCount) += 1
-  reportAdjustment aBefore "mating" (energy aBefore) e1 (energy aAfter)
-  reportAdjustment bBefore "mating" (energy bBefore) e2 (energy bAfter)
-
-weanChildren :: StateT Experiment IO ()
-weanChildren = do
-  (a:as) <- use subject >>= withUniverse . weanMatureChildren
+updateChildren :: StateT Experiment IO ()
+updateChildren = do
+  (a:matureChildren) <- use subject >>= withUniverse . weanMatureChildren
   assign subject a
-  assign weanlings as
-  (summary.rWeanCount) += length as
+  (a':deadChildren) <- use subject >>= withUniverse . pruneDeadChildren
+  assign subject a'
+  assign weanlings (matureChildren ++ deadChildren)
+  (summary.rWeanCount) += length matureChildren
 
 withUniverse
   :: Monad m => StateT (U.Universe ImageWain) m a -> StateT Experiment m a
@@ -562,6 +524,9 @@ finishRound f = do
   cs <- gets U.uCheckpoints
   enforceAll zs cs
   clearStats f
+  (a, b) <- gets U.uPopulationAllowedRange
+  checkPopSize (a, b)
+
 
 printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
 printStats = mapM_ f
@@ -573,13 +538,9 @@ adjustSubjectEnergy
     -> StateT Experiment IO ()
 adjustSubjectEnergy deltaE selector reason = do
   x <- use subject
-  let before = energy x
-  deltaE' <- adjustedDeltaE deltaE (1 - before)
-  -- assign (summary . selector) deltaE'
+  (x', deltaE') <- withUniverse $ adjustEnergy reason deltaE x
   (summary . selector) += deltaE'
-  assign subject (adjustEnergy deltaE' x)
-  after <- energy <$> use subject
-  reportAdjustment x reason before deltaE' after
+  assign subject x'
 
 adjustObjectEnergy
   :: Simple Lens Experiment Object -> Double
@@ -588,34 +549,10 @@ adjustObjectEnergy objectSelector deltaE statSelector reason = do
   x <- use objectSelector
   case x of
     AObject a -> do
-      let before = energy a
-      deltaE' <- adjustedDeltaE deltaE (1 - before)
+      (a', deltaE') <- withUniverse $ adjustEnergy reason deltaE a
       (summary . statSelector) += deltaE'
-      let a' = adjustEnergy deltaE' a
-      let after = energy a'
       assign objectSelector (AObject a')
-      reportAdjustment a reason before deltaE' after
     IObject _ _ -> return ()
-
-reportAdjustment
-  :: ImageWain -> String -> Double -> Double -> Double -> StateT Experiment IO ()
-reportAdjustment x reason before deltaE after =
-  withUniverse . U.writeToLog $ "Adjusted energy of " ++ agentId x
-    ++ " because of " ++ reason
-    ++ ". " ++ printf "%.3f" before ++ " + " ++ printf "%.3f" deltaE
-    ++ " = " ++ printf "%.3f" after
-
-adjustedDeltaE
-  :: Double -> Double -> StateT Experiment IO Double
-adjustedDeltaE deltaE headroom =
-  if deltaE <= 0
-    then return deltaE
-    else do
-      let deltaE2 = min deltaE headroom
-      when (deltaE2 < deltaE) $
-        withUniverse . U.writeToLog $ "Wain at or near max energy, can only give "
-          ++ show deltaE2
-      return deltaE2
 
 adjustSubjectPassion
   :: StateT Experiment IO ()

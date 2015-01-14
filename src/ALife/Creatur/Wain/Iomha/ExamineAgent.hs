@@ -58,7 +58,7 @@ examine a = do
   putStrLn $ "counts=" ++ show (elems . counterMap . classifier $ brain a)
   putStrLn $ "swagger: " ++ show (swagger a)
   putStrLn $ "size: " ++ show (wainSize a)
-  putStrLn $ "SQ: " ++ show (schemaQuality a)
+  putStrLn $ "SQ: " ++ show (schemaQuality . decider . brain $ a)
   putStrLn $ "Number of classifier models: " ++ show (numModels . classifier . brain $ a)
   putStrLn $ "Classifier learning function " ++ show (learningFunction . classifier . brain $ a)
   putStrLn $ "Number of decider models: " ++ show (numModels . decider . brain $ a)

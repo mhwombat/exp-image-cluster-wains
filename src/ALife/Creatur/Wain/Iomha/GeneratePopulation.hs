@@ -36,16 +36,16 @@ introduceRandomAgent name = do
   deciderSize
     <- liftIO . evalRandIO $
         getRandomR (uDeciderSizeRange u)
+  agent
+    <- liftIO $
+        evalRandIO (randomImageWain name u classifierSize deciderSize)
   -- Make the first generation a little hungry so they start learning
   -- immediately.
-  agent
-    <- fmap (adjustEnergy 0.8) . liftIO $
-        evalRandIO ( randomImageWain name u classifierSize
-                     deciderSize )
-  writeToLog $ "GeneratePopulation: Created " ++ agentId agent
-  writeToLog $ "GeneratePopulation: Stats " ++ pretty (stats agent)
-  store agent
-  return (stats agent)
+  (agent', _) <- adjustEnergy "initialise" 0.8 agent
+  writeToLog $ "GeneratePopulation: Created " ++ agentId agent'
+  writeToLog $ "GeneratePopulation: Stats " ++ pretty (stats agent')
+  store agent'
+  return (stats agent')
 
 introduceRandomAgents
   :: [String] -> StateT (Universe ImageWain) IO ()
