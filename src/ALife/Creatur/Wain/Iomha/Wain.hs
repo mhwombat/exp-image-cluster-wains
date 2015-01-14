@@ -145,6 +145,7 @@ data Summary = Summary
     _rOtherAgreementDeltaE :: Double,
     _rOtherChildAgreementDeltaE :: Double,
     _rNetDeltaE :: Double,
+    _rChildNetDeltaE :: Double,
     _rErr :: Double,
     _rBirthCount :: Int,
     _rWeanCount :: Int,
@@ -180,6 +181,7 @@ initSummary p = Summary
     _rOtherAgreementDeltaE = 0,
     _rOtherChildAgreementDeltaE = 0,
     _rNetDeltaE = 0,
+    _rChildNetDeltaE = 0,
     _rErr = 0,
     _rBirthCount = 0,
     _rWeanCount = 0,
@@ -205,19 +207,20 @@ summaryStats r =
     Stats.iStat "novelty to other (adj.)"
       (view rOtherAdjustedNovelty r),
     Stats.iStat "SQ" (view rSchemaQuality r),
-    Stats.uiStat "metabolism Δe" (view rMetabolismDeltaE r),
+    Stats.uiStat "adult metabolism Δe" (view rMetabolismDeltaE r),
     Stats.uiStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
-    Stats.uiStat "cooperation Δe" (view rCoopDeltaE r),
+    Stats.uiStat "adult cooperation Δe" (view rCoopDeltaE r),
     Stats.uiStat "child cooperation Δe" (view rChildCoopDeltaE r),
-    Stats.uiStat "agreement Δe" (view rAgreementDeltaE r),
+    Stats.uiStat "adult agreement Δe" (view rAgreementDeltaE r),
     Stats.uiStat "child agreement Δe" (view rChildAgreementDeltaE r),
-    Stats.uiStat "flirting Δe" (view rFlirtingDeltaE r),
-    Stats.uiStat "mating Δe" (view rMatingDeltaE r),
-    Stats.uiStat "other mating Δe" (view rOtherMatingDeltaE r),
-    Stats.uiStat "other agreement Δe" (view rOtherAgreementDeltaE r),
+    Stats.uiStat "adult flirting Δe" (view rFlirtingDeltaE r),
+    Stats.uiStat "adult mating Δe" (view rMatingDeltaE r),
+    Stats.uiStat "other adult mating Δe" (view rOtherMatingDeltaE r),
+    Stats.uiStat "other adult agreement Δe" (view rOtherAgreementDeltaE r),
     Stats.uiStat "other child agreement Δe"
       (view rOtherChildAgreementDeltaE r),
-    Stats.uiStat "net Δe" (view rNetDeltaE r),
+    Stats.uiStat "adult net Δe" (view rNetDeltaE r),
+    Stats.uiStat "child net Δe" (view rChildNetDeltaE r),
     Stats.uiStat "err" (view rErr r),
     Stats.iStat "bore" (view rBirthCount r),
     Stats.iStat "weaned" (view rWeanCount r),
@@ -301,17 +304,19 @@ writeFmri = do
 fillInSummary :: Summary -> Summary
 fillInSummary s = s
   {
-    _rNetDeltaE = myDeltaE + otherDeltaE
+    _rNetDeltaE = _rMetabolismDeltaE s
+         + _rCoopDeltaE s
+         + _rAgreementDeltaE s
+         + _rFlirtingDeltaE s
+         + _rMatingDeltaE s
+         + _rOtherMatingDeltaE s
+         + _rOtherAgreementDeltaE s, 
+    _rChildNetDeltaE = _rChildMetabolismDeltaE s
+         + _rChildCoopDeltaE s
+         + _rChildAgreementDeltaE s
+         + _rOtherChildAgreementDeltaE s
   }
-  where myDeltaE = _rMetabolismDeltaE s
-          + _rChildMetabolismDeltaE s
-          + _rCoopDeltaE s
-          + _rAgreementDeltaE s
-          + _rFlirtingDeltaE s
-          + _rMatingDeltaE s
-        otherDeltaE = _rOtherMatingDeltaE s
-          + _rOtherAgreementDeltaE s
-
+ 
 runMetabolism :: StateT Experiment IO ()
 runMetabolism = do
   a <- use subject
