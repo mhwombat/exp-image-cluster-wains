@@ -136,14 +136,14 @@ data Summary = Summary
     _rMetabolismDeltaE :: Double,
     _rChildMetabolismDeltaE :: Double,
     _rCoopDeltaE :: Double,
+    _rChildCoopDeltaE :: Double,
     _rAgreementDeltaE :: Double,
+    _rChildAgreementDeltaE :: Double,
     _rFlirtingDeltaE :: Double,
     _rMatingDeltaE :: Double,
-    _rUndercrowdingDeltaE :: Double,
-    _rOvercrowdingDeltaE :: Double,
     _rOtherMatingDeltaE :: Double,
     _rOtherAgreementDeltaE :: Double,
-    _rNetSubjectDeltaE :: Double,
+    _rOtherChildAgreementDeltaE :: Double,
     _rNetDeltaE :: Double,
     _rErr :: Double,
     _rBirthCount :: Int,
@@ -171,14 +171,14 @@ initSummary p = Summary
     _rMetabolismDeltaE = 0,
     _rChildMetabolismDeltaE = 0,
     _rCoopDeltaE = 0,
+    _rChildCoopDeltaE = 0,
     _rAgreementDeltaE = 0,
+    _rChildAgreementDeltaE = 0,
     _rFlirtingDeltaE = 0,
     _rMatingDeltaE = 0,
-    _rUndercrowdingDeltaE = 0,
-    _rOvercrowdingDeltaE = 0,
     _rOtherMatingDeltaE = 0,
     _rOtherAgreementDeltaE = 0,
-    _rNetSubjectDeltaE = 0,
+    _rOtherChildAgreementDeltaE = 0,
     _rNetDeltaE = 0,
     _rErr = 0,
     _rBirthCount = 0,
@@ -208,14 +208,15 @@ summaryStats r =
     Stats.uiStat "metabolism Δe" (view rMetabolismDeltaE r),
     Stats.uiStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
     Stats.uiStat "cooperation Δe" (view rCoopDeltaE r),
+    Stats.uiStat "child cooperation Δe" (view rChildCoopDeltaE r),
     Stats.uiStat "agreement Δe" (view rAgreementDeltaE r),
+    Stats.uiStat "child agreement Δe" (view rChildAgreementDeltaE r),
     Stats.uiStat "flirting Δe" (view rFlirtingDeltaE r),
     Stats.uiStat "mating Δe" (view rMatingDeltaE r),
-    Stats.uiStat "undercrowding Δe" (view rUndercrowdingDeltaE r),
-    Stats.uiStat "overcrowding Δe" (view rOvercrowdingDeltaE r),
-    Stats.uiStat "subject net Δe" (view rNetSubjectDeltaE r),
     Stats.uiStat "other mating Δe" (view rOtherMatingDeltaE r),
     Stats.uiStat "other agreement Δe" (view rOtherAgreementDeltaE r),
+    Stats.uiStat "other child agreement Δe"
+      (view rOtherChildAgreementDeltaE r),
     Stats.uiStat "net Δe" (view rNetDeltaE r),
     Stats.uiStat "err" (view rErr r),
     Stats.iStat "bore" (view rBirthCount r),
@@ -300,7 +301,6 @@ writeFmri = do
 fillInSummary :: Summary -> Summary
 fillInSummary s = s
   {
-    _rNetSubjectDeltaE = myDeltaE,
     _rNetDeltaE = myDeltaE + otherDeltaE
   }
   where myDeltaE = _rMetabolismDeltaE s
@@ -309,8 +309,6 @@ fillInSummary s = s
           + _rAgreementDeltaE s
           + _rFlirtingDeltaE s
           + _rMatingDeltaE s
-          + _rUndercrowdingDeltaE s
-          + _rOvercrowdingDeltaE s
         otherDeltaE = _rOtherMatingDeltaE s
           + _rOtherAgreementDeltaE s
 
@@ -449,7 +447,7 @@ runAction aAction noveltyToMe = do
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
   deltaE <- U.uCooperationDeltaE <$> use universe
-  adjustSubjectEnergy deltaE rCoopDeltaE "cooperation"
+  adjustSubjectEnergy deltaE rCoopDeltaE rChildCoopDeltaE "cooperation"
   (summary.rCooperateCount) += 1
 
 applyAgreementEffects :: Double -> Double -> StateT Experiment IO ()
@@ -458,22 +456,11 @@ applyAgreementEffects noveltyToMe noveltyToOther = do
   x0 <- U.uMinAgreementDeltaE <$> use universe
   let reason = "agreement"
   let ra = x0 + x * noveltyToMe
-  adjustSubjectEnergy ra rAgreementDeltaE reason
+  adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE reason
   let rb = x0 + x * noveltyToOther
-  adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE reason
+  adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
+    rOtherChildAgreementDeltaE reason
   (summary.rAgreeCount) += 1
-
--- adjustIfNotIn :: Int -> (Int, Int) -> StateT Experiment IO ()
--- adjustIfNotIn p (a, b)
---   | p <= a     = do
---       w <- use subject
---       unless (isAlive w) $ do
---         x <- U.uUndercrowdingDeltaE <$> use universe
---         adjustSubjectEnergy x rUndercrowdingDeltaE "undercrowding"
---   | p >= b     = do
---       x <- U.uOvercrowdingDeltaE <$> use universe
---       adjustSubjectEnergy x rOvercrowdingDeltaE "overcrowding"
---   | otherwise = return ()
 
 flirt :: StateT Experiment IO ()
 flirt = do
@@ -497,7 +484,7 @@ recordBirths = do
 applyFlirtationEffects :: StateT Experiment IO ()
 applyFlirtationEffects = do
   deltaE <- U.uFlirtingDeltaE <$> use universe
-  adjustSubjectEnergy deltaE rFlirtingDeltaE "flirting"
+  adjustSubjectEnergy deltaE rFlirtingDeltaE undefined "flirting"
   (summary.rFlirtCount) += 1
 
 updateChildren :: StateT Experiment IO ()
@@ -534,23 +521,29 @@ printStats = mapM_ f
                  "Summary - " ++ intercalate "," (map pretty xs)
 
 adjustSubjectEnergy
-  :: Double -> Simple Lens Summary Double -> String
-    -> StateT Experiment IO ()
-adjustSubjectEnergy deltaE selector reason = do
+  :: Double -> Simple Lens Summary Double -> Simple Lens Summary Double
+    -> String -> StateT Experiment IO ()
+adjustSubjectEnergy deltaE adultSelector childSelector reason = do
   x <- use subject
-  (x', deltaE') <- withUniverse $ adjustEnergy reason deltaE x
-  (summary . selector) += deltaE'
+  (x', adultDeltaE, childDeltaE)
+     <- withUniverse $ adjustEnergy reason deltaE x
+  (summary . adultSelector) += adultDeltaE
+  (summary . childSelector) += childDeltaE
   assign subject x'
 
 adjustObjectEnergy
   :: Simple Lens Experiment Object -> Double
-    -> Simple Lens Summary Double -> String -> StateT Experiment IO ()
-adjustObjectEnergy objectSelector deltaE statSelector reason = do
+    -> Simple Lens Summary Double -> Simple Lens Summary Double -> String
+      -> StateT Experiment IO ()
+adjustObjectEnergy
+    objectSelector deltaE adultSelector childSelector reason = do
   x <- use objectSelector
   case x of
     AObject a -> do
-      (a', deltaE') <- withUniverse $ adjustEnergy reason deltaE a
-      (summary . statSelector) += deltaE'
+      (a', adultDeltaE, childDeltaE)
+        <- withUniverse $ adjustEnergy reason deltaE a
+      (summary . adultSelector) += adultDeltaE
+      (summary . childSelector) += childDeltaE
       assign objectSelector (AObject a')
     IObject _ _ -> return ()
 
