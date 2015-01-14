@@ -66,7 +66,6 @@ data Universe a = Universe
     uDevotionRange :: (Double, Double),
     uMaturityRange :: (Word16, Word16),
     uPopulationSize :: Int,
-    uPopulationNormalRange :: (Int, Int),
     uPopulationAllowedRange :: (Int, Int),
     uBaseMetabolismDeltaE :: Double,
     uEnergyCostPerByte :: Double,
@@ -75,8 +74,6 @@ data Universe a = Universe
     uCooperationDeltaE :: Double,
     uNoveltyBasedAgreementDeltaE :: Double,
     uMinAgreementDeltaE :: Double,
-    uUndercrowdingDeltaE :: Double,
-    uOvercrowdingDeltaE :: Double,
     uClassifierR0Range :: (Double,Double),
     uClassifierDRange :: (Double,Double),
     uDeciderR0Range :: (Double,Double),
@@ -148,9 +145,6 @@ cMaturityRange = requiredSetting "maturityRange"
 cPopulationSize :: Setting Int
 cPopulationSize = requiredSetting "desiredPopSize"
 
-cPopulationNormalRange :: Setting (Double, Double)
-cPopulationNormalRange = requiredSetting "popNormalRange"
-
 cPopulationAllowedRange :: Setting (Double, Double)
 cPopulationAllowedRange = requiredSetting "popAllowedRange"
 
@@ -175,12 +169,6 @@ cNoveltyBasedAgreementDeltaE
 
 cMinAgreementDeltaE :: Setting Double
 cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
-
-cUndercrowdingDeltaE :: Setting Double
-cUndercrowdingDeltaE = requiredSetting "undercrowdingDeltaE"
-
-cOvercrowdingDeltaE :: Setting Double
-cOvercrowdingDeltaE = requiredSetting "overcrowdingDeltaE"
 
 cClassifierR0Range :: Setting (Double,Double)
 cClassifierR0Range = requiredSetting "classifierR0Range"
@@ -232,8 +220,7 @@ config2Universe getSetting =
       uDevotionRange = getSetting cDevotionRange,
       uMaturityRange = getSetting cMaturityRange,
       uPopulationSize = p,
-      uPopulationNormalRange = (a', b'),
-      uPopulationAllowedRange = (c', d'),
+      uPopulationAllowedRange = (a', b'),
       uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       uEnergyCostPerByte = getSetting cEnergyCostPerByte,
       uChildCostFactor = getSetting cChildCostFactor,
@@ -242,8 +229,6 @@ config2Universe getSetting =
       uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
-      uUndercrowdingDeltaE = getSetting cUndercrowdingDeltaE,
-      uOvercrowdingDeltaE = getSetting cOvercrowdingDeltaE,
       uClassifierR0Range = getSetting cClassifierR0Range,
       uClassifierDRange = getSetting cClassifierDRange,
       uDeciderR0Range = getSetting cDeciderR0Range,
@@ -254,9 +239,6 @@ config2Universe getSetting =
         workDir = getSetting cWorkingDir
         imageDir = getSetting cImageDir
         p = getSetting cPopulationSize
-        (a, b) = getSetting cPopulationNormalRange
-        (c, d) = getSetting cPopulationAllowedRange
+        (a, b) = getSetting cPopulationAllowedRange
         a' = round (fromIntegral p * a)
         b' = round (fromIntegral p * b)
-        c' = round (fromIntegral p * c)
-        d' = round (fromIntegral p * d)

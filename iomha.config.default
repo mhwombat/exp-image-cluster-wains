@@ -94,10 +94,11 @@ minAgreementDeltaE=0.12
 # population.
 desiredPopSize=50
 
-# The daemon will make adjustments (see undercrowdingDeltaE
-# and overcrowdingDeltaE) if the population falls outside this
+# The daemon will stop if the population falls outside this
 # range, which is expressed as a fraction of desiredPopSize.
-popNormalRange=(0.8,1.2)
+# This gives you a chance to analyse the problem and
+# perhaps adjust your configuration.
+popAllowedRange=(0.2,2)
 
 #####
 # Configuring the initial gene pool
