@@ -373,7 +373,7 @@ chooseAction3 w dObj iObj = do
     ++ objectId iObj ++ " has adjusted novelty " ++ show iObjNoveltyAdj
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and chooses to "
-    ++ describe (action r)
+    ++ show (action r)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
   
 
@@ -382,11 +382,6 @@ incSubjectAge = do
   a <- use subject
   a' <- withUniverse (incAge a)
   assign subject a'
-
-describe :: Action -> String
-describe Flirt = "flirt"
-describe Ignore = "do nothing"
-describe _ = "co-operate"
 
 chooseObjects :: [ImageWain] -> ImageDB -> StateT u IO (Object, Object)
 chooseObjects xs db = do
