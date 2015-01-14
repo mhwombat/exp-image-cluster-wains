@@ -533,7 +533,7 @@ adjustSubjectEnergy deltaE adultSelector childSelector reason = do
   (x', adultDeltaE, childDeltaE)
      <- withUniverse $ adjustEnergy reason deltaE x
   (summary . adultSelector) += adultDeltaE
-  (summary . childSelector) += childDeltaE
+  when childDeltaE /= 0 $ (summary . childSelector) += childDeltaE
   assign subject x'
 
 adjustObjectEnergy
@@ -548,7 +548,7 @@ adjustObjectEnergy
       (a', adultDeltaE, childDeltaE)
         <- withUniverse $ adjustEnergy reason deltaE a
       (summary . adultSelector) += adultDeltaE
-      (summary . childSelector) += childDeltaE
+      when childDeltaE /= 0 $ (summary . childSelector) += childDeltaE
       assign objectSelector (AObject a')
     IObject _ _ -> return ()
 
