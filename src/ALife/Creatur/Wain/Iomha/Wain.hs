@@ -28,17 +28,19 @@ module ALife.Creatur.Wain.Iomha.Wain
 import ALife.Creatur (agentId, isAlive)
 import ALife.Creatur.Task (checkPopSize)
 import ALife.Creatur.Util (stateMap)
-import ALife.Creatur.Wain (Wain, buildWainAndGenerateGenome, appearance,
-  name, chooseAction, incAge, applyMetabolismCost, weanMatureChildren,
-  pruneDeadChildren, adjustEnergy, adjustPassion, reflect, tryMating,
-  litter, brain)
+import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
+  appearance, name, chooseAction, incAge, applyMetabolismCost,
+  weanMatureChildren, pruneDeadChildren, adjustEnergy, adjustPassion,
+  reflect, mate, litter, brain, energy, age, imprint)
 import ALife.Creatur.Wain.Brain (decider, Brain(..))
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
-  randomExponential, buildGeneticSOM, numModels, schemaQuality)
+  randomExponential, buildGeneticSOM, numModels, schemaQuality, toList)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
-import ALife.Creatur.Wain.Response (Response, randomResponse, action)
+import ALife.Creatur.Wain.Response (Response, randomResponse, action,
+  outcome, scenario)
+import qualified ALife.Creatur.Wain.Scenario as S
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
@@ -54,14 +56,16 @@ import Control.Conditional (whenM)
 import Control.Lens hiding (Action, universe)
 import Control.Monad (replicateM, when, unless)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Random (Rand, RandomGen, getRandomR)
+import Control.Monad.Random (Rand, RandomGen, getRandomR, evalRandIO)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get,
   gets)
 import Data.List (intercalate)
+import Data.Maybe (fromJust)
 import Data.Word (Word16)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (dropFileName)
 import System.Random (randomIO, randomRIO)
+import Text.Printf (printf)
 
 data Object = IObject Image String | AObject ImageWain
 
@@ -271,12 +275,12 @@ run' = do
     ++ "'s turn ----------"
   withUniverse . U.writeToLog $ "At beginning of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty (Stats.stats a)
-  (nov, r) <- chooseSubjectAction
-  runAction (action r) nov
+  r <- chooseSubjectAction
+  runAction (action r)
   letSubjectReflect r
   adjustSubjectPassion
   runMetabolism
-  incSubjectAge
+  subject %= incAge
   a' <- use subject
   withUniverse . U.writeToLog $ "End of " ++ agentId a ++ "'s turn"
   -- assign (summary.rNetDeltaE) (energy a' - energy a)
@@ -292,6 +296,7 @@ run' = do
   withUniverse $ writeRawStats (agentId a) rsf agentStats
   whenM (U.uGenFmris <$> use universe) writeFmri
   updateChildren
+  balanceEnergyEquation a
 
 writeFmri :: StateT Experiment IO ()
 writeFmri = do
@@ -316,21 +321,40 @@ fillInSummary s = s
          + _rChildAgreementDeltaE s
          + _rOtherChildAgreementDeltaE s
   }
- 
+
+balanceEnergyEquation
+  :: ImageWain -> StateT Experiment IO ()
+balanceEnergyEquation a0 = do
+  netDeltaE1 <- use (summary . rNetDeltaE)
+  let e0 = energy a0
+  ef <- energy <$> use subject
+  let netDeltaE2 = ef - e0
+  let err = abs (netDeltaE1 - netDeltaE2)
+  when (err > 1e-7) $
+    (withUniverse . U.writeToLog)
+      "Adult energy equation doesn't balance"
+  childNetDeltaE1 <- use (summary . rChildNetDeltaE)
+  let ec0 = sum . map energy . litter $ a0
+  ecf <- sum . map energy . litter <$> use subject
+  let childNetDeltaE2 = ecf - ec0
+  let childErr = abs (childNetDeltaE1 - childNetDeltaE2)
+  when (childErr > 1e-7) $
+    (withUniverse . U.writeToLog)
+      "Child energy equation doesn't balance"
+
 runMetabolism :: StateT Experiment IO ()
 runMetabolism = do
   a <- use subject
   bms <- U.uBaseMetabolismDeltaE <$> use universe
   cps <- U.uEnergyCostPerByte <$> use universe
   ccf <- U.uChildCostFactor <$> use universe
-  (a', adultCost, childCost)
-    <- withUniverse $ applyMetabolismCost bms cps ccf a
+  let (a', adultCost, childCost) = applyMetabolismCost bms cps ccf a
   (summary . rMetabolismDeltaE) += adultCost
   (summary . rChildMetabolismDeltaE) += childCost
   assign subject a'
 
 chooseSubjectAction
-  :: StateT Experiment IO (Double, Response Action)
+  :: StateT Experiment IO (Response Action)
 chooseSubjectAction = do
   a <- use subject
   dObj <- use directObject
@@ -342,10 +366,10 @@ chooseSubjectAction = do
   assign (summary.rIndirectObjectNovelty) iObjNovelty
   assign (summary.rIndirectObjectAdjustedNovelty) iObjNoveltyAdj
   assign subject a'
-  return (dObjNovelty, r)
+  return r
 
 choosePartnerAction
-  :: StateT Experiment IO (Double, Response Action)
+  :: StateT Experiment IO (Response Action)
 choosePartnerAction = do
   a <- use subject
   dObj <- use directObject
@@ -355,7 +379,7 @@ choosePartnerAction = do
   assign (summary.rOtherNovelty) dObjNovelty
   assign (summary.rOtherAdjustedNovelty) dObjNoveltyAdj
   assign indirectObject (AObject b')
-  return (dObjNovelty, r)
+  return r
 
 chooseAction3
   :: ImageWain -> Object -> Object
@@ -364,9 +388,14 @@ chooseAction3
 chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and " ++ objectId iObj
-  (_, _, dObjNovelty, dObjNoveltyAdj,
-    _, _, iObjNovelty, iObjNoveltyAdj, r, w')
-      <- chooseAction (objectAppearance dObj) (objectAppearance iObj) w
+  whenM (gets U.uShowDeciderModels) $
+    describeModels w
+  let (r, w', xs)
+        = chooseAction (objectAppearance dObj) (objectAppearance iObj) w
+  whenM (gets U.uShowPredictions) $
+    describeOutcomes w xs
+  let (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj)
+        = novelties w r
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has adjusted novelty " ++ show dObjNoveltyAdj
   U.writeToLog $ "To " ++ agentId w ++ ", "
@@ -375,13 +404,30 @@ chooseAction3 w dObj iObj = do
     ++ " and chooses to "
     ++ show (action r)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
-  
 
-incSubjectAge :: StateT Experiment IO ()
-incSubjectAge = do
-  a <- use subject
-  a' <- withUniverse (incAge a)
-  assign subject a'
+novelties
+  :: ImageWain -> Response Action -> (Double, Int, Double, Int)
+novelties w r
+  = (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj)
+  where dObjNovelty = maximum . S.directObject . scenario $ r
+        iObjNovelty = maximum . S.indirectObject . scenario $ r
+        dObjNoveltyAdj = round $ dObjNovelty * fromIntegral (age w)
+        iObjNoveltyAdj = round $ iObjNovelty * fromIntegral (age w)
+
+describeModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
+describeModels w = mapM_ (U.writeToLog . f) ms
+  where ms = toList . decider $ brain w
+        f (l, r) = name w ++ "'s decider model " ++ show l ++ "="
+                     ++ pretty r
+
+describeOutcomes
+  :: ImageWain -> [(Response Action, Label)]
+    -> StateT (U.Universe ImageWain) IO ()
+describeOutcomes w = mapM_ (U.writeToLog . f)
+  where f (r, l) = name w ++ "'s predicted outcome of "
+                     ++ show (action r) ++ " is "
+                     ++ (printf "%.3f" . fromJust . outcome $ r)
+                     ++ " from model " ++ show l
 
 chooseObjects :: [ImageWain] -> ImageDB -> StateT u IO (Object, Object)
 chooseObjects xs db = do
@@ -390,12 +436,12 @@ chooseObjects xs db = do
   (x:y:_) <- liftIO . randomlyInsertImages db . map AObject $ xs
   return (x, y)
 
-runAction :: Action -> Double -> StateT Experiment IO ()
+runAction :: Action -> StateT Experiment IO ()
 
 --
 -- Flirt
 --
-runAction Flirt _ = do
+runAction Flirt = do
   applyFlirtationEffects
   a <- use subject
   dObj <- use directObject
@@ -406,7 +452,7 @@ runAction Flirt _ = do
 --
 -- Ignore
 --
-runAction Ignore _ = do
+runAction Ignore = do
   a <- use subject
   dObj <- use directObject
   withUniverse . U.writeToLog $
@@ -416,7 +462,7 @@ runAction Ignore _ = do
 --
 -- Co-operate
 --
-runAction aAction noveltyToMe = do
+runAction aAction = do
   applyCooperationEffects
   a <- use subject
   dObj <- use directObject
@@ -426,18 +472,19 @@ runAction aAction noveltyToMe = do
       withUniverse . U.writeToLog $ agentId a ++ " tells " ++ agentId b
         ++ " that image " ++ objectId dObj ++ " has label "
         ++ show aAction
-      (noveltyToOther, r) <- choosePartnerAction
+      r <- choosePartnerAction
       let bAction = action r
       if aAction == bAction
         then do
           withUniverse . U.writeToLog $ agentId b ++ " agrees with "
             ++  agentId a ++ " that " ++ objectId dObj
             ++ " has label " ++ show aAction
-          applyAgreementEffects noveltyToMe noveltyToOther
-        else
+          applyAgreementEffects
+        else do
           withUniverse . U.writeToLog $ agentId b ++ " disagrees with "
             ++ agentId a ++ ", says that " ++ objectId dObj
             ++ " has label " ++ show bAction
+          applyDisagreementEffects aAction bAction
     IObject _ _ -> return ()
   
 --
@@ -447,34 +494,61 @@ runAction aAction noveltyToMe = do
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
   deltaE <- U.uCooperationDeltaE <$> use universe
-  adjustSubjectEnergy deltaE rCoopDeltaE rChildCoopDeltaE "cooperation"
+  adjustSubjectEnergy deltaE rCoopDeltaE rChildCoopDeltaE
   (summary.rCooperateCount) += 1
 
-applyAgreementEffects :: Double -> Double -> StateT Experiment IO ()
-applyAgreementEffects noveltyToMe noveltyToOther = do
+applyAgreementEffects :: StateT Experiment IO ()
+applyAgreementEffects = do
+  aNovelty <- use $ summary . rDirectObjectNovelty
+  bNovelty <- use $ summary . rOtherNovelty
   x <- U.uNoveltyBasedAgreementDeltaE <$> use universe
   x0 <- U.uMinAgreementDeltaE <$> use universe
-  let reason = "agreement"
-  let ra = x0 + x * noveltyToMe
-  adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE reason
-  let rb = x0 + x * noveltyToOther
+  let ra = x0 + x * aNovelty
+  adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE
+  let rb = x0 + x * bNovelty
   adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
-    rOtherChildAgreementDeltaE reason
+    rOtherChildAgreementDeltaE
   (summary.rAgreeCount) += 1
 
+applyDisagreementEffects :: Action -> Action -> StateT Experiment IO ()
+applyDisagreementEffects aAction bAction = do
+  aNovelty <- use $ summary . rDirectObjectNovelty
+  bNovelty <- use $ summary . rOtherNovelty
+  a <- use subject
+  AObject b <- use indirectObject
+  pa <- appearance <$> use subject
+  p1 <- objectAppearance <$> use directObject
+  let pb = appearance b
+  let aConfidence = (1 - aNovelty)*(fromIntegral . age $ a)
+  let bConfidence = (1 - bNovelty)*(fromIntegral . age $ b)
+  withUniverse . U.writeToLog $
+    "a's confidence is " ++ printf "%.3f" aConfidence
+  withUniverse . U.writeToLog $
+    "b's confidence is " ++ printf "%.3f" bConfidence
+  if aConfidence > bConfidence
+    then do
+      withUniverse . U.writeToLog $ name a ++ " teaches " ++ name b
+      assign indirectObject (AObject $ imprint p1 pa aAction b)
+    else do
+      withUniverse . U.writeToLog $ name a ++ " learns from " ++ name b
+      assign subject $ imprint p1 pb bAction a
+  
 flirt :: StateT Experiment IO ()
 flirt = do
   a <- use subject
   (AObject b) <- use directObject
-  (a':b':_, mated, aMatingDeltaE, bMatingDeltaE)
-    <- withUniverse (tryMating a b)
-  when mated $ do
-    assign subject a'
-    assign directObject (AObject b')
-    recordBirths
-    (summary . rMatingDeltaE) += aMatingDeltaE
-    (summary . rOtherMatingDeltaE) += bMatingDeltaE
-    (summary . rMateCount) += 1
+  babyName <- withUniverse U.genName
+  (a':b':_, msgs, aMatingDeltaE, bMatingDeltaE)
+    <- liftIO . evalRandIO $ mate a b babyName
+  if null msgs
+    then do
+      assign subject a'
+      assign directObject (AObject b')
+      recordBirths
+      (summary . rMatingDeltaE) += aMatingDeltaE
+      (summary . rOtherMatingDeltaE) += bMatingDeltaE
+      (summary . rMateCount) += 1
+    else mapM_ (withUniverse . U.writeToLog) msgs
 
 recordBirths :: StateT Experiment IO ()
 recordBirths = do
@@ -484,14 +558,14 @@ recordBirths = do
 applyFlirtationEffects :: StateT Experiment IO ()
 applyFlirtationEffects = do
   deltaE <- U.uFlirtingDeltaE <$> use universe
-  adjustSubjectEnergy deltaE rFlirtingDeltaE undefined "flirting"
+  adjustSubjectEnergy deltaE rFlirtingDeltaE undefined
   (summary.rFlirtCount) += 1
 
 updateChildren :: StateT Experiment IO ()
 updateChildren = do
-  (a:matureChildren) <- use subject >>= withUniverse . weanMatureChildren
+  (a:matureChildren) <- weanMatureChildren <$> use subject
   assign subject a
-  (a':deadChildren) <- use subject >>= withUniverse . pruneDeadChildren
+  (a':deadChildren) <- pruneDeadChildren <$> use subject
   assign subject a'
   assign weanlings (matureChildren ++ deadChildren)
   (summary.rWeanCount) += length matureChildren
@@ -522,26 +596,24 @@ printStats = mapM_ f
 
 adjustSubjectEnergy
   :: Double -> Simple Lens Summary Double -> Simple Lens Summary Double
-    -> String -> StateT Experiment IO ()
-adjustSubjectEnergy deltaE adultSelector childSelector reason = do
+    -> StateT Experiment IO ()
+adjustSubjectEnergy deltaE adultSelector childSelector = do
   x <- use subject
-  (x', adultDeltaE, childDeltaE)
-     <- withUniverse $ adjustEnergy reason deltaE x
+  let (x', adultDeltaE, childDeltaE) = adjustEnergy deltaE x
   (summary . adultSelector) += adultDeltaE
   when (childDeltaE /= 0) $ (summary . childSelector) += childDeltaE
   assign subject x'
 
 adjustObjectEnergy
   :: Simple Lens Experiment Object -> Double
-    -> Simple Lens Summary Double -> Simple Lens Summary Double -> String
+    -> Simple Lens Summary Double -> Simple Lens Summary Double
       -> StateT Experiment IO ()
 adjustObjectEnergy
-    objectSelector deltaE adultSelector childSelector reason = do
+    objectSelector deltaE adultSelector childSelector = do
   x <- use objectSelector
   case x of
     AObject a -> do
-      (a', adultDeltaE, childDeltaE)
-        <- withUniverse $ adjustEnergy reason deltaE a
+      let (a', adultDeltaE, childDeltaE) = adjustEnergy deltaE a
       (summary . adultSelector) += adultDeltaE
       when (childDeltaE /= 0) $ (summary . childSelector) += childDeltaE
       assign objectSelector (AObject a')
@@ -549,9 +621,7 @@ adjustObjectEnergy
 
 adjustSubjectPassion
   :: StateT Experiment IO ()
-adjustSubjectPassion = do
-  x <- use subject
-  assign subject (adjustPassion x)
+adjustSubjectPassion = subject %= adjustPassion
 
 letSubjectReflect
   :: Response Action -> StateT Experiment IO ()
@@ -559,7 +629,7 @@ letSubjectReflect r = do
   x <- use subject
   p1 <- objectAppearance <$> use directObject
   p2 <- objectAppearance <$> use indirectObject
-  (x', err) <- withUniverse (reflect p1 p2 r x)
+  let (x', err) = reflect p1 p2 r x
   assign subject x'
   assign (summary . rErr) err
 

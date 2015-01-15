@@ -22,6 +22,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     U.Agent,
     U.agentIds,
     U.currentTime,
+    U.genName,
     U.getAgent,
     U.popSize,
     U.store,
@@ -56,6 +57,8 @@ data Universe a = Universe
     uStatsFile :: FilePath,
     uRawStatsFile :: FilePath,
     uFmriDir :: FilePath,
+    uShowDeciderModels :: Bool,
+    uShowPredictions :: Bool,
     uGenFmris :: Bool,
     uSleepBetweenTasks :: Int,
     uImageDB :: ImageDB,
@@ -111,6 +114,12 @@ cWorkingDir = requiredSetting "workingDir"
 
 cCacheSize :: Setting Int
 cCacheSize = requiredSetting "cacheSize"
+
+cShowDeciderModels :: Setting Bool
+cShowDeciderModels = requiredSetting "showDeciderModels"
+
+cShowPredictions :: Setting Bool
+cShowPredictions = requiredSetting "showPredictions"
 
 cGenFmris :: Setting Bool
 cGenFmris = requiredSetting "genFMRIs"
@@ -210,6 +219,8 @@ config2Universe getSetting =
       uStatsFile = workDir ++ "/statsFile",
       uRawStatsFile = workDir ++ "/rawStatsFile",
       uFmriDir = workDir ++ "/log",
+      uShowDeciderModels = getSetting cShowDeciderModels,
+      uShowPredictions = getSetting cShowPredictions,
       uGenFmris = getSetting cGenFmris,
       uSleepBetweenTasks = getSetting cSleepBetweenTasks,
       uImageDB = mkImageDB imageDir,

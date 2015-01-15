@@ -10,9 +10,6 @@ workingDir="full-path-to-working-directory"
 # The size of the memory cache used to hold wains.
 cacheSize=1000000
 
-# Take an FMRI of the wain's brain after each turn.
-genFMRIs=False
-
 # Number of microseconds to sleep after each agent gets its turn
 # at the CPU.
 sleepTimeBetweenTasks=0
@@ -25,6 +22,19 @@ imageWidth=1
 
 # Image height. All images must have the same dimensions.
 imageHeight=1
+
+#####
+# Extra information
+#####
+
+# Show the decider models as each decision is made.
+showDeciderModels=True
+
+# Show all the predictions made by the decider.
+showPredictions=True
+
+# Take an FMRI of the wain's brain after each turn.
+genFMRIs=True
 
 #####
 # Metabolism
