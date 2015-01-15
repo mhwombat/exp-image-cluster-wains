@@ -594,7 +594,7 @@ finishRound f = do
   (a, b) <- gets U.uPopulationAllowedRange
   checkPopSize (a, b)
 
-totalEnergy :: StateT Experiment IO Double
+totalEnergy :: StateT Experiment IO (Double, Double)
 totalEnergy = do
   a <- energy <$> use subject
   b <- objectEnergy <$> use directObject
