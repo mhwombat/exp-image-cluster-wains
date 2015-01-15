@@ -31,7 +31,7 @@ import ALife.Creatur.Util (stateMap)
 import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
   appearance, name, chooseAction, incAge, applyMetabolismCost,
   weanMatureChildren, pruneDeadChildren, adjustEnergy, adjustPassion,
-  reflect, mate, litter, brain, energy, age, imprint)
+  reflect, mate, litter, brain, energy, childEnergy, age, imprint)
 import ALife.Creatur.Wain.Brain (decider, Brain(..))
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
@@ -80,6 +80,14 @@ objectId (AObject a) = agentId a
 objectAppearance :: Object -> Image
 objectAppearance (IObject img _) = img
 objectAppearance (AObject a) = appearance a
+
+objectEnergy :: Object -> Double
+objectEnergy (IObject _ _) = 0
+objectEnergy (AObject a) = energy a
+
+objectChildEnergy :: Object -> Double
+objectChildEnergy (IObject _ _) = 0
+objectChildEnergy (AObject a) = childEnergy a
 
 addIfAgent :: Object -> [ImageWain] -> [ImageWain]
 addIfAgent (IObject _ _) xs = xs
@@ -270,6 +278,7 @@ run _ _ = error "no more wains"
 
 run' :: StateT Experiment IO ()
 run' = do
+  (e0, ec0) <- totalEnergy
   a <- use subject
   withUniverse . U.writeToLog $ "---------- " ++ agentId a
     ++ "'s turn ----------"
@@ -296,7 +305,7 @@ run' = do
   withUniverse $ writeRawStats (agentId a) rsf agentStats
   whenM (U.uGenFmris <$> use universe) writeFmri
   updateChildren
-  balanceEnergyEquation a
+  balanceEnergyEquation e0 ec0
 
 writeFmri :: StateT Experiment IO ()
 writeFmri = do
@@ -323,24 +332,21 @@ fillInSummary s = s
   }
 
 balanceEnergyEquation
-  :: ImageWain -> StateT Experiment IO ()
-balanceEnergyEquation a0 = do
+  :: Double -> Double -> StateT Experiment IO ()
+balanceEnergyEquation e0 ec0 = do
+  (ef, ecf) <- totalEnergy
   netDeltaE1 <- use (summary . rNetDeltaE)
-  let e0 = energy a0
-  ef <- energy <$> use subject
   let netDeltaE2 = ef - e0
   let err = abs (netDeltaE1 - netDeltaE2)
-  when (err > 1e-7) $
+  when (err > 0.0001) $
     (withUniverse . U.writeToLog)
-      "Adult energy equation doesn't balance"
+      "WARNING: Adult energy equation doesn't balance"
   childNetDeltaE1 <- use (summary . rChildNetDeltaE)
-  let ec0 = sum . map energy . litter $ a0
-  ecf <- sum . map energy . litter <$> use subject
   let childNetDeltaE2 = ecf - ec0
   let childErr = abs (childNetDeltaE1 - childNetDeltaE2)
-  when (childErr > 1e-7) $
+  when (childErr > 0.0001) $
     (withUniverse . U.writeToLog)
-      "Child energy equation doesn't balance"
+      "WARNING: Child energy equation doesn't balance"
 
 runMetabolism :: StateT Experiment IO ()
 runMetabolism = do
@@ -588,6 +594,15 @@ finishRound f = do
   (a, b) <- gets U.uPopulationAllowedRange
   checkPopSize (a, b)
 
+totalEnergy :: StateT Experiment IO Double
+totalEnergy = do
+  a <- energy <$> use subject
+  b <- objectEnergy <$> use directObject
+  c <- objectEnergy <$> use indirectObject
+  d <- childEnergy <$> use subject
+  e <- objectChildEnergy <$> use directObject
+  f <- objectChildEnergy <$> use indirectObject
+  return (a + b + c, d + e + f)
 
 printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
 printStats = mapM_ f
