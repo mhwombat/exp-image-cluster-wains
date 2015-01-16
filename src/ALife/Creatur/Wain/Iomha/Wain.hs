@@ -295,16 +295,17 @@ run' = do
   -- assign (summary.rNetDeltaE) (energy a' - energy a)
   assign (summary.rSchemaQuality) (schemaQuality . decider . brain $ a')
   unless (isAlive a') $ assign (summary.rDeathCount) 1
-  sf <- U.uStatsFile <$> use universe
-  agentStats <- ((Stats.stats a' ++) . summaryStats . fillInSummary)
-                 <$> use summary
+  summary %= fillInSummary
+  (ef, ecf) <- totalEnergy
+  balanceEnergyEquation e0 ec0 ef ecf
+  updateChildren
+  agentStats <- ((Stats.stats a' ++) . summaryStats) <$> use summary
   withUniverse . U.writeToLog $ "At end of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty agentStats
   rsf <- U.uRawStatsFile <$> use universe
   withUniverse $ writeRawStats (agentId a) rsf agentStats
   whenM (U.uGenFmris <$> use universe) writeFmri
-  balanceEnergyEquation e0 ec0
-  updateChildren
+  sf <- U.uStatsFile <$> use universe
   withUniverse $ updateStats agentStats sf
 
 writeFmri :: StateT Experiment IO ()
@@ -332,9 +333,8 @@ fillInSummary s = s
   }
 
 balanceEnergyEquation
-  :: Double -> Double -> StateT Experiment IO ()
-balanceEnergyEquation e0 ec0 = do
-  (ef, ecf) <- totalEnergy
+  :: Double -> Double -> Double -> Double -> StateT Experiment IO ()
+balanceEnergyEquation e0 ec0 ef ecf = do
   netDeltaE1 <- use (summary . rNetDeltaE)
   let netDeltaE2 = ef - e0
   let err = abs (netDeltaE1 - netDeltaE2)
