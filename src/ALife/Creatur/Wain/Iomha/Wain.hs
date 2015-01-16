@@ -300,12 +300,12 @@ run' = do
                  <$> use summary
   withUniverse . U.writeToLog $ "At end of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty agentStats
-  withUniverse $ updateStats agentStats sf
   rsf <- U.uRawStatsFile <$> use universe
   withUniverse $ writeRawStats (agentId a) rsf agentStats
   whenM (U.uGenFmris <$> use universe) writeFmri
-  updateChildren
   balanceEnergyEquation e0 ec0
+  updateChildren
+  withUniverse $ updateStats agentStats sf
 
 writeFmri :: StateT Experiment IO ()
 writeFmri = do
