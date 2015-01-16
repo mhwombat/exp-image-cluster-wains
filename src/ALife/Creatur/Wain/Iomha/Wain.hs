@@ -343,6 +343,8 @@ balanceEnergyEquation e0 ec0 = do
       "WARNING: Adult energy equation doesn't balance"
     withUniverse . U.writeToLog $ "e0=" ++ show e0 ++ ", ef=" ++ show ef
       ++ ", netDeltaE2=" ++ show netDeltaE2
+      ++ ", netDeltaE1=" ++ show netDeltaE1
+      ++ ", err=" ++ show err
   childNetDeltaE1 <- use (summary . rChildNetDeltaE)
   let childNetDeltaE2 = ecf - ec0
   let childErr = abs (childNetDeltaE1 - childNetDeltaE2)
@@ -352,6 +354,8 @@ balanceEnergyEquation e0 ec0 = do
     withUniverse . U.writeToLog $ "ec0=" ++ show ec0
       ++ ", ecf=" ++ show ecf
       ++ ", childNetDeltaE2=" ++ show childNetDeltaE2
+      ++ ", childNetDeltaE1=" ++ show childNetDeltaE1
+      ++ ", childErr=" ++ show childErr
 
 runMetabolism :: StateT Experiment IO ()
 runMetabolism = do
