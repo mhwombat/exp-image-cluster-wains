@@ -330,6 +330,7 @@ fillInSummary s = s
          + _rChildCoopDeltaE s
          + _rChildAgreementDeltaE s
          + _rOtherChildAgreementDeltaE s
+         - _rMatingDeltaE s
   }
 
 balanceEnergyEquation
