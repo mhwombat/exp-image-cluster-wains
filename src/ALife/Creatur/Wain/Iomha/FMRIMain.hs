@@ -22,9 +22,10 @@ import ALife.Creatur.Wain.GeneticSOM
 import ALife.Creatur.Wain.Iomha.FMRI
 import ALife.Creatur.Wain.Iomha.Universe
 import ALife.Creatur.Wain.Iomha.Wain
+import Control.Lens
 import Control.Monad.State
 import Diagrams.Backend.Cairo
-import Diagrams.Prelude
+import Diagrams.Prelude hiding (view)
 import System.Environment
 
 getWain :: String -> StateT (Universe ImageWain) IO ImageWain
@@ -47,6 +48,6 @@ main = do
   n <- getWainName
   w <- evalStateT (getWain n) u
   let ss = mkSizeSpec (Just 500) Nothing
-  let diagram = drawClassifier . toList . classifier . brain $ w :: Diagram B R2
+  let diagram = drawClassifier . toList . view classifier . view brain $ w :: Diagram B R2
   let outputFileName = n ++ ".svg"
   renderCairo outputFileName ss diagram

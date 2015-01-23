@@ -81,7 +81,7 @@ flirtingDeltaE=-0.01
 # When an agent initiates co-operation (trading classifications),
 # its energy changes by a fixed amount.
 # This is normally an energy LOSS, so it should be negative.
-cooperationDeltaE=0.001
+initialCooperationDeltaE=0.01
 
 # When two agents co-operate, and agree on a classification,
 # their energy changes by this amount, multiplied by the

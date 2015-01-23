@@ -21,10 +21,12 @@ import ALife.Creatur.Task (runInteractingAgents, simpleJob, doNothing)
 import ALife.Creatur.Wain (programVersion)
 import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
-  writeToLog, loadUniverse)
+  writeToLog, loadUniverse, uStatsFile, uSleepBetweenTasks,
+  uExperimentName)
 import Control.Concurrent (MVar, newMVar, readMVar, swapMVar)
+import Control.Lens
 import Control.Monad (unless)
-import Control.Monad.State (StateT, execStateT, gets)
+import Control.Monad.State (StateT, execStateT)
 import Data.Version (showVersion)
 import Paths_creatur_wains_iomha (version)
 import System.IO.Unsafe (unsafePerformIO)
@@ -49,22 +51,21 @@ shutdownHandler programName u = do
     return ()
 
 endRoundProgram :: StateT (Universe ImageWain) IO ()
-endRoundProgram = gets uStatsFile >>= finishRound
+endRoundProgram = use uStatsFile >>= finishRound
 
 main :: IO ()
 main = do
-  universe <- loadUniverse
-  let program = run universe
+  u <- loadUniverse
+  let program = run u
   let message = "creatur-wains-iomha-" ++ showVersion version
           ++ ", compiled with " ++ ALife.Creatur.Wain.programVersion
           ++ ", " ++ ALife.Creatur.programVersion
-          ++ ", configuration=" ++ show universe
+          ++ ", configuration=" ++ show u
   let j = simpleJob
         { task=runInteractingAgents program doNothing endRoundProgram,
           onStartup=startupHandler message,
           onShutdown=shutdownHandler message,
-          sleepTime=uSleepBetweenTasks universe }
-  let d = (simpleDaemon j universe)
-            { name=Just (uExperimentName universe) }
+          sleepTime=view uSleepBetweenTasks u }
+  let d = (simpleDaemon j u) { name=Just . view uExperimentName $ u }
   let cd = CreaturDaemon d j
   launch cd

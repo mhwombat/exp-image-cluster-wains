@@ -24,10 +24,11 @@ import ALife.Creatur.Wain
 import ALife.Creatur.Wain.Brain (classifier)
 import ALife.Creatur.Wain.GeneticSOM (toList)
 import ALife.Creatur.Wain.Iomha.Image
+import Control.Lens hiding ((#), none)
 import Data.Colour.SRGB
 import Data.List.Split
 import Data.Word
-import Diagrams.Prelude
+import Diagrams.Prelude hiding (view)
 import Diagrams.TwoD.Text
 import Diagrams.Backend.Cairo
 
@@ -66,9 +67,9 @@ image2diagram = vcat . map imageRow . pixelArray
 drawNode
   :: (Renderable Text b, Renderable (Path R2) b)
     => (Label, Image) -> Diagram b R2
-drawNode (index, img) = label `atop` pic `atop` area
+drawNode (i, img) = label `atop` pic `atop` area
   where area = rect 1 1.1 # lw none
-        label = translateY 0.475 $ text (show index) # fc black # fontSize (Local 0.08)
+        label = translateY 0.475 $ text (show i) # fc black # fontSize (Local 0.08)
         imgSizeSpec = mkSizeSpec (Just 0.95) (Just 0.95)
         pic = translateY 0.4 . centerX . sized imgSizeSpec $ image2diagram img
 
@@ -85,4 +86,5 @@ drawClassifier = mconcat . zipWith translateY [0,-1.2..] . map (alignL . drawRow
 writeFmri :: Wain Image a -> FilePath -> IO ()
 writeFmri w f = renderCairo f ss diagram
   where ss = mkSizeSpec (Just 500) Nothing
-        diagram = drawClassifier . toList . classifier . brain $ w :: Diagram B R2
+        c = view classifier . view brain $ w
+        diagram = drawClassifier . toList $ c :: Diagram B R2

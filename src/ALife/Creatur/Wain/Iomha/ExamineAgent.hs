@@ -22,6 +22,7 @@ import ALife.Creatur.Wain.GeneticSOM
 import ALife.Creatur.Wain.Iomha.Action
 import ALife.Creatur.Wain.Iomha.Wain
 import ALife.Creatur.Wain.Iomha.Universe
+import Control.Lens
 import Control.Monad.State
 import Data.Map.Strict (elems)
 import System.Environment
@@ -41,28 +42,28 @@ getAndExamine s = do
   
 examine :: ImageWain -> IO ()
 examine a = do
-  putStrLn $ "name: " ++ show (name a)
+  putStrLn $ "name: " ++ show (view name a)
   -- appearance
   -- brain
-  putStrLn $ "devotion: " ++ printf "%5.3f" (devotion a)
-  putStrLn $ "ageOfMaturity: " ++ show (ageOfMaturity a)
-  putStrLn $ "passionDelta: " ++ show (passionDelta a)
-  putStrLn $ "energy: " ++ printf "%5.3f" (energy a)
-  putStrLn $ "passion: " ++ printf "%5.3f" (passion a)
-  putStrLn $ "age: " ++ show (age a)
+  putStrLn $ "devotion: " ++ printf "%5.3f" (view devotion a)
+  putStrLn $ "ageOfMaturity: " ++ show (view ageOfMaturity a)
+  putStrLn $ "passionDelta: " ++ show (view passionDelta a)
+  putStrLn $ "energy: " ++ printf "%5.3f" (view energy a)
+  putStrLn $ "passion: " ++ printf "%5.3f" (view passion a)
+  putStrLn $ "age: " ++ show (view age a)
   putStrLn $ "total # children borne: "
-    ++ show (childrenBorneLifetime a)
+    ++ show (view childrenBorneLifetime a)
   putStrLn $ "total # children weaned: "
-    ++ show (childrenWeanedLifetime a)
-  putStrLn $ "litter size: " ++ show (length $ litter a)
-  putStrLn $ "counts=" ++ show (elems . counterMap . classifier $ brain a)
-  putStrLn $ "swagger: " ++ show (swagger a)
-  putStrLn $ "size: " ++ show (wainSize a)
-  putStrLn $ "SQ: " ++ show (schemaQuality . decider . brain $ a)
-  putStrLn $ "Number of classifier models: " ++ show (numModels . classifier . brain $ a)
-  putStrLn $ "Classifier learning function " ++ show (learningFunction . classifier . brain $ a)
-  putStrLn $ "Number of decider models: " ++ show (numModels . decider . brain $ a)
-  putStrLn $ "Decider learning function " ++ show (learningFunction . decider . brain $ a)
+    ++ show (view childrenWeanedLifetime a)
+  putStrLn $ "litter size: " ++ show (length . view litter $ a)
+  putStrLn $ "counts=" ++ show (elems . view counterMap . view classifier . view brain $ a)
+  putStrLn $ "swagger: " ++ show (view swagger a)
+  putStrLn $ "size: " ++ show (view wainSize a)
+  putStrLn $ "SQ: " ++ show (schemaQuality . view decider . view brain $ a)
+  putStrLn $ "Number of classifier models: " ++ show (numModels . view classifier . view brain $ a)
+  putStrLn $ "Classifier learning function " ++ show (learningFunction . view classifier . view brain $ a)
+  putStrLn $ "Number of decider models: " ++ show (numModels . view decider . view brain $ a)
+  putStrLn $ "Decider learning function " ++ show (learningFunction . view decider . view brain $ a)
   -- putStrLn "------------------------"
   -- putStrLn "Mental models of vectors"
   -- putStrLn "------------------------"
@@ -70,7 +71,7 @@ examine a = do
   putStrLn "-----------------"
   putStrLn "Response models"
   putStrLn "-----------------"
-  mapM_ putStrLn $ concatMap prettyResponseModel (toList . decider . brain $ a)
+  mapM_ putStrLn $ concatMap prettyResponseModel (toList . view decider . view brain $ a)
   -- putStrLn "--------"
   -- putStrLn "Raw data"
   -- putStrLn "--------"
@@ -80,12 +81,12 @@ prettyResponseModel :: (Label, Response Action) -> [String]
 prettyResponseModel (l, r) =
   [ "Model " ++ show l,
     "Differences: "
-      ++ formatVector "%5.3f" (Scenario.directObject . scenario $ r),
-    "Energy: " ++ show (cEnergy . Scenario.condition . scenario $ r),
-    "Passion: " ++ show (cPassion . Scenario.condition . scenario $ r),
-    "Action: " ++ show (action r),
+      ++ formatVector "%5.3f" (view Scenario.directObject . view scenario $ r),
+    "Energy: " ++ show (view cEnergy . view Scenario.condition . view scenario $ r),
+    "Passion: " ++ show (view cPassion . view Scenario.condition . view scenario $ r),
+    "Action: " ++ show (view action r),
     "Expected happiness change: "
-      ++ maybe "" (printf "%.3g") (outcome r),
+      ++ maybe "" (printf "%.3g") (view outcome r),
     "-----" ]
 
 formatVector :: String -> [Double] -> String

@@ -10,16 +10,54 @@
 -- Universe for image mining agents
 --
 ------------------------------------------------------------------------
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 module ALife.Creatur.Wain.Iomha.Universe
   (
+    -- * Constructors
     Universe(..),
     loadUniverse,
     U.Agent,
+    -- * Lenses
+    uExperimentName,
+    uClock,
+    uLogger,
+    uDB,
+    uNamer,
+    uChecklist,
+    uStatsFile,
+    uRawStatsFile,
+    uFmriDir,
+    uShowDeciderModels,
+    uShowPredictions,
+    uGenFmris,
+    uSleepBetweenTasks,
+    uImageDB,
+    uImageWidth,
+    uImageHeight,
+    uClassifierSizeRange,
+    uDeciderSizeRange,
+    uDevotionRange,
+    uMaturityRange,
+    uPopulationSize,
+    uPopulationAllowedRange,
+    uBaseMetabolismDeltaE,
+    uEnergyCostPerByte,
+    uChildCostFactor,
+    uFlirtingDeltaE,
+    uCooperationDeltaE,
+    uNoveltyBasedAgreementDeltaE,
+    uMinAgreementDeltaE,
+    uClassifierR0Range,
+    uClassifierDRange,
+    uDeciderR0Range,
+    uDeciderDRange,
+    uCheckpoints,
+    -- * Other
     U.agentIds,
     U.currentTime,
     U.genName,
@@ -36,11 +74,13 @@ import qualified ALife.Creatur.Counter as K
 import qualified ALife.Creatur.Database as D
 import qualified ALife.Creatur.Database.CachedFileSystem as CFS
 import qualified ALife.Creatur.Logger.SimpleLogger as SL
+import ALife.Creatur.Persistent (Persistent, mkPersistent)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Checkpoint as CP
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
 import Control.Applicative ((<$>))
 import Control.Exception (SomeException, try)
+import Control.Lens hiding (Setting)
 import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
 import Data.Word (Word16)
@@ -48,59 +88,60 @@ import System.Directory (makeRelativeToCurrentDirectory)
 
 data Universe a = Universe
   {
-    uExperimentName :: String,
-    uClock :: K.PersistentCounter,
-    uLogger :: SL.SimpleLogger,
-    uDB :: CFS.CachedFSDatabase a,
-    uNamer :: N.SimpleNamer,
-    uChecklist :: CL.PersistentChecklist,
-    uStatsFile :: FilePath,
-    uRawStatsFile :: FilePath,
-    uFmriDir :: FilePath,
-    uShowDeciderModels :: Bool,
-    uShowPredictions :: Bool,
-    uGenFmris :: Bool,
-    uSleepBetweenTasks :: Int,
-    uImageDB :: ImageDB,
-    uImageWidth :: Int,
-    uImageHeight :: Int,
-    uClassifierSizeRange :: (Word16, Word16),
-    uDeciderSizeRange :: (Word16, Word16),
-    uDevotionRange :: (Double, Double),
-    uMaturityRange :: (Word16, Word16),
-    uPopulationSize :: Int,
-    uPopulationAllowedRange :: (Int, Int),
-    uBaseMetabolismDeltaE :: Double,
-    uEnergyCostPerByte :: Double,
-    uChildCostFactor :: Double,
-    uFlirtingDeltaE :: Double,
-    uCooperationDeltaE :: Double,
-    uNoveltyBasedAgreementDeltaE :: Double,
-    uMinAgreementDeltaE :: Double,
-    uClassifierR0Range :: (Double,Double),
-    uClassifierDRange :: (Double,Double),
-    uDeciderR0Range :: (Double,Double),
-    uDeciderDRange :: (Double,Double),
-    uCheckpoints :: [CP.Checkpoint]
+    _uExperimentName :: String,
+    _uClock :: K.PersistentCounter,
+    _uLogger :: SL.SimpleLogger,
+    _uDB :: CFS.CachedFSDatabase a,
+    _uNamer :: N.SimpleNamer,
+    _uChecklist :: CL.PersistentChecklist,
+    _uStatsFile :: FilePath,
+    _uRawStatsFile :: FilePath,
+    _uFmriDir :: FilePath,
+    _uShowDeciderModels :: Bool,
+    _uShowPredictions :: Bool,
+    _uGenFmris :: Bool,
+    _uSleepBetweenTasks :: Int,
+    _uImageDB :: ImageDB,
+    _uImageWidth :: Int,
+    _uImageHeight :: Int,
+    _uClassifierSizeRange :: (Word16, Word16),
+    _uDeciderSizeRange :: (Word16, Word16),
+    _uDevotionRange :: (Double, Double),
+    _uMaturityRange :: (Word16, Word16),
+    _uPopulationSize :: Int,
+    _uPopulationAllowedRange :: (Int, Int),
+    _uBaseMetabolismDeltaE :: Double,
+    _uEnergyCostPerByte :: Double,
+    _uChildCostFactor :: Double,
+    _uFlirtingDeltaE :: Double,
+    _uCooperationDeltaE :: Persistent Double,
+    _uNoveltyBasedAgreementDeltaE :: Double,
+    _uMinAgreementDeltaE :: Double,
+    _uClassifierR0Range :: (Double,Double),
+    _uClassifierDRange :: (Double,Double),
+    _uDeciderR0Range :: (Double,Double),
+    _uDeciderDRange :: (Double,Double),
+    _uCheckpoints :: [CP.Checkpoint]
   } deriving Show
+makeLenses ''Universe
 
 instance (A.Agent a, D.SizedRecord a) => U.Universe (Universe a) where
   type Agent (Universe a) = a
   type Clock (Universe a) = K.PersistentCounter
-  clock = uClock
-  setClock u c = u { uClock=c }
+  clock = _uClock
+  setClock u c = u { _uClock=c }
   type Logger (Universe a) = SL.SimpleLogger
-  logger = uLogger
-  setLogger u l = u { uLogger=l }
+  logger = _uLogger
+  setLogger u l = u { _uLogger=l }
   type AgentDB (Universe a) = CFS.CachedFSDatabase a
-  agentDB = uDB
-  setAgentDB u d = u { uDB=d }
+  agentDB = _uDB
+  setAgentDB u d = u { _uDB=d }
   type Namer (Universe a) = N.SimpleNamer
-  agentNamer = uNamer
-  setNamer u n = u { uNamer=n }
+  agentNamer = _uNamer
+  setNamer u n = u { _uNamer=n }
   type Checklist (Universe a) = CL.PersistentChecklist
-  checklist = uChecklist
-  setChecklist u cl = u { uChecklist=cl }
+  checklist = _uChecklist
+  setChecklist u cl = u { _uChecklist=cl }
 
 requiredSetting :: String -> Setting a
 requiredSetting key
@@ -170,7 +211,7 @@ cFlirtingDeltaE :: Setting Double
 cFlirtingDeltaE = requiredSetting "flirtingDeltaE"
 
 cCooperationDeltaE :: Setting Double
-cCooperationDeltaE = requiredSetting "cooperationDeltaE"
+cCooperationDeltaE = requiredSetting "initialCooperationDeltaE"
 
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
@@ -208,43 +249,45 @@ config2Universe :: (forall a. Read a => Setting a -> a) -> Universe b
 config2Universe getSetting =
   Universe
     {
-      uExperimentName = en,
-      uClock = K.mkPersistentCounter (workDir ++ "/clock"),
-      uLogger = SL.mkSimpleLogger (workDir ++ "/log/" ++ en ++ ".log"),
-      uDB
+      _uExperimentName = en,
+      _uClock = K.mkPersistentCounter (workDir ++ "/clock"),
+      _uLogger = SL.mkSimpleLogger (workDir ++ "/log/" ++ en ++ ".log"),
+      _uDB
         = CFS.mkCachedFSDatabase (workDir ++ "/db")
           (getSetting cCacheSize),
-      uNamer = N.mkSimpleNamer (en ++ "_") (workDir ++ "/namer"),
-      uChecklist = CL.mkPersistentChecklist (workDir ++ "/todo"),
-      uStatsFile = workDir ++ "/statsFile",
-      uRawStatsFile = workDir ++ "/rawStatsFile",
-      uFmriDir = workDir ++ "/log",
-      uShowDeciderModels = getSetting cShowDeciderModels,
-      uShowPredictions = getSetting cShowPredictions,
-      uGenFmris = getSetting cGenFmris,
-      uSleepBetweenTasks = getSetting cSleepBetweenTasks,
-      uImageDB = mkImageDB imageDir,
-      uImageWidth = getSetting cImageWidth,
-      uImageHeight = getSetting cImageHeight,
-      uClassifierSizeRange = getSetting cClassifierSizeRange,
-      uDeciderSizeRange = getSetting cDeciderSizeRange,
-      uDevotionRange = getSetting cDevotionRange,
-      uMaturityRange = getSetting cMaturityRange,
-      uPopulationSize = p,
-      uPopulationAllowedRange = (a', b'),
-      uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
-      uEnergyCostPerByte = getSetting cEnergyCostPerByte,
-      uChildCostFactor = getSetting cChildCostFactor,
-      uFlirtingDeltaE = getSetting cFlirtingDeltaE,
-      uCooperationDeltaE = getSetting cCooperationDeltaE,
-      uNoveltyBasedAgreementDeltaE
+      _uNamer = N.mkSimpleNamer (en ++ "_") (workDir ++ "/namer"),
+      _uChecklist = CL.mkPersistentChecklist (workDir ++ "/todo"),
+      _uStatsFile = workDir ++ "/statsFile",
+      _uRawStatsFile = workDir ++ "/rawStatsFile",
+      _uFmriDir = workDir ++ "/log",
+      _uShowDeciderModels = getSetting cShowDeciderModels,
+      _uShowPredictions = getSetting cShowPredictions,
+      _uGenFmris = getSetting cGenFmris,
+      _uSleepBetweenTasks = getSetting cSleepBetweenTasks,
+      _uImageDB = mkImageDB imageDir,
+      _uImageWidth = getSetting cImageWidth,
+      _uImageHeight = getSetting cImageHeight,
+      _uClassifierSizeRange = getSetting cClassifierSizeRange,
+      _uDeciderSizeRange = getSetting cDeciderSizeRange,
+      _uDevotionRange = getSetting cDevotionRange,
+      _uMaturityRange = getSetting cMaturityRange,
+      _uPopulationSize = p,
+      _uPopulationAllowedRange = (a', b'),
+      _uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
+      _uEnergyCostPerByte = getSetting cEnergyCostPerByte,
+      _uChildCostFactor = getSetting cChildCostFactor,
+      _uFlirtingDeltaE = getSetting cFlirtingDeltaE,
+      _uCooperationDeltaE
+        = mkPersistent initialCooperationDeltaE
+            (workDir ++ "/cooperationDeltaE"),
+      _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
-      uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
-      uClassifierR0Range = getSetting cClassifierR0Range,
-      uClassifierDRange = getSetting cClassifierDRange,
-      uDeciderR0Range = getSetting cDeciderR0Range,
-      uDeciderDRange = getSetting cDeciderDRange,
-      uCheckpoints = getSetting cCheckpoints
+      _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
+      _uClassifierR0Range = getSetting cClassifierR0Range,
+      _uClassifierDRange = getSetting cClassifierDRange,
+      _uDeciderR0Range = getSetting cDeciderR0Range,
+      _uDeciderDRange = getSetting cDeciderDRange,
+      _uCheckpoints = getSetting cCheckpoints
     }
   where en = getSetting cExperimentName
         workDir = getSetting cWorkingDir
@@ -253,3 +296,4 @@ config2Universe getSetting =
         (a, b) = getSetting cPopulationAllowedRange
         a' = round (fromIntegral p * a)
         b' = round (fromIntegral p * b)
+        initialCooperationDeltaE = getSetting cCooperationDeltaE

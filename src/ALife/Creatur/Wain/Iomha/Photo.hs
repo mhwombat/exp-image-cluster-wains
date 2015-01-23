@@ -20,11 +20,12 @@ import ALife.Creatur.Wain
 import ALife.Creatur.Wain.Iomha.Wain
 import ALife.Creatur.Wain.Iomha.Image
 import ALife.Creatur.Wain.Iomha.Universe
+import Control.Lens hiding ((#), none)
 import Control.Monad.State
 import Data.Colour.SRGB
 import Data.Word
 import Diagrams.Backend.Cairo
-import Diagrams.Prelude
+import Diagrams.Prelude hiding (view)
 import System.Environment
 
 grey2colour :: Word8 -> Colour Double
@@ -71,6 +72,6 @@ main = do
   n <- getWainName
   w <- evalStateT (getWain n) u
   let ss = mkSizeSpec (Just 500) Nothing
-  let diagram = image2diagram . appearance $ w :: Diagram B R2
+  let diagram = image2diagram . view appearance $ w :: Diagram B R2
   let outputFileName = n ++ ".svg"
   renderCairo outputFileName ss diagram
