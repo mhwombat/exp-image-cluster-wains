@@ -283,11 +283,11 @@ run' = do
     ++ "'s turn ----------"
   zoom universe . U.writeToLog $ "At beginning of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty (Stats.stats a)
+  runMetabolism
   r <- chooseSubjectAction
   runAction (view action r)
   letSubjectReflect r
   adjustSubjectPassion
-  runMetabolism
   subject %= incAge
   a' <- use subject
   zoom universe . U.writeToLog $ "End of " ++ agentId a ++ "'s turn"
@@ -330,6 +330,7 @@ fillInSummary s = s
          + _rChildAgreementDeltaE s
          + _rOtherChildAgreementDeltaE s
          - _rMatingDeltaE s
+         - _rOtherMatingDeltaE s
   }
 
 balanceEnergyEquation
