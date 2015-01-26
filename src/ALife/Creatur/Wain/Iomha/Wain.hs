@@ -603,7 +603,7 @@ adjustCooperationDeltaE
 adjustCooperationDeltaE xs = do
   unless (null xs) $ do
     idealPop <- use U.uPopulationSize
-    let (Just coopRate) = Stats.lookup "avg. cooperated" xs
+    let (Just coopRate) = Stats.lookup "avg. co-operated" xs
     let (Just am) = Stats.lookup "avg. adult metabolism Δe" xs
     let (Just cm) = Stats.lookup "avg. child metabolism Δe" xs
     let totalMetabDeltaE = am + cm
