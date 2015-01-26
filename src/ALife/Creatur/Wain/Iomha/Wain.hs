@@ -604,15 +604,17 @@ adjustCooperationDeltaE xs = do
   unless (null xs) $ do
     idealPop <- use U.uPopulationSize
     let (Just coopRate) = Stats.lookup "avg. co-operated" xs
-    let (Just am) = Stats.lookup "avg. adult metabolism Δe" xs
-    let (Just cm) = Stats.lookup "avg. child metabolism Δe" xs
+    let (Just am) = Stats.lookup "total adult metabolism Δe" xs
+    let (Just cm) = Stats.lookup "total child metabolism Δe" xs
     let totalMetabDeltaE = am + cm
+    U.writeToLog $ "Total metabolism=" ++ show totalMetabDeltaE
     let (Just totalFlirtDeltaE) = Stats.lookup "total adult flirting Δe" xs
     let (Just aa) = Stats.lookup "total adult agreement Δe" xs
     let (Just ca) = Stats.lookup "total child agreement Δe" xs
     let (Just oaa) = Stats.lookup "total other adult agreement Δe" xs
     let (Just oca) = Stats.lookup "total other child agreement Δe" xs
     let totalAgreementDeltaE = aa + ca + oaa + oca
+    U.writeToLog $ "Total agreement=" ++ show totalAgreementDeltaE
     let c = idealCoopDeltaE coopRate idealPop totalMetabDeltaE
               totalFlirtDeltaE totalAgreementDeltaE
     U.writeToLog $ "Adjusted cooperation Δe = " ++ show c
