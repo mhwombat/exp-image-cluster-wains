@@ -616,17 +616,18 @@ adjustCooperationDeltaE xs = do
     let (Just oca) = Stats.lookup "total other child agreement Δe" xs
     let totalAgreementDeltaE = aa + ca + oaa + oca
     U.writeToLog $ "Total agreement=" ++ show totalAgreementDeltaE
+    x <- use U.uCooperationDeltaEBase
     let c = idealCoopDeltaE coopRate idealPop totalMetabDeltaE
-              totalFlirtDeltaE totalAgreementDeltaE
+              totalFlirtDeltaE totalAgreementDeltaE x
     U.writeToLog $ "Adjusted cooperation Δe = " ++ show c
     zoom U.uCooperationDeltaE $ putPS c
 
 idealCoopDeltaE
-  :: Double -> Int -> Int -> Double -> Double -> Double -> Double
-idealCoopDeltaE coopRate idealPop currPop totalMetabDeltaE totalFlirtDeltaE totalAgreementDeltaE
-    = -a/b
+  :: Double -> Int -> Double -> Double -> Double -> Double -> Double
+idealCoopDeltaE coopRate idealPop totalMetabDeltaE totalFlirtDeltaE totalAgreementDeltaE x
+    = -a/b + x
   where a = totalMetabDeltaE + totalFlirtDeltaE + totalAgreementDeltaE
-        b = coopRate * fromIntegral (max idealPop currPop)
+        b = coopRate * fromIntegral idealPop
 
 -- lookupStat
 --   :: String -> [Stats.Statistic]

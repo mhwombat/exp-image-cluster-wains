@@ -50,6 +50,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uChildCostFactor,
     uFlirtingDeltaE,
     uCooperationDeltaE,
+    uCooperationDeltaEBase,
     uNoveltyBasedAgreementDeltaE,
     uMinAgreementDeltaE,
     uClassifierR0Range,
