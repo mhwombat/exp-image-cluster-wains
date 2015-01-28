@@ -622,11 +622,11 @@ adjustCooperationDeltaE xs = do
     zoom U.uCooperationDeltaE $ putPS c
 
 idealCoopDeltaE
-  :: Double -> Int -> Double -> Double -> Double -> Double
-idealCoopDeltaE coopRate idealPop totalMetabDeltaE totalFlirtDeltaE totalAgreementDeltaE
+  :: Double -> Int -> Int -> Double -> Double -> Double -> Double
+idealCoopDeltaE coopRate idealPop currPop totalMetabDeltaE totalFlirtDeltaE totalAgreementDeltaE
     = -a/b
   where a = totalMetabDeltaE + totalFlirtDeltaE + totalAgreementDeltaE
-        b = coopRate * fromIntegral idealPop
+        b = coopRate * fromIntegral (max idealPop currPop)
 
 -- lookupStat
 --   :: String -> [Stats.Statistic]

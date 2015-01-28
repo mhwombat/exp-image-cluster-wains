@@ -115,6 +115,7 @@ data Universe a = Universe
     _uChildCostFactor :: Double,
     _uFlirtingDeltaE :: Double,
     _uCooperationDeltaE :: Persistent Double,
+    _uCooperationDeltaEBase :: Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
     _uClassifierR0Range :: (Double,Double),
@@ -213,6 +214,9 @@ cFlirtingDeltaE = requiredSetting "flirtingDeltaE"
 cCooperationDeltaE :: Setting Double
 cCooperationDeltaE = requiredSetting "initialCooperationDeltaE"
 
+cCooperationDeltaEBase :: Setting Double
+cCooperationDeltaEBase = requiredSetting "baseCooperationDeltaE"
+
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
   = requiredSetting "noveltyBasedAgreementDeltaE"
@@ -280,6 +284,7 @@ config2Universe getSetting =
       _uCooperationDeltaE
         = mkPersistent initialCooperationDeltaE
             (workDir ++ "/cooperationDeltaE"),
+      _uCooperationDeltaEBase = getSetting cCooperationDeltaEBase,
       _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
