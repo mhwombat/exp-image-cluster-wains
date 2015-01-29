@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- |
 -- Module      :  ALife.Creatur.Wain.Iomha.Wain
--- Copyright   :  (c) Amy de Buitléir 2012-2014
+-- Copyright   :  (c) Amy de Buitléir 2012-2015
 -- License     :  BSD-style
 -- Maintainer  :  amy@nualeargais.ie
 -- Stability   :  experimental
@@ -625,8 +625,8 @@ adjustCooperationDeltaE xs = do
 idealCoopDeltaE
   :: Double -> Int -> Double -> Double -> Double -> Double -> Double
 idealCoopDeltaE coopRate idealPop totalMetabDeltaE totalFlirtDeltaE totalAgreementDeltaE x
-    = -a/b + x
-  where a = totalMetabDeltaE + totalFlirtDeltaE + totalAgreementDeltaE
+    = -a/b
+  where a = totalMetabDeltaE + totalFlirtDeltaE + totalAgreementDeltaE + x
         b = coopRate * fromIntegral idealPop
 
 -- lookupStat
