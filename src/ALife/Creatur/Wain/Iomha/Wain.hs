@@ -603,6 +603,8 @@ adjustCooperationDeltaE
   :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
 adjustCooperationDeltaE xs = do
   unless (null xs) $ do
+    pop <- U.popSize
+    U.writeToLog $ "pop=" ++ show pop
     idealPop <- use U.uPopulationSize
     U.writeToLog $ "ideal pop=" ++ show idealPop
     let (Just coopRate) = Stats.lookup "avg. co-operated" xs
@@ -621,17 +623,18 @@ adjustCooperationDeltaE xs = do
     U.writeToLog $ "Total agreement Δe=" ++ show totalAgreementDeltaE
     x <- use U.uCooperationDeltaEBase
     U.writeToLog $ "Co-op Δe base=" ++ show x
-    let c = idealCoopDeltaE coopRate idealPop totalMetabDeltaE
+    let c = idealCoopDeltaE coopRate idealPop pop totalMetabDeltaE
               totalFlirtDeltaE totalAgreementDeltaE x
     U.writeToLog $ "Adjusted cooperation Δe = " ++ show c
     zoom U.uCooperationDeltaE $ putPS c
 
 idealCoopDeltaE
-  :: Double -> Int -> Double -> Double -> Double -> Double -> Double
-idealCoopDeltaE coopRate idealPop totalMetabDeltaE totalFlirtDeltaE totalAgreementDeltaE x
-    = -a/b + x
+  :: Double -> Int -> Int -> Double -> Double -> Double -> Double -> Double
+idealCoopDeltaE coopRate idealPop pop totalMetabDeltaE totalFlirtDeltaE
+  totalAgreementDeltaE nudge = -a/b + x
   where a = totalMetabDeltaE + totalFlirtDeltaE + totalAgreementDeltaE
         b = coopRate * fromIntegral idealPop
+        x = if pop > idealPop then -nudge else nudge
 
 -- lookupStat
 --   :: String -> [Stats.Statistic]
