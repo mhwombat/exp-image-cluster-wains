@@ -22,7 +22,8 @@ module ALife.Creatur.Wain.Iomha.Wain
     randomImageWain,
     finishRound,
     schemaQuality,
-    printStats
+    printStats,
+    idealCoopDeltaE -- exported for testing only
   ) where
 
 import ALife.Creatur (agentId, isAlive)
@@ -629,8 +630,12 @@ adjustCooperationDeltaE xs = do
 
 idealCoopDeltaE
   :: Double -> Int -> Int -> Double -> Double
-idealCoopDeltaE coopRate idealPop pop a = -(f/coopRate)*a
-  where f = if a < 0
+idealCoopDeltaE coopRate idealPop pop e
+  | coopRate == 0 = 1
+  | idealPop == 0 = -1
+  | pop == 0      = 1
+  | otherwise    = coopRate-(f/coopRate)*e
+  where f = if e < 0
               then fromIntegral idealPop / fromIntegral pop
               else fromIntegral pop / fromIntegral idealPop
 

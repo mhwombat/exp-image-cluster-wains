@@ -14,6 +14,7 @@ module Main where
 
 import ALife.Creatur.Wain.Iomha.ActionQC (test)
 import ALife.Creatur.Wain.Iomha.ImageQC (test)
+import ALife.Creatur.Wain.Iomha.WainQC (test)
 
 import Test.Framework as TF (defaultMain, Test)
 
@@ -22,7 +23,8 @@ tests =
   [
     -- In increasing order of complexity
     ALife.Creatur.Wain.Iomha.ActionQC.test,
-    ALife.Creatur.Wain.Iomha.ImageQC.test
+    ALife.Creatur.Wain.Iomha.ImageQC.test,
+    ALife.Creatur.Wain.Iomha.WainQC.test
   ]
 
 main :: IO ()
