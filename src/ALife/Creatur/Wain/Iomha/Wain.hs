@@ -621,15 +621,15 @@ adjustCooperationDeltaE xs = do
     let (Just oca) = Stats.lookup "avg. other child agreement Δe" xs
     let avgAgreementDeltaE = aa + ca + oaa + oca
     U.writeToLog $ "Avg. agreement Δe=" ++ show avgAgreementDeltaE
-    let c = idealCoopDeltaE coopRate idealPop pop avgMetabDeltaE
-              avgFlirtDeltaE avgAgreementDeltaE
+    let avgEnergyToBalance = avgMetabDeltaE + avgFlirtDeltaE + avgAgreementDeltaE
+    U.writeToLog $ "Avg. Δe=" ++ show avgEnergyToBalance
+    let c = idealCoopDeltaE coopRate idealPop pop avgEnergyToBalance
     U.writeToLog $ "Adjusted cooperation Δe = " ++ show c
     zoom U.uCooperationDeltaE $ putPS c
 
 idealCoopDeltaE
-  :: Double -> Int -> Int -> Double -> Double -> Double -> Double
-idealCoopDeltaE coopRate idealPop pop avgMetabDeltaE avgFlirtDeltaE
-    avgAgreementDeltaE = -(f/coopRate)*a
+  :: Double -> Int -> Int -> Double -> Double
+idealCoopDeltaE coopRate idealPop pop a = -(f/coopRate)*a
   where a = avgMetabDeltaE + avgFlirtDeltaE + avgAgreementDeltaE
         f = if a < 0
               then fromIntegral idealPop / fromIntegral pop
