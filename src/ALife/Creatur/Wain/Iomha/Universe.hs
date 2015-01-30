@@ -195,10 +195,10 @@ cMaturityRange :: Setting (Word16, Word16)
 cMaturityRange = requiredSetting "maturityRange"
 
 cInitialPopulationSize :: Setting Int
-cInitialPopulationSize = requiredSetting "desiredPopSize"
+cInitialPopulationSize = requiredSetting "initialPopSize"
 
 cIdealPopulationSize :: Setting Int
-cIdealPopulationSize = requiredSetting "desiredPopSize"
+cIdealPopulationSize = requiredSetting "idealPopSize"
 
 cPopulationAllowedRange :: Setting (Double, Double)
 cPopulationAllowedRange = requiredSetting "popAllowedRange"
