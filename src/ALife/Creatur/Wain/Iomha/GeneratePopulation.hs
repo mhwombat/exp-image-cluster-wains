@@ -21,7 +21,7 @@ import ALife.Creatur.Wain.PersistentStatistics (clearStats)
 import ALife.Creatur.Wain.Statistics (Statistic, stats, summarise)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
   writeToLog, store, loadUniverse, uClassifierSizeRange,
-  uDeciderSizeRange, uPopulationSize, uStatsFile)
+  uDeciderSizeRange, uInitialPopulationSize, uStatsFile)
 import Control.Lens
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (evalRandIO)
@@ -59,7 +59,7 @@ introduceRandomAgents ns = do
 main :: IO ()
 main = do
   u <- loadUniverse
-  let ns = map (("Founder" ++) . show) [1..(view uPopulationSize u)]
+  let ns = map (("Founder" ++) . show) [1..(view uInitialPopulationSize u)]
   print ns
   evalStateT (introduceRandomAgents ns) u
   

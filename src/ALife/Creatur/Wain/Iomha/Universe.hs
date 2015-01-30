@@ -43,14 +43,14 @@ module ALife.Creatur.Wain.Iomha.Universe
     uDeciderSizeRange,
     uDevotionRange,
     uMaturityRange,
-    uPopulationSize,
+    uInitialPopulationSize,
+    uIdealPopulationSize,
     uPopulationAllowedRange,
     uBaseMetabolismDeltaE,
     uEnergyCostPerByte,
     uChildCostFactor,
     uFlirtingDeltaE,
     uCooperationDeltaE,
-    uCooperationDeltaEBase,
     uNoveltyBasedAgreementDeltaE,
     uMinAgreementDeltaE,
     uClassifierR0Range,
@@ -109,14 +109,14 @@ data Universe a = Universe
     _uDeciderSizeRange :: (Word16, Word16),
     _uDevotionRange :: (Double, Double),
     _uMaturityRange :: (Word16, Word16),
-    _uPopulationSize :: Int,
+    _uInitialPopulationSize :: Int,
+    _uIdealPopulationSize :: Int,
     _uPopulationAllowedRange :: (Int, Int),
     _uBaseMetabolismDeltaE :: Double,
     _uEnergyCostPerByte :: Double,
     _uChildCostFactor :: Double,
     _uFlirtingDeltaE :: Double,
     _uCooperationDeltaE :: Persistent Double,
-    _uCooperationDeltaEBase :: Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
     _uClassifierR0Range :: (Double,Double),
@@ -194,8 +194,11 @@ cDevotionRange
 cMaturityRange :: Setting (Word16, Word16)
 cMaturityRange = requiredSetting "maturityRange"
 
-cPopulationSize :: Setting Int
-cPopulationSize = requiredSetting "desiredPopSize"
+cInitialPopulationSize :: Setting Int
+cInitialPopulationSize = requiredSetting "desiredPopSize"
+
+cIdealPopulationSize :: Setting Int
+cIdealPopulationSize = requiredSetting "desiredPopSize"
 
 cPopulationAllowedRange :: Setting (Double, Double)
 cPopulationAllowedRange = requiredSetting "popAllowedRange"
@@ -214,9 +217,6 @@ cFlirtingDeltaE = requiredSetting "flirtingDeltaE"
 
 cCooperationDeltaE :: Setting Double
 cCooperationDeltaE = requiredSetting "initialCooperationDeltaE"
-
-cCooperationDeltaEBase :: Setting Double
-cCooperationDeltaEBase = requiredSetting "baseCooperationDeltaE"
 
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
@@ -276,7 +276,8 @@ config2Universe getSetting =
       _uDeciderSizeRange = getSetting cDeciderSizeRange,
       _uDevotionRange = getSetting cDevotionRange,
       _uMaturityRange = getSetting cMaturityRange,
-      _uPopulationSize = p,
+      _uInitialPopulationSize = p0,
+      _uIdealPopulationSize = pIdeal,
       _uPopulationAllowedRange = (a', b'),
       _uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       _uEnergyCostPerByte = getSetting cEnergyCostPerByte,
@@ -285,7 +286,6 @@ config2Universe getSetting =
       _uCooperationDeltaE
         = mkPersistent initialCooperationDeltaE
             (workDir ++ "/cooperationDeltaE"),
-      _uCooperationDeltaEBase = getSetting cCooperationDeltaEBase,
       _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
@@ -298,8 +298,9 @@ config2Universe getSetting =
   where en = getSetting cExperimentName
         workDir = getSetting cWorkingDir
         imageDir = getSetting cImageDir
-        p = getSetting cPopulationSize
+        p0 = getSetting cInitialPopulationSize
+        pIdeal = getSetting cIdealPopulationSize
         (a, b) = getSetting cPopulationAllowedRange
-        a' = round (fromIntegral p * a)
-        b' = round (fromIntegral p * b)
+        a' = round (fromIntegral pIdeal * a)
+        b' = round (fromIntegral pIdeal * b)
         initialCooperationDeltaE = getSetting cCooperationDeltaE
