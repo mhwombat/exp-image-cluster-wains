@@ -603,35 +603,35 @@ adjustCooperationDeltaE
   :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
 adjustCooperationDeltaE xs = do
   unless (null xs) $ do
-    -- pop <- U.popSize
-    -- U.writeToLog $ "pop=" ++ show pop
+    pop <- U.popSize
+    U.writeToLog $ "pop=" ++ show pop
     idealPop <- use U.uIdealPopulationSize
     U.writeToLog $ "ideal pop=" ++ show idealPop
     let (Just coopRate) = Stats.lookup "avg. co-operated" xs
     U.writeToLog $ "co-op rate=" ++ show coopRate
-    let (Just am) = Stats.lookup "total adult metabolism Δe" xs
-    let (Just cm) = Stats.lookup "total child metabolism Δe" xs
-    let totalMetabDeltaE = am + cm
-    U.writeToLog $ "Total metabolism Δe=" ++ show totalMetabDeltaE
-    let (Just totalFlirtDeltaE) = Stats.lookup "total adult flirting Δe" xs
-    U.writeToLog $ "Total flirting Δe=" ++ show totalFlirtDeltaE
-    let (Just aa) = Stats.lookup "total adult agreement Δe" xs
-    let (Just ca) = Stats.lookup "total child agreement Δe" xs
-    let (Just oaa) = Stats.lookup "total other adult agreement Δe" xs
-    let (Just oca) = Stats.lookup "total other child agreement Δe" xs
-    let totalAgreementDeltaE = aa + ca + oaa + oca
-    U.writeToLog $ "Total agreement Δe=" ++ show totalAgreementDeltaE
-    let c = idealCoopDeltaE coopRate idealPop totalMetabDeltaE
-              totalFlirtDeltaE totalAgreementDeltaE
+    let (Just am) = Stats.lookup "avg. adult metabolism Δe" xs
+    let (Just cm) = Stats.lookup "avg. child metabolism Δe" xs
+    let avgMetabDeltaE = am + cm
+    U.writeToLog $ "Avg. metabolism Δe=" ++ show avgMetabDeltaE
+    let (Just avgFlirtDeltaE) = Stats.lookup "avg. adult flirting Δe" xs
+    U.writeToLog $ "Avg. flirting Δe=" ++ show avgFlirtDeltaE
+    let (Just aa) = Stats.lookup "avg. adult agreement Δe" xs
+    let (Just ca) = Stats.lookup "avg. child agreement Δe" xs
+    let (Just oaa) = Stats.lookup "avg. other adult agreement Δe" xs
+    let (Just oca) = Stats.lookup "avg. other child agreement Δe" xs
+    let avgAgreementDeltaE = aa + ca + oaa + oca
+    U.writeToLog $ "Avg. agreement Δe=" ++ show avgAgreementDeltaE
+    let c = idealCoopDeltaE coopRate idealPop pop avgMetabDeltaE
+              avgFlirtDeltaE avgAgreementDeltaE
     U.writeToLog $ "Adjusted cooperation Δe = " ++ show c
     zoom U.uCooperationDeltaE $ putPS c
 
 idealCoopDeltaE
-  :: Double -> Int -> Double -> Double -> Double -> Double
-idealCoopDeltaE coopRate idealPop totalMetabDeltaE totalFlirtDeltaE
-    totalAgreementDeltaE = -f*a
-  where a = totalMetabDeltaE + totalFlirtDeltaE + totalAgreementDeltaE
-        f = 1 / (coopRate * fromIntegral idealPop)
+  :: Double -> Int -> Int -> Double -> Double -> Double -> Double
+idealCoopDeltaE coopRate idealPop pop avgMetabDeltaE avgFlirtDeltaE
+    avgAgreementDeltaE = -f*a
+  where a = avgMetabDeltaE + avgFlirtDeltaE + avgAgreementDeltaE
+        f = (fromIntegral idealPop) / (fromIntegral pop * coopRate)
 
 -- lookupStat
 --   :: String -> [Stats.Statistic]
