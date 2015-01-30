@@ -629,9 +629,11 @@ adjustCooperationDeltaE xs = do
 idealCoopDeltaE
   :: Double -> Int -> Int -> Double -> Double -> Double -> Double
 idealCoopDeltaE coopRate idealPop pop avgMetabDeltaE avgFlirtDeltaE
-    avgAgreementDeltaE = -f*a
+    avgAgreementDeltaE = -(f/coopRate)*a
   where a = avgMetabDeltaE + avgFlirtDeltaE + avgAgreementDeltaE
-        f = (fromIntegral idealPop) / (fromIntegral pop * coopRate)
+        f = if a < 0
+              then fromIntegral idealPop / fromIntegral pop
+              else fromIntegral pop / fromIntegral idealPop
 
 -- lookupStat
 --   :: String -> [Stats.Statistic]
