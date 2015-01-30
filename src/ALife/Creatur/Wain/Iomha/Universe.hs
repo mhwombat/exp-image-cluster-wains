@@ -197,7 +197,7 @@ cMaturityRange = requiredSetting "maturityRange"
 cInitialPopulationSize :: Setting Int
 cInitialPopulationSize = requiredSetting "initialPopSize"
 
-cIdealPopulationSize :: Setting Int
+cIdealPopulationSize :: Setting Double
 cIdealPopulationSize = requiredSetting "idealPopSize"
 
 cPopulationAllowedRange :: Setting (Double, Double)
@@ -277,7 +277,7 @@ config2Universe getSetting =
       _uDevotionRange = getSetting cDevotionRange,
       _uMaturityRange = getSetting cMaturityRange,
       _uInitialPopulationSize = p0,
-      _uIdealPopulationSize = fIdeal*p0,
+      _uIdealPopulationSize = pIdeal,
       _uPopulationAllowedRange = (a', b'),
       _uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       _uEnergyCostPerByte = getSetting cEnergyCostPerByte,
@@ -300,6 +300,7 @@ config2Universe getSetting =
         imageDir = getSetting cImageDir
         p0 = getSetting cInitialPopulationSize
         fIdeal = getSetting cIdealPopulationSize
+        pIdeal = round (fromIntegral p0 * fIdeal)
         (a, b) = getSetting cPopulationAllowedRange
         a' = round (fromIntegral pIdeal * a)
         b' = round (fromIntegral pIdeal * b)
