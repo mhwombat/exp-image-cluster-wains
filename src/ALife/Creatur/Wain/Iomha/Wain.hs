@@ -632,12 +632,12 @@ idealCoopDeltaE
   :: Double -> Int -> Int -> Double -> Double
 idealCoopDeltaE coopRate idealPop pop e
   | coopRate == 0 = 1
-  | idealPop == 0 = -1
-  | pop == 0      = 1
-  | otherwise    = coopRate-(f/coopRate)*e
+  | idealPop == 0 = error "idealPop == 0"
+  | pop == 0      = error "pop == 0"
+  | otherwise    = -f*e
   where f = if e < 0
-              then fromIntegral idealPop / fromIntegral pop
-              else fromIntegral pop / fromIntegral idealPop
+              then fromIntegral idealPop / (fromIntegral pop * coopRate)
+              else fromIntegral pop / (fromIntegral idealPop * coopRate)
 
 -- lookupStat
 --   :: String -> [Stats.Statistic]
