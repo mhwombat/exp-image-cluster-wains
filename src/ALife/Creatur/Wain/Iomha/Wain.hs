@@ -630,8 +630,7 @@ adjustCooperationDeltaE xs = do
 idealCoopDeltaE
   :: Double -> Int -> Int -> Double -> Double
 idealCoopDeltaE coopRate idealPop pop a = -(f/coopRate)*a
-  where a = avgMetabDeltaE + avgFlirtDeltaE + avgAgreementDeltaE
-        f = if a < 0
+  where f = if a < 0
               then fromIntegral idealPop / fromIntegral pop
               else fromIntegral pop / fromIntegral idealPop
 
