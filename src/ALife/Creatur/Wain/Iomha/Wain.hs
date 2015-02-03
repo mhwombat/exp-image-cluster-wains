@@ -132,8 +132,9 @@ randomImageWain wainName u classifierSize deciderSize = do
   d <- getRandomR . view U.uDevotionRange $ u
   m <- getRandomR . view U.uMaturityRange $ u
   p <- getRandomR unitInterval
+  e <- getRandomR unitInterval
   let app = stripedImage w h
-  return $ buildWainAndGenerateGenome wainName app b d m p
+  return $ buildWainAndGenerateGenome wainName app b d m p e
 
 data Summary = Summary
   {
