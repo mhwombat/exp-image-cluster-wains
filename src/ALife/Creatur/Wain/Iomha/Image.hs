@@ -26,6 +26,8 @@ module ALife.Creatur.Wain.Iomha.Image
     writeImage,
     -- imageToArray,
     -- arrayToImage
+    imageDiff,
+    makeImageSimilar
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get,
@@ -41,7 +43,6 @@ import Control.Monad.Random (Rand, RandomGen, getRandoms)
 -- import Data.Array.Repa.Index ((:.)(..), Z(..))
 -- import qualified Data.Array.Repa.IO.DevIL as I
 -- import Data.Array.Repa.Shape (listOfShape)
-import Data.Datamining.Pattern (Pattern(..))
 import Data.List.Split (chunksOf)
 import Data.Serialize (Serialize)
 import Data.Vector.Storable (Vector, toList, fromList)
@@ -102,15 +103,16 @@ instance Pretty Image where
   pretty (Image w h xs) = show w ++ "x" ++ show h ++ concatMap f xs
     where f x = ' ' : pretty x
 
-instance Pattern Image where
-  type Metric Image = Double
-  difference a b = avgDelta / 255
-    where xs = map fromIntegral . take l $ pixels a ++ repeat 0 :: [Double]
-          ys = map fromIntegral . take l $ pixels b ++ repeat 0 :: [Double]
-          l = max (pixelCount a) (pixelCount b)
-          diff = sum . map abs $ zipWith (-) xs ys
-          avgDelta = diff / fromIntegral l
-  makeSimilar target amount a
+imageDiff :: Image -> Image -> Double
+imageDiff a b = avgDelta / 255
+  where xs = map fromIntegral . take l $ pixels a ++ repeat 0 :: [Double]
+        ys = map fromIntegral . take l $ pixels b ++ repeat 0 :: [Double]
+        l = max (pixelCount a) (pixelCount b)
+        diff = sum . map abs $ zipWith (-) xs ys
+        avgDelta = diff / fromIntegral l
+
+makeImageSimilar :: Image -> Double -> Image -> Image
+makeImageSimilar target amount a
     = a { pixels=adjust (pixels target) amount (pixels a) }
 
 instance Diploid Image where

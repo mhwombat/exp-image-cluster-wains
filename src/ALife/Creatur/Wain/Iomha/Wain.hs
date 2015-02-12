@@ -18,6 +18,7 @@
 module ALife.Creatur.Wain.Iomha.Wain
   (
     ImageWain,
+    ImageThinker(..),
     run,
     randomImageWain,
     finishRound,
@@ -34,8 +35,10 @@ import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
   reflect, mate, litter, brain, energy, childEnergy, age, imprint)
 import ALife.Creatur.Wain.Brain (decider, Brain(..))
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
+import ALife.Creatur.Wain.Classifier(buildClassifier)
+import ALife.Creatur.Wain.Decider(buildDecider)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
-  randomExponential, buildGeneticSOM, numModels, schemaQuality, toList)
+  randomExponential, numModels, schemaQuality, toList)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action,
@@ -46,18 +49,21 @@ import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
 import qualified ALife.Creatur.Wain.Iomha.FMRI as F
 import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage, randomImage)
+import ALife.Creatur.Wain.Iomha.ImageThinker (ImageThinker(..))
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Persistent (getPS, putPS)
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
 import ALife.Creatur.Wain.Statistics (summarise)
+import ALife.Creatur.Wain.Weights (makeWeights)
 import Control.Applicative ((<$>))
 import Control.Conditional (whenM)
 import Control.Lens hiding (universe)
 import Control.Monad (replicateM, when, unless)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Random (Rand, RandomGen, getRandomR, evalRandIO)
+import Control.Monad.Random (Rand, RandomGen, getRandomR, getRandomRs,
+  evalRandIO)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT)
 import Data.List (intercalate)
 import Data.Maybe (fromJust)
@@ -105,7 +111,7 @@ randomlyInsertImages db xs = do
     else
       return xs
 
-type ImageWain = Wain Image Action
+type ImageWain = Wain Image ImageThinker  Action
 
 -- TODO: Redo with lenses
 
@@ -121,20 +127,24 @@ randomImageWain wainName u classifierSize deciderSize = do
                { _r0Range = view U.uClassifierR0Range u,
                  _dRange = view U.uClassifierDRange u }
   fc <- randomExponential fcp
-  let c = buildGeneticSOM fc imgs
+  let c = buildClassifier fc ImageThinker imgs
   let fdp = RandomExponentialParams
               { _r0Range = view U.uDeciderR0Range u,
                 _dRange = view U.uDeciderDRange u }
   fd <- randomExponential fdp
   xs <- replicateM (fromIntegral deciderSize) $
-         randomResponse (numModels c) 
-  let b = Brain c (buildGeneticSOM fd xs)
-  d <- getRandomR . view U.uDevotionRange $ u
+         randomResponse (numModels c)
+  cw <- fmap (makeWeights . take 3) $ getRandomRs unitInterval
+  sw <- fmap (makeWeights . take 3) $ getRandomRs unitInterval
+  rw <- fmap (makeWeights . take 2) $ getRandomRs unitInterval
+  let dr = buildDecider fd cw sw rw xs
+  hw <- fmap (makeWeights . take 3) $ getRandomRs unitInterval
+  let b = Brain c dr hw
+  dv <- getRandomR . view U.uDevotionRange $ u
   m <- getRandomR . view U.uMaturityRange $ u
   p <- getRandomR unitInterval
-  e <- getRandomR unitInterval
   let app = stripedImage w h
-  return $ buildWainAndGenerateGenome wainName app b d m p e
+  return $ buildWainAndGenerateGenome wainName app b dv m p
 
 data Summary = Summary
   {
@@ -711,3 +721,4 @@ writeRawStats n f xs = do
   t <- U.currentTime
   liftIO . appendFile f $
     "time=" ++ show t ++ ",agent=" ++ n ++ ',':raw xs ++ "\n"
+

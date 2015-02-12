@@ -24,6 +24,7 @@ import ALife.Creatur.Wain
 import ALife.Creatur.Wain.Brain (classifier)
 import ALife.Creatur.Wain.GeneticSOM (toList)
 import ALife.Creatur.Wain.Iomha.Image
+import ALife.Creatur.Wain.Iomha.ImageThinker
 import Control.Lens hiding ((#), none)
 import Data.Colour.SRGB
 import Data.List.Split
@@ -83,7 +84,7 @@ drawClassifier
      => [(Label, Image)] -> Diagram b R2
 drawClassifier = mconcat . zipWith translateY [0,-1.2..] . map (alignL . drawRow) . chunksOf 6
 
-writeFmri :: Wain Image a -> FilePath -> IO ()
+writeFmri :: Wain Image ImageThinker a -> FilePath -> IO ()
 writeFmri w f = renderCairo f ss diagram
   where ss = mkSizeSpec (Just 500) Nothing
         c = view classifier . view brain $ w

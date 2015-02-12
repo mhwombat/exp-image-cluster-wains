@@ -61,9 +61,9 @@ examine a = do
   putStrLn $ "size: " ++ show (view wainSize a)
   putStrLn $ "SQ: " ++ show (schemaQuality . view decider . view brain $ a)
   putStrLn $ "Number of classifier models: " ++ show (numModels . view classifier . view brain $ a)
-  putStrLn $ "Classifier learning function " ++ show (learningFunction . view classifier . view brain $ a)
+  putStrLn $ "Classifier learning function " ++ show (view exponentialParams . view classifier . view brain $ a)
   putStrLn $ "Number of decider models: " ++ show (numModels . view decider . view brain $ a)
-  putStrLn $ "Decider learning function " ++ show (learningFunction . view decider . view brain $ a)
+  putStrLn $ "Decider learning function " ++ show (view exponentialParams . view decider . view brain $ a)
   -- putStrLn "------------------------"
   -- putStrLn "Mental models of vectors"
   -- putStrLn "------------------------"
