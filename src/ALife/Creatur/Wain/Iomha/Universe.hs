@@ -43,6 +43,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uDeciderSizeRange,
     uDevotionRange,
     uMaturityRange,
+    uMaxAge,
     uInitialPopulationSize,
     uIdealPopulationSize,
     uPopulationAllowedRange,
@@ -109,6 +110,7 @@ data Universe a = Universe
     _uDeciderSizeRange :: (Word16, Word16),
     _uDevotionRange :: (Double, Double),
     _uMaturityRange :: (Word16, Word16),
+    _uMaxAge :: Int,
     _uInitialPopulationSize :: Int,
     _uIdealPopulationSize :: Int,
     _uPopulationAllowedRange :: (Int, Int),
@@ -194,6 +196,9 @@ cDevotionRange
 cMaturityRange :: Setting (Word16, Word16)
 cMaturityRange = requiredSetting "maturityRange"
 
+cMaxAge :: Setting Int
+cMaxAge = requiredSetting "maxAge"
+
 cInitialPopulationSize :: Setting Int
 cInitialPopulationSize = requiredSetting "initialPopSize"
 
@@ -276,6 +281,7 @@ config2Universe getSetting =
       _uDeciderSizeRange = getSetting cDeciderSizeRange,
       _uDevotionRange = getSetting cDevotionRange,
       _uMaturityRange = getSetting cMaturityRange,
+      _uMaxAge = getSetting cMaxAge,
       _uInitialPopulationSize = p0,
       _uIdealPopulationSize = pIdeal,
       _uPopulationAllowedRange = (a', b'),

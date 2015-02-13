@@ -164,6 +164,8 @@ data Summary = Summary
     _rChildAgreementDeltaE :: Double,
     _rFlirtingDeltaE :: Double,
     _rMatingDeltaE :: Double,
+    _rOldAgeDeltaE :: Double,
+    _rChildOldAgeDeltaE :: Double,
     _rOtherMatingDeltaE :: Double,
     _rOtherAgreementDeltaE :: Double,
     _rOtherChildAgreementDeltaE :: Double,
@@ -200,6 +202,8 @@ initSummary p = Summary
     _rChildAgreementDeltaE = 0,
     _rFlirtingDeltaE = 0,
     _rMatingDeltaE = 0,
+    _rOldAgeDeltaE = 0,
+    _rChildOldAgeDeltaE = 0,
     _rOtherMatingDeltaE = 0,
     _rOtherAgreementDeltaE = 0,
     _rOtherChildAgreementDeltaE = 0,
@@ -238,6 +242,8 @@ summaryStats r =
     Stats.uiStat "child agreement Δe" (view rChildAgreementDeltaE r),
     Stats.uiStat "adult flirting Δe" (view rFlirtingDeltaE r),
     Stats.uiStat "adult mating Δe" (view rMatingDeltaE r),
+    Stats.uiStat "adult old age Δe" (view rOldAgeDeltaE r),
+    Stats.uiStat "child old age Δe" (view rChildOldAgeDeltaE r),
     Stats.uiStat "other adult mating Δe" (view rOtherMatingDeltaE r),
     Stats.uiStat "other adult agreement Δe" (view rOtherAgreementDeltaE r),
     Stats.uiStat "other child agreement Δe"
@@ -310,6 +316,7 @@ run' = do
   (ef, ecf) <- totalEnergy
   balanceEnergyEquation e0 ec0 ef ecf
   updateChildren
+  killIfTooOld
   agentStats <- ((Stats.stats a' ++) . summaryStats) <$> use summary
   zoom universe . U.writeToLog $ "At end of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty agentStats
@@ -335,6 +342,7 @@ fillInSummary s = s
          + _rAgreementDeltaE s
          + _rFlirtingDeltaE s
          + _rMatingDeltaE s
+         + _rOldAgeDeltaE s
          + _rOtherMatingDeltaE s
          + _rOtherAgreementDeltaE s, 
     _rChildNetDeltaE = _rChildMetabolismDeltaE s
@@ -343,6 +351,7 @@ fillInSummary s = s
          + _rOtherChildAgreementDeltaE s
          - _rMatingDeltaE s
          - _rOtherMatingDeltaE s
+         - _rChildOldAgeDeltaE s
   }
 
 balanceEnergyEquation
@@ -524,7 +533,6 @@ applyCooperationEffects = do
   adjustSubjectEnergy deltaE rCoopDeltaE rChildCoopDeltaE
   (summary.rCooperateCount) += 1
 
-
 applyAgreementEffects :: StateT Experiment IO ()
 applyAgreementEffects = do
   aNovelty <- use $ summary . rDirectObjectNovelty
@@ -597,6 +605,13 @@ updateChildren = do
   assign subject a'
   assign weanlings (matureChildren ++ deadChildren)
   (summary.rWeanCount) += length matureChildren
+
+killIfTooOld :: StateT Experiment IO ()
+killIfTooOld = do
+  a <- view age <$> use subject
+  maxAge <- use (universe . U.uMaxAge)
+  when (fromIntegral a > maxAge) $
+    adjustSubjectEnergy (-100) rOldAgeDeltaE rChildOldAgeDeltaE
 
 finishRound :: FilePath -> StateT (U.Universe ImageWain) IO ()
 finishRound f = do
