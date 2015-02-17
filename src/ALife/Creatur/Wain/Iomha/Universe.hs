@@ -53,6 +53,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uFlirtingDeltaE,
     uCooperationDeltaE,
     uNoveltyBasedAgreementDeltaE,
+    uSQBasedAgreementDeltaE,
     uMinAgreementDeltaE,
     uClassifierR0Range,
     uClassifierDRange,
@@ -120,6 +121,7 @@ data Universe a = Universe
     _uFlirtingDeltaE :: Double,
     _uCooperationDeltaE :: Persistent Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
+    _uSQBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
     _uClassifierR0Range :: (Double,Double),
     _uClassifierDRange :: (Double,Double),
@@ -227,6 +229,9 @@ cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
   = requiredSetting "noveltyBasedAgreementDeltaE"
 
+cSQBasedAgreementDeltaE :: Setting Double
+cSQBasedAgreementDeltaE = requiredSetting "sqBasedAgreementDeltaE"
+
 cMinAgreementDeltaE :: Setting Double
 cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
 
@@ -294,6 +299,7 @@ config2Universe getSetting =
             (workDir ++ "/cooperationDeltaE"),
       _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
+      _uSQBasedAgreementDeltaE = getSetting cSQBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
       _uClassifierR0Range = getSetting cClassifierR0Range,
       _uClassifierDRange = getSetting cClassifierDRange,

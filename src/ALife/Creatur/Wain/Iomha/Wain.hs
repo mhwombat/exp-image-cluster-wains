@@ -134,11 +134,11 @@ randomImageWain wainName u classifierSize deciderSize = do
   fd <- randomExponential fdp
   xs <- replicateM (fromIntegral deciderSize) $
          randomResponse (numModels c)
-  cw <- fmap (makeWeights . take 3) $ getRandomRs unitInterval
-  sw <- fmap (makeWeights . take 3) $ getRandomRs unitInterval
-  rw <- fmap (makeWeights . take 2) $ getRandomRs unitInterval
+  cw <- (makeWeights . take 3) <$> getRandomRs unitInterval
+  sw <- (makeWeights . take 3) <$> getRandomRs unitInterval
+  rw <- (makeWeights . take 2) <$> getRandomRs unitInterval
   let dr = buildDecider fd cw sw rw xs
-  hw <- fmap (makeWeights . take 3) $ getRandomRs unitInterval
+  hw <- (makeWeights . take 3) <$> getRandomRs unitInterval
   let b = Brain c dr hw
   dv <- getRandomR . view U.uDevotionRange $ u
   m <- getRandomR . view U.uMaturityRange $ u
@@ -537,11 +537,15 @@ applyAgreementEffects :: StateT Experiment IO ()
 applyAgreementEffects = do
   aNovelty <- use $ summary . rDirectObjectNovelty
   bNovelty <- use $ summary . rOtherNovelty
-  x <- use (universe . U.uNoveltyBasedAgreementDeltaE)
+  aSQ <- schemaQuality <$> use (subject . brain . decider)
+  (AObject b) <- use indirectObject
+  let bSQ = schemaQuality $ view (brain . decider) b
+  xn <- use (universe . U.uNoveltyBasedAgreementDeltaE)
+  xq <- use (universe . U.uSQBasedAgreementDeltaE)
   x0 <- use (universe . U.uMinAgreementDeltaE)
-  let ra = x0 + x * aNovelty
+  let ra = x0 + xn * aNovelty + xq * fromIntegral aSQ
   adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE
-  let rb = x0 + x * bNovelty
+  let rb = x0 + xn * bNovelty + xq * fromIntegral bSQ
   adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
     rOtherChildAgreementDeltaE
   (summary.rAgreeCount) += 1
@@ -628,7 +632,7 @@ finishRound f = do
 
 adjustCooperationDeltaE
   :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
-adjustCooperationDeltaE xs = do
+adjustCooperationDeltaE xs =
   unless (null xs) $ do
     pop <- U.popSize
     U.writeToLog $ "pop=" ++ show pop
