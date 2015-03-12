@@ -158,6 +158,8 @@ data Summary = Summary
     _rSchemaQuality :: Int,
     _rMetabolismDeltaE :: Double,
     _rChildMetabolismDeltaE :: Double,
+    _rSQDeltaE :: Double,
+    _rChildSQDeltaE :: Double,
     _rCoopDeltaE :: Double,
     _rChildCoopDeltaE :: Double,
     _rAgreementDeltaE :: Double,
@@ -196,6 +198,8 @@ initSummary p = Summary
     _rSchemaQuality = 0,
     _rMetabolismDeltaE = 0,
     _rChildMetabolismDeltaE = 0,
+    _rSQDeltaE = 0,
+    _rChildSQDeltaE = 0,
     _rCoopDeltaE = 0,
     _rChildCoopDeltaE = 0,
     _rAgreementDeltaE = 0,
@@ -236,6 +240,8 @@ summaryStats r =
     Stats.iStat "SQ" (view rSchemaQuality r),
     Stats.uiStat "adult metabolism Δe" (view rMetabolismDeltaE r),
     Stats.uiStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
+    Stats.uiStat "adult SQ Δe" (view rSQDeltaE r),
+    Stats.uiStat "child SQ Δe" (view rChildSQDeltaE r),
     Stats.uiStat "adult cooperation Δe" (view rCoopDeltaE r),
     Stats.uiStat "child cooperation Δe" (view rChildCoopDeltaE r),
     Stats.uiStat "adult agreement Δe" (view rAgreementDeltaE r),
@@ -302,6 +308,7 @@ run' = do
   zoom universe . U.writeToLog $ "At beginning of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty (Stats.stats a)
   runMetabolism
+  applySQEffects
   r <- chooseSubjectAction
   runAction (view action r)
   letSubjectReflect r
@@ -338,6 +345,7 @@ fillInSummary :: Summary -> Summary
 fillInSummary s = s
   {
     _rNetDeltaE = _rMetabolismDeltaE s
+         + _rSQDeltaE s
          + _rCoopDeltaE s
          + _rAgreementDeltaE s
          + _rFlirtingDeltaE s
@@ -346,6 +354,7 @@ fillInSummary s = s
          + _rOtherMatingDeltaE s
          + _rOtherAgreementDeltaE s, 
     _rChildNetDeltaE = _rChildMetabolismDeltaE s
+         + _rChildSQDeltaE s
          + _rChildCoopDeltaE s
          + _rChildAgreementDeltaE s
          + _rOtherChildAgreementDeltaE s
@@ -526,6 +535,12 @@ runAction aAction = do
 --
 -- Utility functions
 --
+
+applySQEffects :: StateT Experiment IO ()
+applySQEffects = do
+  aSQ <- fromIntegral . schemaQuality <$> use (subject . brain . decider)
+  x <- use (universe . U.uSQDeltaE)
+  adjustSubjectEnergy (x*aSQ) rSQDeltaE rChildSQDeltaE
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do

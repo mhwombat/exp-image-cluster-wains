@@ -51,6 +51,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uEnergyCostPerByte,
     uChildCostFactor,
     uFlirtingDeltaE,
+    uSQDeltaE,
     uCooperationDeltaE,
     uNoveltyBasedAgreementDeltaE,
     uSQBasedAgreementDeltaE,
@@ -119,6 +120,7 @@ data Universe a = Universe
     _uEnergyCostPerByte :: Double,
     _uChildCostFactor :: Double,
     _uFlirtingDeltaE :: Double,
+    _uSQDeltaE :: Double,
     _uCooperationDeltaE :: Persistent Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uSQBasedAgreementDeltaE :: Double,
@@ -222,6 +224,9 @@ cChildCostFactor = requiredSetting "childCostFactor"
 cFlirtingDeltaE :: Setting Double
 cFlirtingDeltaE = requiredSetting "flirtingDeltaE"
 
+cSQDeltaE :: Setting Double
+cSQDeltaE = requiredSetting "sqDeltaE"
+
 cCooperationDeltaE :: Setting Double
 cCooperationDeltaE = requiredSetting "initialCooperationDeltaE"
 
@@ -294,6 +299,7 @@ config2Universe getSetting =
       _uEnergyCostPerByte = getSetting cEnergyCostPerByte,
       _uChildCostFactor = getSetting cChildCostFactor,
       _uFlirtingDeltaE = getSetting cFlirtingDeltaE,
+      _uSQDeltaE = getSetting cSQDeltaE,
       _uCooperationDeltaE
         = mkPersistent initialCooperationDeltaE
             (workDir ++ "/cooperationDeltaE"),

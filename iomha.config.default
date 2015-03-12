@@ -23,6 +23,9 @@ imageWidth=1
 # Image height. All images must have the same dimensions.
 imageHeight=1
 
+# Wains will be killed when they reach this age
+maxAge=1000
+
 #####
 # Extra information
 #####
@@ -63,7 +66,16 @@ energyCostPerByte=-1.0e-7
 # fraction because children do not require as much processor 
 # time.
 # You probably won't need to alter this field.
-childCostFactor=0.2
+childCostFactor=0.1
+
+# Each time an agent has a CPU turn, its energy changes by an
+# amount based on its SQ.
+# Otherwise, agents would develop low SQ classification schema
+# in order to maximise the reward they get when they agree on
+# a classification.
+# This is normally an energy GAIN, so it should be positive.
+# You probably won't need to alter this field.
+sqDeltaE=0.05
 
 #####
 # Reproduction
@@ -72,6 +84,7 @@ childCostFactor=0.2
 # Every time an agent flirts, its energy changes by a fixed
 # amount.
 # This is normally an energy LOSS, so it should be negative.
+# You probably won't need to alter this field.
 flirtingDeltaE=-0.01
 
 #####
@@ -81,34 +94,56 @@ flirtingDeltaE=-0.01
 # When an agent initiates co-operation (trading classifications),
 # its energy changes by a fixed amount.
 # This is normally an energy LOSS, so it should be negative.
-initialCooperationDeltaE=0.01
+# You probably won't need to alter this field.
+initialCooperationDeltaE=0.05
 
 # When two agents co-operate, and agree on a classification,
 # their energy changes by this amount, multiplied by the
 # novelty of the image.
-# This is in addition to minimum agreement energy change.
+# This is in addition to minimum agreement energy change
+# and the change based on the schema quality.
 # This is normally an energy GAIN, so it should be positive.
-noveltyBasedAgreementDeltaE=0.5
+# You probably won't need to alter this field.
+noveltyBasedAgreementDeltaE=0.6
+
+# When two agents co-operate, and agree on a classification,
+# their energy changes by this amount, multiplied by the
+# agent's schema quality.
+# This is in addition to minimum agreement energy change
+# and the change based on the novelty.
+# This is normally an energy GAIN, so it should be positive.
+# You probably won't need to alter this field.
+sqBasedAgreementDeltaE=0
 
 # When two agents co-operate, and agree on a classification,
 # their energy changes by this amount.
-# This is in addition to the energy change based on novelty.
+# This is in addition to the energy change based on novelty
+# and the change based on the schema quality.
 # This is normally an energy GAIN, so it should be positive.
-minAgreementDeltaE=0.12
+# You probably won't need to alter this field.
+minAgreementDeltaE=0.4
 
 #####
 # Population size control
 #####
 
-# Size of the initial population, and ideal size for the
-# population.
-desiredPopSize=50
+# Size of the initial population
+initialPopSize=50
+
+# Ideal size for the population, expressed as a fraction of
+# initialPopSize.
+# Typically it will be larger than 1, to allow the population
+# to "learn" to mate before it faces a serious survival
+# challenge.
+# You probably won't need to alter this field.
+idealPopSize=1.5
 
 # The daemon will stop if the population falls outside this
-# range, which is expressed as a fraction of desiredPopSize.
+# range, which is expressed as a fraction of idealPopSize.
 # This gives you a chance to analyse the problem and
 # perhaps adjust your configuration.
-popAllowedRange=(0.2,2)
+# You probably won't need to alter this field.
+popAllowedRange=(0.3,1.5)
 
 #####
 # Configuring the initial gene pool
@@ -116,54 +151,66 @@ popAllowedRange=(0.2,2)
 
 # Constrains the amount of energy that wains in the initial
 # population give to their children at birth.
+# You probably won't need to alter this field.
 devotionRange=(0.0,0.3)
 
 # Constrains the age at which wains in the initial population
 # mature and leave their parents.
-maturityRange=(1,50)
+# You probably won't need to alter this field.
+maturityRange=(1,100)
 
 # The classifier portion of a wain's brain is a Self-Organising
 # Map (SOM). This SOM uses a hexagonal grid with hexagonal tiles.
 # The setting below controls the maximum length of one side of
 # the grid, for the /initial/ population. The processing time
 # required is proportional to the square of this value.
-classifierSizeRange=(2,10)
+classifierSizeRange=(2,30)
 
 # The range of values allowed for r0 (the learning rate applied
 # to the BMU at time 0) in the learning function for the
 # classifier in the initial population.
-classifierR0Range=(0.0,1.0)
+# You probably won't need to alter this field.
+classifierR0Range=(0.8,1)
 
 # The range of values allowed for d, the decay rate in the
 # learning function for the classifier in the initial population.
-classifierDecayRange=(0.0,1.0)
+# You probably won't need to alter this field.
+classifierDecayRange=(0,0.2)
 
 # The decider portion of a wain's brain is also a SOM, using a
 # hexagonal grid with hexagonal tiles. The setting below controls
 # the maximum length of one side of the grid, for the /initial/
 # population. The processing time required is proportional to
 # the square of this value.
-deciderSizeRange=(2,10)
+# You probably won't need to alter this field.
+deciderSizeRange=(2,200)
 
 # The range of values allowed for r0 (the learning rate applied
 # to the BMU at time 0) in the learning function for the
 # decider in the initial population.
-deciderR0Range=(0.0,1.0)
+# You probably won't need to alter this field.
+deciderR0Range=(0.8,1)
 
 # The range of values allowed for d, the decay rate in the
 # learning function for the decider in the initial population.
-deciderDecayRange=(0.0,1.0)
+# You probably won't need to alter this field.
+deciderDecayRange=(0,0.2)
 
 #####
 # Health checks
 #####
-checkpoints=[Check 0 "avg. energy" (GE 0),
-             Check 0 "avg. classifier num models" (GE 1),
-             Check 0 "avg. decider num models" (GE 1),
-             Check 0 "avg. co-operated" (GE 0),
-             Check 0 "avg. net Δe" (In (-0.01,0)),
-             Check 0 "avg. maturity" (GE 0),
-             Check 50 "avg. age" (GE 10),
-             Check 50 "avg. SQ" (GE 0),
-             Check 50 "avg. agreed" (GE 0),
-             Check 50 "avg. flirted" (GE 0)]
+
+# Each item in this list is a constraint on a particular statistic 
+# to be satisfied beginning at a particular time. At the end of
+# each round, the constraints are checked. If any of the 
+# constraints fail, the daemon halts.
+# Constraints can either be "In" a range, "GE" (greater than or 
+# equal to) a value, or "LE" (less than or equal to) a value.
+# You probably won't need to alter this field.
+checkpoints=[Check 0 "avg. classifier num models" (GE 3),
+             Check 0 "avg. decider num models" (GE 20),
+             Check 0 "avg. co-operated" (GE 0.25),
+             Check 0 "avg. maturity" (GE 25),
+             Check 0 "avg. energy" (GE 0.1),
+             Check 50 "avg. age" (GE 25),
+             Check 50000 "avg. SQ" (GE 8)]
