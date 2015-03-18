@@ -36,9 +36,9 @@ import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
 import ALife.Creatur.Wain.Brain (classifier, decider, Brain(..))
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import ALife.Creatur.Wain.Classifier(buildClassifier)
-import ALife.Creatur.Wain.Decider(buildDecider)
+import ALife.Creatur.Wain.Decider(buildDecider, deciderQuality)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
-  randomExponential, numModels, schemaQuality, toList)
+  GeneticSOM, randomExponential, numModels, schemaQuality, toList)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action,
@@ -157,8 +157,12 @@ data Summary = Summary
     _rOtherAdjustedNovelty :: Int,
     _rMetabolismDeltaE :: Double,
     _rChildMetabolismDeltaE :: Double,
-    _rSQDeltaE :: Double,
-    _rChildSQDeltaE :: Double,
+    _rCSQDeltaE :: Double,
+    _rChildCSQDeltaE :: Double,
+    _rDSQDeltaE :: Double,
+    _rChildDSQDeltaE :: Double,
+    _rDQDeltaE :: Double,
+    _rChildDQDeltaE :: Double,
     _rCoopDeltaE :: Double,
     _rChildCoopDeltaE :: Double,
     _rAgreementDeltaE :: Double,
@@ -196,8 +200,12 @@ initSummary p = Summary
     _rOtherAdjustedNovelty = 0,
     _rMetabolismDeltaE = 0,
     _rChildMetabolismDeltaE = 0,
-    _rSQDeltaE = 0,
-    _rChildSQDeltaE = 0,
+    _rCSQDeltaE = 0,
+    _rChildCSQDeltaE = 0,
+    _rDSQDeltaE = 0,
+    _rChildDSQDeltaE = 0,
+    _rDQDeltaE = 0,
+    _rChildDQDeltaE = 0,
     _rCoopDeltaE = 0,
     _rChildCoopDeltaE = 0,
     _rAgreementDeltaE = 0,
@@ -237,8 +245,12 @@ summaryStats r =
       (view rOtherAdjustedNovelty r),
     Stats.uiStat "adult metabolism Δe" (view rMetabolismDeltaE r),
     Stats.uiStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
-    Stats.uiStat "adult SQ Δe" (view rSQDeltaE r),
-    Stats.uiStat "child SQ Δe" (view rChildSQDeltaE r),
+    Stats.uiStat "adult classifier SQ Δe" (view rCSQDeltaE r),
+    Stats.uiStat "child classifier SQ Δe" (view rChildCSQDeltaE r),
+    Stats.uiStat "adult decider SQ Δe" (view rDSQDeltaE r),
+    Stats.uiStat "child decider SQ Δe" (view rChildDSQDeltaE r),
+    Stats.uiStat "adult DQ Δe" (view rDQDeltaE r),
+    Stats.uiStat "child DQ Δe" (view rChildDQDeltaE r),
     Stats.uiStat "adult cooperation Δe" (view rCoopDeltaE r),
     Stats.uiStat "child cooperation Δe" (view rChildCoopDeltaE r),
     Stats.uiStat "adult agreement Δe" (view rAgreementDeltaE r),
@@ -305,7 +317,9 @@ run' = do
   zoom universe . U.writeToLog $ "At beginning of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty (Stats.stats a)
   runMetabolism
-  applySQEffects
+  applySQEffects classifier U.uCSQDeltaE rCSQDeltaE rChildCSQDeltaE
+  applySQEffects decider U.uCSQDeltaE rDSQDeltaE rChildDSQDeltaE
+  applyDQEffects
   r <- chooseSubjectAction
   runAction (view action r)
   letSubjectReflect r
@@ -341,7 +355,9 @@ fillInSummary :: Summary -> Summary
 fillInSummary s = s
   {
     _rNetDeltaE = _rMetabolismDeltaE s
-         + _rSQDeltaE s
+         + _rCSQDeltaE s
+         + _rDSQDeltaE s
+         + _rDQDeltaE s
          + _rCoopDeltaE s
          + _rAgreementDeltaE s
          + _rFlirtingDeltaE s
@@ -350,7 +366,9 @@ fillInSummary s = s
          + _rOtherMatingDeltaE s
          + _rOtherAgreementDeltaE s, 
     _rChildNetDeltaE = _rChildMetabolismDeltaE s
-         + _rChildSQDeltaE s
+         + _rChildCSQDeltaE s
+         + _rChildDSQDeltaE s
+         + _rChildDQDeltaE s
          + _rChildCoopDeltaE s
          + _rChildAgreementDeltaE s
          + _rOtherChildAgreementDeltaE s
@@ -532,15 +550,29 @@ runAction aAction = do
 -- Utility functions
 --
 
-applySQEffects :: StateT Experiment IO ()
-applySQEffects = do
+applySQEffects
+  :: Simple Lens (Brain Image ImageThinker  Action) (GeneticSOM p t)
+    -> Simple Lens (U.Universe ImageWain) Double
+     -> Simple Lens Summary Double -> Simple Lens Summary Double
+       -> StateT Experiment IO ()
+applySQEffects component deltaESelector adultSelector childSelector = do
   aSQ <- fromIntegral . schemaQuality
-          <$> use (subject . brain . classifier)
-  x <- use (universe . U.uSQDeltaE)
+          <$> use (subject . brain . component)
+  x <- use (universe . deltaESelector)
   let deltaE = x*aSQ
   zoom universe . U.writeToLog $
     "aSQ=" ++ show aSQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
-  adjustSubjectEnergy deltaE rSQDeltaE rChildSQDeltaE
+  adjustSubjectEnergy deltaE adultSelector childSelector
+
+applyDQEffects :: StateT Experiment IO ()
+applyDQEffects = do
+  aDQ <- fromIntegral . deciderQuality
+          <$> use (subject . brain . decider)
+  x <- use (universe . U.uDQDeltaE)
+  let deltaE = x*aDQ
+  zoom universe . U.writeToLog $
+    "aDQ=" ++ show aDQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
+  adjustSubjectEnergy deltaE rDQDeltaE rChildDQDeltaE
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
