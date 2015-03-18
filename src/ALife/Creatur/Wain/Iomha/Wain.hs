@@ -586,15 +586,11 @@ applyAgreementEffects :: StateT Experiment IO ()
 applyAgreementEffects = do
   aNovelty <- use $ summary . rDirectObjectNovelty
   bNovelty <- use $ summary . rOtherNovelty
-  aSQ <- schemaQuality <$> use (subject . brain . decider)
-  (AObject b) <- use indirectObject
-  let bSQ = schemaQuality $ view (brain . decider) b
   xn <- use (universe . U.uNoveltyBasedAgreementDeltaE)
-  xq <- use (universe . U.uSQBasedAgreementDeltaE)
   x0 <- use (universe . U.uMinAgreementDeltaE)
-  let ra = x0 + xn * aNovelty + xq * fromIntegral aSQ
+  let ra = x0 + xn * aNovelty
   adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE
-  let rb = x0 + xn * bNovelty + xq * fromIntegral bSQ
+  let rb = x0 + xn * bNovelty
   adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
     rOtherChildAgreementDeltaE
   (summary.rAgreeCount) += 1
