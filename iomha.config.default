@@ -69,13 +69,32 @@ energyCostPerByte=-1.0e-7
 childCostFactor=0.1
 
 # Each time an agent has a CPU turn, its energy changes by an
-# amount based on its SQ.
-# Otherwise, agents would develop low SQ classification schema
-# in order to maximise the reward they get when they agree on
-# a classification.
+# amount based on the number of classifier models it uses 
+# regularly (classifier SQ).
+# Otherwise, agents might only use a few classifier models. 
+# (Why?)
 # This is normally an energy GAIN, so it should be positive.
 # You probably won't need to alter this field.
-sqDeltaE=0.05
+classifierSQDeltaE=0.0004
+
+# Each time an agent has a CPU turn, its energy changes by an
+# amount based on the number of decider models it uses 
+# regularly (decider SQ).
+# Otherwise, agents might only use a few decider models. 
+# in order to maximise the chance that they will agree with
+# other agents and get the reward.
+# This is normally an energy GAIN, so it should be positive.
+# You probably won't need to alter this field.
+deciderSQDeltaE=0.0004
+
+# Each time an agent has a CPU turn, its energy changes by an
+# amount based on the quality of its decider (DQ).
+# Otherwise, agents might only use a few actions
+# in order to maximise the chance that they will agree with
+# other agents and get the reward.
+# This is normally an energy GAIN, so it should be positive.
+# You probably won't need to alter this field.
+dqDeltaE=0.0004
 
 #####
 # Reproduction

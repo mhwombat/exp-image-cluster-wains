@@ -1,5 +1,5 @@
 name:                creatur-wains-iomha
-version:             8.2
+version:             8.3
 synopsis:            Agent for categorising images.
 description:         ALife agent that works co-operatively with other
                      agents to develop a classification scheme for
@@ -22,7 +22,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/mhwombat/creatur-wains-iomha.git
-  tag:      8.2
+  tag:      8.3
 
 executable iomha-daemon
   main-is:          ALife/Creatur/Wain/Iomha/Daemon.hs
@@ -36,7 +36,7 @@ executable iomha-daemon
                     cond ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.2,
-                    creatur-wains ==7.2.1,
+                    creatur-wains ==7.2.3,
                     diagrams-lib ==1.2.*,
                     diagrams-cairo ==1.2.*,
                     directory ==1.2.*,
@@ -71,7 +71,7 @@ executable iomha-init
                     colour ==2.3.*,
                     containers ==0.5.*,
                     creatur ==5.9.2,
-                    creatur-wains ==7.2.1,
+                    creatur-wains ==7.2.3,
                     diagrams-lib ==1.2.*,
                     diagrams-cairo ==1.2.*,
                     directory ==1.2.*,
@@ -103,7 +103,7 @@ executable iomha-examine
                     cond ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.2,
-                    creatur-wains ==7.2.1,
+                    creatur-wains ==7.2.3,
                     diagrams-lib ==1.2.*,
                     diagrams-cairo ==1.2.*,
                     directory ==1.2.*,
@@ -135,7 +135,7 @@ executable iomha-fmri
                     cond ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.2,
-                    creatur-wains ==7.2.1,
+                    creatur-wains ==7.2.3,
                     diagrams-lib ==1.2.*,
                     diagrams-cairo ==1.2.*,
                     directory ==1.2.*,
@@ -168,7 +168,7 @@ executable iomha-photo
                     cond ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.2,
-                    creatur-wains ==7.2.1,
+                    creatur-wains ==7.2.3,
                     diagrams-lib ==1.2.*,
                     diagrams-cairo ==1.2.*,
                     directory ==1.2.*,
@@ -205,7 +205,7 @@ Test-suite iomha-tests
                     cond ==0.4.*,
                     containers ==0.5.*,
                     creatur ==5.9.2,
-                    creatur-wains ==7.2.1,
+                    creatur-wains ==7.2.3,
                     diagrams-lib ==1.2.*,
                     diagrams-cairo ==1.2.*,
                     directory ==1.2.*,
