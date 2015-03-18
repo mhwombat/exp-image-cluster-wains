@@ -538,7 +538,8 @@ runAction aAction = do
 
 applySQEffects :: StateT Experiment IO ()
 applySQEffects = do
-  aSQ <- fromIntegral . schemaQuality <$> use (subject . brain . decider)
+  aSQ <- fromIntegral . schemaQuality
+          <$> use (subject . brain . classifier)
   x <- use (universe . U.uSQDeltaE)
   adjustSubjectEnergy (x*aSQ) rSQDeltaE rChildSQDeltaE
 
