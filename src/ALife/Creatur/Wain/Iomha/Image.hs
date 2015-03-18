@@ -22,6 +22,7 @@ module ALife.Creatur.Wain.Iomha.Image
     blankImage,
     stripedImage,
     randomImage,
+    randomImageR,
     readImage,
     writeImage,
     -- imageToArray,
@@ -37,7 +38,7 @@ import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt)
 import qualified Codec.Picture as P
 import Control.Applicative ((<$>), (<*>), pure)
-import Control.Monad.Random (Rand, RandomGen, getRandoms)
+import Control.Monad.Random (Rand, RandomGen, getRandoms, getRandomRs)
 -- import Data.Array.Repa (extent, toList)
 -- import Data.Array.Repa.Eval (fromList)
 -- import Data.Array.Repa.Index ((:.)(..), Z(..))
@@ -125,6 +126,12 @@ instance Diploid Image where
 -- population.
 randomImage :: RandomGen r => Int -> Int -> Rand r Image
 randomImage w h = fmap (mkImage w h . take (w*h)) getRandoms
+
+-- Used for generating the initial brain models in the initial
+-- population.
+randomImageR :: RandomGen r => Int -> Int -> (Word8, Word8) -> Rand r Image
+randomImageR w h range
+  = fmap (mkImage w h . take (w*h)) $ getRandomRs range
 
 -- Used for generating the initial brain models in the initial
 -- population.

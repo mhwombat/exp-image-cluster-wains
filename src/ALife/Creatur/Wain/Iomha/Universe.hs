@@ -39,6 +39,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uImageDB,
     uImageWidth,
     uImageHeight,
+    uInitialImageRange,
     uClassifierSizeRange,
     uDeciderSizeRange,
     uDevotionRange,
@@ -89,7 +90,7 @@ import Control.Exception (SomeException, try)
 import Control.Lens hiding (Setting)
 import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
-import Data.Word (Word16)
+import Data.Word (Word8, Word16)
 import System.Directory (makeRelativeToCurrentDirectory)
 
 data Universe a = Universe
@@ -110,6 +111,7 @@ data Universe a = Universe
     _uImageDB :: ImageDB,
     _uImageWidth :: Int,
     _uImageHeight :: Int,
+    _uInitialImageRange :: (Word8, Word8),
     _uClassifierSizeRange :: (Word16, Word16),
     _uDeciderSizeRange :: (Word16, Word16),
     _uDevotionRange :: (Double, Double),
@@ -188,6 +190,9 @@ cImageWidth = requiredSetting "imageWidth"
 
 cImageHeight :: Setting Int
 cImageHeight = requiredSetting "imageHeight"
+
+cInitialImageRange :: Setting (Word8, Word8)
+cInitialImageRange = requiredSetting "initialImageRange"
 
 cClassifierSizeRange :: Setting (Word16, Word16)
 cClassifierSizeRange
@@ -297,6 +302,7 @@ config2Universe getSetting =
       _uImageDB = mkImageDB imageDir,
       _uImageWidth = getSetting cImageWidth,
       _uImageHeight = getSetting cImageHeight,
+      _uInitialImageRange = getSetting cInitialImageRange,
       _uClassifierSizeRange = getSetting cClassifierSizeRange,
       _uDeciderSizeRange = getSetting cDeciderSizeRange,
       _uDevotionRange = getSetting cDevotionRange,

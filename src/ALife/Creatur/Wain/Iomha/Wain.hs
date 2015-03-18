@@ -48,7 +48,8 @@ import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
 import qualified ALife.Creatur.Wain.Iomha.FMRI as F
-import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage, randomImage)
+import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage,
+  randomImageR)
 import ALife.Creatur.Wain.Iomha.ImageThinker (ImageThinker(..))
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
@@ -121,7 +122,8 @@ randomImageWain
 randomImageWain wainName u classifierSize deciderSize = do
   let w = view U.uImageWidth u
   let h = view U.uImageHeight u
-  imgs <- replicateM (fromIntegral classifierSize) (randomImage w h)
+  let r = view U.uInitialImageRange u
+  imgs <- replicateM (fromIntegral classifierSize) (randomImageR w h r)
   -- let imgs = replicate classifierSize $ blankImage w h
   let fcp = RandomExponentialParams
                { _r0Range = view U.uClassifierR0Range u,
