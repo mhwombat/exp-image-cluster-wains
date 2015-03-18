@@ -33,7 +33,7 @@ import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
   appearance, name, chooseAction, incAge, applyMetabolismCost,
   weanMatureChildren, pruneDeadChildren, adjustEnergy, adjustPassion,
   reflect, mate, litter, brain, energy, childEnergy, age, imprint)
-import ALife.Creatur.Wain.Brain (decider, Brain(..))
+import ALife.Creatur.Wain.Brain (classifier, decider, Brain(..))
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import ALife.Creatur.Wain.Classifier(buildClassifier)
 import ALife.Creatur.Wain.Decider(buildDecider)
