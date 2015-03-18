@@ -229,10 +229,10 @@ cFlirtingDeltaE :: Setting Double
 cFlirtingDeltaE = requiredSetting "flirtingDeltaE"
 
 cCSQDeltaE :: Setting Double
-cCSQDeltaE = requiredSetting "classifierSQDeltaE"
+cCSQDeltaE = requiredSetting "csqDeltaE"
 
 cDSQDeltaE :: Setting Double
-cDSQDeltaE = requiredSetting "deciderSQDeltaE"
+cDSQDeltaE = requiredSetting "dsqDeltaE"
 
 cDQDeltaE :: Setting Double
 cDQDeltaE = requiredSetting "dqDeltaE"

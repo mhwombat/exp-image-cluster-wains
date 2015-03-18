@@ -245,10 +245,10 @@ summaryStats r =
       (view rOtherAdjustedNovelty r),
     Stats.uiStat "adult metabolism Δe" (view rMetabolismDeltaE r),
     Stats.uiStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
-    Stats.uiStat "adult classifier SQ Δe" (view rCSQDeltaE r),
-    Stats.uiStat "child classifier SQ Δe" (view rChildCSQDeltaE r),
-    Stats.uiStat "adult decider SQ Δe" (view rDSQDeltaE r),
-    Stats.uiStat "child decider SQ Δe" (view rChildDSQDeltaE r),
+    Stats.uiStat "adult CSQ Δe" (view rCSQDeltaE r),
+    Stats.uiStat "child CSQ Δe" (view rChildCSQDeltaE r),
+    Stats.uiStat "adult DSQ Δe" (view rDSQDeltaE r),
+    Stats.uiStat "child DSQ Δe" (view rChildDSQDeltaE r),
     Stats.uiStat "adult DQ Δe" (view rDQDeltaE r),
     Stats.uiStat "child DQ Δe" (view rChildDQDeltaE r),
     Stats.uiStat "adult cooperation Δe" (view rCoopDeltaE r),
@@ -687,14 +687,27 @@ adjustCooperationDeltaE xs =
     U.writeToLog $ "ideal pop=" ++ show idealPop
     let (Just coopRate) = Stats.lookup "avg. co-operated" xs
     U.writeToLog $ "co-op rate=" ++ show coopRate
+
     let (Just am) = Stats.lookup "avg. adult metabolism Δe" xs
     let (Just cm) = Stats.lookup "avg. child metabolism Δe" xs
     let avgMetabDeltaE = am + cm
     U.writeToLog $ "Avg. metabolism Δe=" ++ show avgMetabDeltaE
-    let (Just asq) = Stats.lookup "avg. adult SQ Δe" xs
-    let (Just csq) = Stats.lookup "avg. child SQ Δe" xs
-    let avgSQDeltaE = asq + csq
-    U.writeToLog $ "Avg. SQ Δe=" ++ show avgSQDeltaE
+
+    let (Just acsq) = Stats.lookup "avg. adult CSQ Δe" xs
+    let (Just ccsq) = Stats.lookup "avg. child CSQ Δe" xs
+    let avgCSQDeltaE = acsq + ccsq
+    U.writeToLog $ "Avg. CSQ Δe=" ++ show avgCSQDeltaE
+
+    let (Just adsq) = Stats.lookup "avg. adult DSQ Δe" xs
+    let (Just cdsq) = Stats.lookup "avg. child DSQ Δe" xs
+    let avgDSQDeltaE = adsq + cdsq
+    U.writeToLog $ "Avg. DSQ Δe=" ++ show avgDSQDeltaE
+
+    let (Just adq) = Stats.lookup "avg. adult DQ Δe" xs
+    let (Just cdq) = Stats.lookup "avg. child DQ Δe" xs
+    let avgDQDeltaE = adsq + cdsq
+    U.writeToLog $ "Avg. DQ Δe=" ++ show avgDQDeltaE
+
     let (Just avgFlirtDeltaE) = Stats.lookup "avg. adult flirting Δe" xs
     U.writeToLog $ "Avg. flirting Δe=" ++ show avgFlirtDeltaE
     let (Just aa) = Stats.lookup "avg. adult agreement Δe" xs
@@ -703,7 +716,8 @@ adjustCooperationDeltaE xs =
     let (Just oca) = Stats.lookup "avg. other child agreement Δe" xs
     let avgAgreementDeltaE = aa + ca + oaa + oca
     U.writeToLog $ "Avg. agreement Δe=" ++ show avgAgreementDeltaE
-    let avgEnergyToBalance = avgMetabDeltaE + avgSQDeltaE
+    let avgEnergyToBalance = avgMetabDeltaE + avgCSQDeltaE
+                               + avgDSQDeltaE + avgDQDeltaE
                                + avgFlirtDeltaE + avgAgreementDeltaE
     U.writeToLog $ "Avg. Δe=" ++ show avgEnergyToBalance
     let c = idealCoopDeltaE coopRate idealPop pop avgEnergyToBalance
