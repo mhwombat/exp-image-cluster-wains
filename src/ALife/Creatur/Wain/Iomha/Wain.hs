@@ -155,7 +155,6 @@ data Summary = Summary
     _rIndirectObjectAdjustedNovelty :: Int,
     _rOtherNovelty :: Double,
     _rOtherAdjustedNovelty :: Int,
-    _rSchemaQuality :: Int,
     _rMetabolismDeltaE :: Double,
     _rChildMetabolismDeltaE :: Double,
     _rSQDeltaE :: Double,
@@ -195,7 +194,6 @@ initSummary p = Summary
     _rIndirectObjectAdjustedNovelty = 0,
     _rOtherNovelty = 0,
     _rOtherAdjustedNovelty = 0,
-    _rSchemaQuality = 0,
     _rMetabolismDeltaE = 0,
     _rChildMetabolismDeltaE = 0,
     _rSQDeltaE = 0,
@@ -237,7 +235,6 @@ summaryStats r =
     Stats.uiStat "novelty to other" (view rOtherNovelty r),
     Stats.iStat "novelty to other (adj.)"
       (view rOtherAdjustedNovelty r),
-    Stats.iStat "SQ" (view rSchemaQuality r),
     Stats.uiStat "adult metabolism Δe" (view rMetabolismDeltaE r),
     Stats.uiStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
     Stats.uiStat "adult SQ Δe" (view rSQDeltaE r),
@@ -317,7 +314,6 @@ run' = do
   a' <- use subject
   zoom universe . U.writeToLog $ "End of " ++ agentId a ++ "'s turn"
   -- assign (summary.rNetDeltaE) (energy a' - energy a)
-  assign (summary.rSchemaQuality) (schemaQuality . view decider . view brain $ a')
   unless (isAlive a') $ assign (summary.rDeathCount) 1
   summary %= fillInSummary
   (ef, ecf) <- totalEnergy
