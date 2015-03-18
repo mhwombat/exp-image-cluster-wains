@@ -541,7 +541,10 @@ applySQEffects = do
   aSQ <- fromIntegral . schemaQuality
           <$> use (subject . brain . classifier)
   x <- use (universe . U.uSQDeltaE)
-  adjustSubjectEnergy (x*aSQ) rSQDeltaE rChildSQDeltaE
+  let deltaE = x*aSQ
+  zoom universe . U.writeToLog $
+    "aSQ=" ++ show aSQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
+  adjustSubjectEnergy deltaE rSQDeltaE rChildSQDeltaE
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
