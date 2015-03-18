@@ -705,7 +705,7 @@ adjustCooperationDeltaE xs =
 
     let (Just adq) = Stats.lookup "avg. adult DQ Δe" xs
     let (Just cdq) = Stats.lookup "avg. child DQ Δe" xs
-    let avgDQDeltaE = adsq + cdsq
+    let avgDQDeltaE = adq + cdq
     U.writeToLog $ "Avg. DQ Δe=" ++ show avgDQDeltaE
 
     let (Just avgFlirtDeltaE) = Stats.lookup "avg. adult flirting Δe" xs
