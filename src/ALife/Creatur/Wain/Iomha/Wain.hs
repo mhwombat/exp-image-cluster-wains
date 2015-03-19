@@ -712,7 +712,7 @@ adjustPopControlDeltaE xs =
     U.writeToLog $ "childPopControl=" ++ show childPopControl
 
     let avgEnergyToBalance 
-          = adultNet + childNet + adultPopControl + childPopControl
+          = adultNet + childNet - adultPopControl - childPopControl
     U.writeToLog $ "avgEnergyToBalance=" ++ show avgEnergyToBalance
     let c = idealPopControlDeltaE idealPop pop avgEnergyToBalance
     U.writeToLog $ "Adjusted pop. control Δe = " ++ show c
