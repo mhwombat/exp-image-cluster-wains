@@ -24,7 +24,7 @@ module ALife.Creatur.Wain.Iomha.Wain
     finishRound,
     schemaQuality,
     printStats,
-    idealCoopDeltaE -- exported for testing only
+    idealPopControlDeltaE -- exported for testing only
   ) where
 
 import ALife.Creatur (agentId, isAlive)
@@ -165,6 +165,8 @@ data Summary = Summary
     _rChildDSQDeltaE :: Double,
     _rDQDeltaE :: Double,
     _rChildDQDeltaE :: Double,
+    _rPopControlDeltaE :: Double,
+    _rChildPopControlDeltaE :: Double,
     _rCoopDeltaE :: Double,
     _rChildCoopDeltaE :: Double,
     _rAgreementDeltaE :: Double,
@@ -208,6 +210,8 @@ initSummary p = Summary
     _rChildDSQDeltaE = 0,
     _rDQDeltaE = 0,
     _rChildDQDeltaE = 0,
+    _rPopControlDeltaE = 0,
+    _rChildPopControlDeltaE = 0,
     _rCoopDeltaE = 0,
     _rChildCoopDeltaE = 0,
     _rAgreementDeltaE = 0,
@@ -253,6 +257,8 @@ summaryStats r =
     Stats.uiStat "child DSQ Δe" (view rChildDSQDeltaE r),
     Stats.uiStat "adult DQ Δe" (view rDQDeltaE r),
     Stats.uiStat "child DQ Δe" (view rChildDQDeltaE r),
+    Stats.uiStat "adult pop. control Δe" (view rPopControlDeltaE r),
+    Stats.uiStat "child pop. control Δe" (view rChildPopControlDeltaE r),
     Stats.uiStat "adult cooperation Δe" (view rCoopDeltaE r),
     Stats.uiStat "child cooperation Δe" (view rChildCoopDeltaE r),
     Stats.uiStat "adult agreement Δe" (view rAgreementDeltaE r),
@@ -262,7 +268,8 @@ summaryStats r =
     Stats.uiStat "adult old age Δe" (view rOldAgeDeltaE r),
     Stats.uiStat "child old age Δe" (view rChildOldAgeDeltaE r),
     Stats.uiStat "other adult mating Δe" (view rOtherMatingDeltaE r),
-    Stats.uiStat "other adult agreement Δe" (view rOtherAgreementDeltaE r),
+    Stats.uiStat "other adult agreement Δe"
+      (view rOtherAgreementDeltaE r),
     Stats.uiStat "other child agreement Δe"
       (view rOtherChildAgreementDeltaE r),
     Stats.uiStat "adult net Δe" (view rNetDeltaE r),
@@ -322,6 +329,7 @@ run' = do
   applySQEffects classifier U.uCSQDeltaE rCSQDeltaE rChildCSQDeltaE
   applySQEffects decider U.uCSQDeltaE rDSQDeltaE rChildDSQDeltaE
   applyDQEffects
+  applyPopControl
   r <- chooseSubjectAction
   runAction (view action r)
   letSubjectReflect r
@@ -360,6 +368,7 @@ fillInSummary s = s
          + _rCSQDeltaE s
          + _rDSQDeltaE s
          + _rDQDeltaE s
+         + _rPopControlDeltaE s
          + _rCoopDeltaE s
          + _rAgreementDeltaE s
          + _rFlirtingDeltaE s
@@ -371,6 +380,7 @@ fillInSummary s = s
          + _rChildCSQDeltaE s
          + _rChildDSQDeltaE s
          + _rChildDQDeltaE s
+         + _rPopControlDeltaE s
          + _rChildCoopDeltaE s
          + _rChildAgreementDeltaE s
          + _rOtherChildAgreementDeltaE s
@@ -576,9 +586,14 @@ applyDQEffects = do
     "aDQ=" ++ show aDQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
   adjustSubjectEnergy deltaE rDQDeltaE rChildDQDeltaE
 
+applyPopControl :: StateT Experiment IO ()
+applyPopControl = do
+  deltaE <- zoom (universe . U.uPopControlDeltaE) getPS
+  adjustSubjectEnergy deltaE rPopControlDeltaE rChildPopControlDeltaE
+
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
-  deltaE <- zoom (universe . U.uCooperationDeltaE) getPS
+  deltaE <- use (universe . U.uCooperationDeltaE)
   adjustSubjectEnergy deltaE rCoopDeltaE rChildCoopDeltaE
   (summary.rCooperateCount) += 1
 
@@ -668,70 +683,49 @@ finishRound f = do
   let yss = summarise xss
   printStats yss
   let zs = concat yss
-  adjustCooperationDeltaE zs
+  adjustPopControlDeltaE zs
   cs <- use U.uCheckpoints
   enforceAll zs cs
   clearStats f
   (a, b) <- use U.uPopulationAllowedRange
   checkPopSize (a, b)
 
-adjustCooperationDeltaE
+adjustPopControlDeltaE
   :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
-adjustCooperationDeltaE xs =
+adjustPopControlDeltaE xs =
   unless (null xs) $ do
     pop <- U.popSize
     U.writeToLog $ "pop=" ++ show pop
     idealPop <- use U.uIdealPopulationSize
     U.writeToLog $ "ideal pop=" ++ show idealPop
-    let (Just coopRate) = Stats.lookup "avg. co-operated" xs
-    U.writeToLog $ "co-op rate=" ++ show coopRate
 
-    let (Just am) = Stats.lookup "avg. adult metabolism Δe" xs
-    let (Just cm) = Stats.lookup "avg. child metabolism Δe" xs
-    let avgMetabDeltaE = am + cm
-    U.writeToLog $ "Avg. metabolism Δe=" ++ show avgMetabDeltaE
+    let (Just adultNet) = Stats.lookup "avg. adult net Δe" xs
+    U.writeToLog $ "adultNet=" ++ show adultNet
+    let (Just childNet) = Stats.lookup "avg. child net Δe" xs
+    U.writeToLog $ "childNet=" ++ show childNet
 
-    let (Just acsq) = Stats.lookup "avg. adult CSQ Δe" xs
-    let (Just ccsq) = Stats.lookup "avg. child CSQ Δe" xs
-    let avgCSQDeltaE = acsq + ccsq
-    U.writeToLog $ "Avg. CSQ Δe=" ++ show avgCSQDeltaE
+    let (Just adultPopControl)
+          = Stats.lookup "avg. adult pop. control Δe" xs
+    U.writeToLog $ "adultPopControl=" ++ show adultPopControl
+    let (Just childPopControl)
+          = Stats.lookup "avg. child pop. control Δe" xs
+    U.writeToLog $ "childPopControl=" ++ show childPopControl
 
-    let (Just adsq) = Stats.lookup "avg. adult DSQ Δe" xs
-    let (Just cdsq) = Stats.lookup "avg. child DSQ Δe" xs
-    let avgDSQDeltaE = adsq + cdsq
-    U.writeToLog $ "Avg. DSQ Δe=" ++ show avgDSQDeltaE
+    let avgEnergyToBalance 
+          = adultNet + childNet + adultPopControl + childPopControl
+    U.writeToLog $ "avgEnergyToBalance=" ++ show avgEnergyToBalance
+    let c = idealPopControlDeltaE idealPop pop avgEnergyToBalance
+    U.writeToLog $ "Adjusted pop. control Δe = " ++ show c
+    zoom U.uPopControlDeltaE $ putPS c
 
-    let (Just adq) = Stats.lookup "avg. adult DQ Δe" xs
-    let (Just cdq) = Stats.lookup "avg. child DQ Δe" xs
-    let avgDQDeltaE = adq + cdq
-    U.writeToLog $ "Avg. DQ Δe=" ++ show avgDQDeltaE
-
-    let (Just avgFlirtDeltaE) = Stats.lookup "avg. adult flirting Δe" xs
-    U.writeToLog $ "Avg. flirting Δe=" ++ show avgFlirtDeltaE
-    let (Just aa) = Stats.lookup "avg. adult agreement Δe" xs
-    let (Just ca) = Stats.lookup "avg. child agreement Δe" xs
-    let (Just oaa) = Stats.lookup "avg. other adult agreement Δe" xs
-    let (Just oca) = Stats.lookup "avg. other child agreement Δe" xs
-    let avgAgreementDeltaE = aa + ca + oaa + oca
-    U.writeToLog $ "Avg. agreement Δe=" ++ show avgAgreementDeltaE
-    let avgEnergyToBalance = avgMetabDeltaE + avgCSQDeltaE
-                               + avgDSQDeltaE + avgDQDeltaE
-                               + avgFlirtDeltaE + avgAgreementDeltaE
-    U.writeToLog $ "Avg. Δe=" ++ show avgEnergyToBalance
-    let c = idealCoopDeltaE coopRate idealPop pop avgEnergyToBalance
-    U.writeToLog $ "Adjusted cooperation Δe = " ++ show c
-    zoom U.uCooperationDeltaE $ putPS c
-
-idealCoopDeltaE
-  :: Double -> Int -> Int -> Double -> Double
-idealCoopDeltaE coopRate idealPop pop e
-  | coopRate == 0 = 1
+idealPopControlDeltaE :: Int -> Int -> Double -> Double
+idealPopControlDeltaE idealPop pop e
   | idealPop == 0 = error "idealPop == 0"
   | pop == 0      = error "pop == 0"
   | otherwise    = -f*e
   where f = if e < 0
-              then fromIntegral idealPop / (fromIntegral pop * coopRate)
-              else fromIntegral pop / (fromIntegral idealPop * coopRate)
+              then fromIntegral idealPop / fromIntegral pop
+              else fromIntegral pop / fromIntegral idealPop
 
 -- lookupStat
 --   :: String -> [Stats.Statistic]

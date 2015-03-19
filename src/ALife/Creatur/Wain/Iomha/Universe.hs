@@ -56,6 +56,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uDSQDeltaE,
     uDQDeltaE,
     uCooperationDeltaE,
+    uPopControlDeltaE,
     uNoveltyBasedAgreementDeltaE,
     uMinAgreementDeltaE,
     uClassifierR0Range,
@@ -126,7 +127,8 @@ data Universe a = Universe
     _uCSQDeltaE :: Double,
     _uDSQDeltaE :: Double,
     _uDQDeltaE :: Double,
-    _uCooperationDeltaE :: Persistent Double,
+    _uCooperationDeltaE :: Double,
+    _uPopControlDeltaE :: Persistent Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
     _uClassifierR0Range :: (Double,Double),
@@ -241,7 +243,7 @@ cDQDeltaE :: Setting Double
 cDQDeltaE = requiredSetting "dqDeltaE"
 
 cCooperationDeltaE :: Setting Double
-cCooperationDeltaE = requiredSetting "initialCooperationDeltaE"
+cCooperationDeltaE = requiredSetting "cooperationDeltaE"
 
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
@@ -313,9 +315,9 @@ config2Universe getSetting =
       _uCSQDeltaE = getSetting cCSQDeltaE,
       _uDSQDeltaE = getSetting cDSQDeltaE,
       _uDQDeltaE = getSetting cDQDeltaE,
-      _uCooperationDeltaE
-        = mkPersistent initialCooperationDeltaE
-            (workDir ++ "/cooperationDeltaE"),
+      _uCooperationDeltaE = getSetting cCooperationDeltaE,
+      _uPopControlDeltaE
+        = mkPersistent 0 (workDir ++ "/popControlDeltaE"),
       _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
@@ -334,4 +336,3 @@ config2Universe getSetting =
         (a, b) = getSetting cPopulationAllowedRange
         a' = round (fromIntegral pIdeal * a)
         b' = round (fromIntegral pIdeal * b)
-        initialCooperationDeltaE = getSetting cCooperationDeltaE
