@@ -380,7 +380,7 @@ fillInSummary s = s
          + _rChildCSQDeltaE s
          + _rChildDSQDeltaE s
          + _rChildDQDeltaE s
-         + _rPopControlDeltaE s
+         + _rChildPopControlDeltaE s
          + _rChildCoopDeltaE s
          + _rChildAgreementDeltaE s
          + _rOtherChildAgreementDeltaE s
