@@ -327,7 +327,7 @@ run' = do
     ++ "'s summary: " ++ pretty (Stats.stats a)
   runMetabolism
   applySQEffects classifier U.uCSQDeltaE rCSQDeltaE rChildCSQDeltaE
-  applySQEffects decider U.uCSQDeltaE rDSQDeltaE rChildDSQDeltaE
+  applySQEffects decider U.uDSQDeltaE rDSQDeltaE rChildDSQDeltaE
   applyDQEffects
   applyPopControl
   r <- chooseSubjectAction
