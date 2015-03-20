@@ -584,15 +584,7 @@ applyDQEffects = do
   let deltaE = x*aDQ
   zoom universe . U.writeToLog $
     "aDQ=" ++ show aDQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
-  before <- use (summary . rDQDeltaE)
-  before2 <- use (summary . rChildDQDeltaE)
-  zoom universe . U.writeToLog $
-    "DEBUG before=" ++ show before ++ " " ++ show before2
   adjustSubjectEnergy deltaE rDQDeltaE rChildDQDeltaE
-  after <- use (summary . rDQDeltaE)
-  after2 <- use (summary . rChildDQDeltaE)
-  zoom universe . U.writeToLog $
-    "DEBUG after=" ++ show after ++ " " ++ show after2
 
 applyPopControl :: StateT Experiment IO ()
 applyPopControl = do
