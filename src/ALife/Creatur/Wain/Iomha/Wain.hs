@@ -421,7 +421,7 @@ runMetabolism = do
   cps <- use (universe . U.uEnergyCostPerByte)
   ccf <- use (universe . U.uChildCostFactor)
   let (a', adultCost, childCost) = applyMetabolismCost bms cps ccf a
-  zoom universe . U.writeToLog $ "bms=" ++ show bms ++ " adult size=" ++ show (view wainSize a) ++ " adult cost=" ++ show adultCost
+  zoom universe . U.writeToLog $ "bms=" ++ show bms ++ " cps=" + show cps ++ adult size=" ++ show (view wainSize a) ++ " adult cost=" ++ show adultCost
   (summary . rMetabolismDeltaE) += adultCost
   (summary . rChildMetabolismDeltaE) += childCost
   assign subject a'
