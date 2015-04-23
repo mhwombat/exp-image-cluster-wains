@@ -613,9 +613,9 @@ applyDisagreementEffects aAction bAction = do
   let aConfidence = (1 - aNovelty)*(fromIntegral . view age $ a)
   let bConfidence = (1 - bNovelty)*(fromIntegral . view age $ b)
   zoom universe . U.writeToLog $
-    "a's confidence is " ++ printf "%.3f" aConfidence
+    agentId a ++ "'s confidence is " ++ printf "%.3f" aConfidence
   zoom universe . U.writeToLog $
-    "b's confidence is " ++ printf "%.3f" bConfidence
+    agentId b ++ "'s confidence is " ++ printf "%.3f" bConfidence
   if aConfidence > bConfidence
     then do
       zoom universe . U.writeToLog $ view name a ++ " teaches " ++ view name b
