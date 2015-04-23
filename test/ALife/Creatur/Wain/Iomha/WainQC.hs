@@ -20,6 +20,49 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
+-- strawMan :: Gen ImageWain
+-- strawMan = Wain <$> pure ""       -- name
+--                 <*> arbitrary     -- appearance
+--                 <*> arbitrary     -- brain
+--                 <*> arbitrary     -- devotion
+--                 <*> arbitrary     -- age of maturity
+--                 <*> arbitrary     -- delta passion
+--                 <*> arbitrary     -- energy
+--                 <*> arbitrary     -- passion
+--                 <*> arbitrary     -- age
+--                 <*> pure []       -- litter
+--                 <*> arbitrary     -- children borne during lifetime
+--                 <*> arbitrary     -- children weanded during lifetime
+--                 <*> arbitrary     -- # of wins
+--                 <*> pure ([],[])  -- genome
+--                 <*> arbitrary     -- size
+
+-- -- | Can't just generate an arbitrary genome and build an agent from
+-- --   it, because random genomes tend to be invalid.
+-- arbWain :: Gen ImageWain
+-- arbWain = do
+--   n <- arbitrary
+--   a1 <- strawMan
+--   a2 <- strawMan
+--   let g1 = write a1
+--   let g2 = write a2
+--   let r = runDiploidReader (buildWainFromGenome False n) (g1, g2)
+--   case r of
+--     (Left s)   -> error . show $ s
+--     (Right r') -> return r'
+
+-- sizedArbWain :: Int -> Gen ImageWain
+-- sizedArbWain n = do
+--   w <- arbWain
+--   if n < 1
+--     then do
+--       cs <- listOf arbWain
+--       return $ set litter cs w
+--     else return w
+
+-- instance Arbitrary ImageWain where
+--   arbitrary = sized sizedArbWain
+
 prop_idealPopControlDeltaE_counteracts_pop_growth
   :: Positive Int -> Positive Int -> Positive Int -> Double -> Property
 prop_idealPopControlDeltaE_counteracts_pop_growth idealPop p deltaP e
@@ -39,6 +82,11 @@ prop_idealPopControlDeltaE_counteracts_learning idealPop pop e deltaE
         pIdeal = getPositive idealPop
         p = getPositive pop
         e2 = e + getPositive deltaE
+
+-- prop_novelty_btw_0_and_1 :: Image -> Image -> ImageWain -> Property
+-- prop_novelty_btw_0_and_1 p1 p2 w = property . and . map inRange $ ns
+--     where (_, _, _, ns) = chooseAction [p1, p2] w
+--           inRange x = 0 <= x && x <= 1
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.Iomha.WainQC"

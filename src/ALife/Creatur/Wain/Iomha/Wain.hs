@@ -463,6 +463,10 @@ chooseAction3 w dObj iObj = do
   whenM (use U.uShowDeciderModels) $ describeModels w
   let (r, w', xs, (dObjNovelty:iObjNovelty:[]))
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
+  U.writeToLog $ "To " ++ agentId w ++ ", "
+    ++ objectId dObj ++ " has novelty " ++ show dObjNovelty
+  U.writeToLog $ "To " ++ agentId w ++ ", "
+    ++ objectId iObj ++ " has novelty " ++ show iObjNovelty
   whenM (use U.uShowPredictions) $
     describeOutcomes w xs
   let dObjNoveltyAdj = round $ dObjNovelty * fromIntegral (view age w)
@@ -547,7 +551,9 @@ runAction aAction = do
             ++ agentId a ++ ", says that " ++ objectId dObj
             ++ " has label " ++ show bAction
           applyDisagreementEffects aAction bAction
-    IObject _ _ -> return ()
+    IObject _ _ -> do
+      zoom universe . U.writeToLog $ "Attempting to co-operate with an image"
+      return ()
   
 --
 -- Utility functions
@@ -610,6 +616,8 @@ applyDisagreementEffects aAction bAction = do
   pa <- view appearance <$> use subject
   p1 <- objectAppearance <$> use directObject
   let pb = view appearance b
+  -- zoom universe . U.writeToLog $ "DEBUG aNovelty=" ++ show aNovelty
+  -- zoom universe . U.writeToLog $ "DEBUG bNovelty=" ++ show bNovelty
   let aConfidence = (1 - aNovelty)*(fromIntegral . view age $ a)
   let bConfidence = (1 - bNovelty)*(fromIntegral . view age $ b)
   zoom universe . U.writeToLog $

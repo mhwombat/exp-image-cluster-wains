@@ -105,7 +105,9 @@ instance Pretty Image where
     where f x = ' ' : pretty x
 
 imageDiff :: Image -> Image -> Double
-imageDiff a b = avgDelta / 255
+imageDiff a b
+  | pixelCount a == 0 && pixelCount b == 0 = 1
+  | otherwise                           = avgDelta / 255
   where xs = map fromIntegral . take l $ pixels a ++ repeat 0 :: [Double]
         ys = map fromIntegral . take l $ pixels b ++ repeat 0 :: [Double]
         l = max (pixelCount a) (pixelCount b)
