@@ -42,8 +42,7 @@ import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action,
-  outcome, scenario)
-import qualified ALife.Creatur.Wain.Scenario as S
+  outcome)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
@@ -135,7 +134,7 @@ randomImageWain wainName u classifierSize deciderSize = do
                 _dRange = view U.uDeciderDRange u }
   fd <- randomExponential fdp
   xs <- replicateM (fromIntegral deciderSize) $
-         randomResponse (numModels c)
+         randomResponse 2 (numModels c)
   cw <- (makeWeights . take 3) <$> getRandomRs unitInterval
   sw <- (makeWeights . take 3) <$> getRandomRs unitInterval
   rw <- (makeWeights . take 2) <$> getRandomRs unitInterval
@@ -462,12 +461,12 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and " ++ objectId iObj
   whenM (use U.uShowDeciderModels) $ describeModels w
-  let (r, w', xs)
-        = chooseAction (objectAppearance dObj) (objectAppearance iObj) w
+  let (r, w', xs, (dObjNovelty:iObjNovelty:[]))
+        = chooseAction [objectAppearance dObj, objectAppearance iObj] w
   whenM (use U.uShowPredictions) $
     describeOutcomes w xs
-  let (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj)
-        = novelties w r
+  let dObjNoveltyAdj = round $ dObjNovelty * fromIntegral (view age w)
+  let iObjNoveltyAdj = round $ iObjNovelty * fromIntegral (view age w)
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has adjusted novelty " ++ show dObjNoveltyAdj
   U.writeToLog $ "To " ++ agentId w ++ ", "
@@ -476,15 +475,6 @@ chooseAction3 w dObj iObj = do
     ++ " and chooses to "
     ++ show (view action r)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
-
-novelties
-  :: ImageWain -> Response Action -> (Double, Int, Double, Int)
-novelties w r
-  = (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj)
-  where dObjNovelty = maximum . view S.directObject . view scenario $ r
-        iObjNovelty = maximum . view S.indirectObject . view scenario $ r
-        dObjNoveltyAdj = round $ dObjNovelty * fromIntegral (view age w)
-        iObjNoveltyAdj = round $ iObjNovelty * fromIntegral (view age w)
 
 describeModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
 describeModels w = mapM_ (U.writeToLog . f) ms
@@ -629,10 +619,10 @@ applyDisagreementEffects aAction bAction = do
   if aConfidence > bConfidence
     then do
       zoom universe . U.writeToLog $ view name a ++ " teaches " ++ view name b
-      assign indirectObject (AObject $ imprint p1 pa aAction b)
+      assign indirectObject (AObject $ imprint [p1, pa] aAction b)
     else do
       zoom universe . U.writeToLog $ view name a ++ " learns from " ++ view name b
-      assign subject $ imprint p1 pb bAction a
+      assign subject $ imprint [p1, pb] bAction a
   
 flirt :: StateT Experiment IO ()
 flirt = do
@@ -787,7 +777,7 @@ letSubjectReflect r = do
   x <- use subject
   p1 <- objectAppearance <$> use directObject
   p2 <- objectAppearance <$> use indirectObject
-  let (x', err) = reflect p1 p2 r x
+  let (x', err) = reflect [p1, p2] r x
   assign subject x'
   assign (summary . rErr) err
 

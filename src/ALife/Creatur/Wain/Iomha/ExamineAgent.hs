@@ -81,7 +81,7 @@ prettyResponseModel :: (Label, Response Action) -> [String]
 prettyResponseModel (l, r) =
   [ "Model " ++ show l,
     "Differences: "
-      ++ formatVector "%5.3f" (view Scenario.directObject . view scenario $ r),
+      ++ formatVector "%5.3f" (head.view Scenario.diffs . view scenario $ r),
     "Energy: " ++ show (view cEnergy . view Scenario.condition . view scenario $ r),
     "Passion: " ++ show (view cPassion . view Scenario.condition . view scenario $ r),
     "Action: " ++ show (view action r),
