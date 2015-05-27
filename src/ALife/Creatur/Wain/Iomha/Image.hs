@@ -37,7 +37,6 @@ import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
 import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt)
 import qualified Codec.Picture as P
-import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad.Random (Rand, RandomGen, getRandoms, getRandomRs)
 -- import Data.Array.Repa (extent, toList)
 -- import Data.Array.Repa.Eval (fromList)

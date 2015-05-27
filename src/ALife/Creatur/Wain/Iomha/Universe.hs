@@ -85,7 +85,6 @@ import ALife.Creatur.Persistent (Persistent, mkPersistent)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Checkpoint as CP
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
-import Control.Applicative ((<$>))
 import Control.Exception (SomeException, try)
 import Control.Lens hiding (Setting)
 import Data.AppSettings (Setting(..), GetSetting(..),
@@ -272,10 +271,10 @@ loadUniverse = do
   configFile <- Path <$> makeRelativeToCurrentDirectory "iomha.config"
   readResult <- try $ readSettings configFile
   case readResult of
- 	  Right (_, GetSetting getSetting) -> return $
-            config2Universe getSetting
- 	  Left (x :: SomeException) -> error $
-            "Error reading the config file: " ++ show x
+    Right (_, GetSetting getSetting) ->
+      return $ config2Universe getSetting
+    Left (x :: SomeException) ->
+      error $ "Error reading the config file: " ++ show x
 
 config2Universe :: (forall a. Read a => Setting a -> a) -> Universe b
 config2Universe getSetting =

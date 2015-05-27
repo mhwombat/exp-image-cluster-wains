@@ -23,8 +23,9 @@ import ALife.Creatur.Wain.Iomha.Universe
 import Control.Lens hiding ((#), none)
 import Control.Monad.State
 import Data.Colour.SRGB
+import Data.Typeable
 import Data.Word
-import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 import Diagrams.Prelude hiding (view)
 import System.Environment
 
@@ -33,19 +34,19 @@ grey2colour x = sRGB x' x' x'
   where x' = fromIntegral x / 255
 
 colour2square
-  :: (HasStyle b, Transformable b, TrailLike b, V b ~ R2)
+  :: (Typeable (N b), TrailLike b, HasStyle b, V b ~ V2)
     => Colour Double -> b
 colour2square c = square 0.1 # fc c # lw none
 
 imageRow
-  :: (HasOrigin c, Juxtaposable c, HasStyle c, Transformable c,
-    TrailLike c, Semigroup c, Monoid c, V c ~ R2)
-      => [Word8] -> c
+  :: (Typeable (N c), Monoid c, TrailLike c, Semigroup c, HasOrigin c,
+    Juxtaposable c, HasStyle c, V c ~ V2)
+       => [Word8] -> c
 imageRow = hcat . map (colour2square . grey2colour)
 
 image2diagram
-  :: (HasOrigin c, Juxtaposable c, HasStyle c, TrailLike c,
-    Transformable c, Semigroup c, Monoid c, V c ~ R2)
+  :: (Typeable (N c), Monoid c, TrailLike c, Semigroup c, HasOrigin c,
+    Juxtaposable c, HasStyle c, V c ~ V2)
      => Image -> c
 image2diagram = vcat . map imageRow . pixelArray
 
@@ -71,7 +72,7 @@ main = do
   u <- loadUniverse
   n <- getWainName
   w <- evalStateT (getWain n) u
-  let ss = mkSizeSpec (Just 500) Nothing
-  let diagram = image2diagram . view appearance $ w :: Diagram B R2
+  let ss = mkSizeSpec2D (Just 500) Nothing
+  let diagram = image2diagram . view appearance $ w :: QDiagram SVG V2 Double Any
   let outputFileName = n ++ ".svg"
-  renderCairo outputFileName ss diagram
+  renderSVG outputFileName ss diagram

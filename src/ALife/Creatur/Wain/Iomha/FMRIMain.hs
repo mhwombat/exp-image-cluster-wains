@@ -24,7 +24,7 @@ import ALife.Creatur.Wain.Iomha.Universe
 import ALife.Creatur.Wain.Iomha.Wain
 import Control.Lens
 import Control.Monad.State
-import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 import Diagrams.Prelude hiding (view)
 import System.Environment
 
@@ -47,7 +47,7 @@ main = do
   u <- loadUniverse
   n <- getWainName
   w <- evalStateT (getWain n) u
-  let ss = mkSizeSpec (Just 500) Nothing
-  let diagram = drawClassifier . toList . view classifier . view brain $ w :: Diagram B R2
+  let ss = mkSizeSpec2D (Just 500) Nothing
+  let diagram = drawClassifier . toList . view classifier . view brain $ w :: QDiagram SVG V2 Double Any
   let outputFileName = n ++ ".svg"
-  renderCairo outputFileName ss diagram
+  renderSVG outputFileName ss diagram

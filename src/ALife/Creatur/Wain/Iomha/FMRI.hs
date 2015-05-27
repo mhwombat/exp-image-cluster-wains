@@ -28,64 +28,58 @@ import ALife.Creatur.Wain.Iomha.ImageThinker
 import Control.Lens hiding ((#), none)
 import Data.Colour.SRGB
 import Data.List.Split
+import Data.Typeable
 import Data.Word
 import Diagrams.Prelude hiding (view)
 import Diagrams.TwoD.Text
-import Diagrams.Backend.Cairo
+-- import Diagrams.Backend.Cairo
+import Diagrams.Backend.SVG
 
 grey2colour :: Word8 -> Colour Double
 grey2colour x = sRGB x' x' x'
   where x' = fromIntegral x / 255
 
--- grey2colour :: Word8 -> AlphaColour Double
--- grey2colour n = opaque $ sRGB24 (255 - n) (255 - n) (255 - n) 
-
 colour2square
-  :: (HasStyle b, Transformable b, TrailLike b, V b ~ R2)
+  :: (Typeable (N b), HasStyle b, TrailLike b, V b ~ V2)
     => Colour Double -> b
 colour2square c = square 0.1 # fc c # lw none
 
 imageRow
-  :: (HasOrigin c, Juxtaposable c, HasStyle c, Transformable c,
-    TrailLike c, Semigroup c, Monoid c, V c ~ R2)
+  :: (Typeable (N c), HasOrigin c, Juxtaposable c, HasStyle c,
+    TrailLike c, Semigroup c, Monoid c, V c ~ V2)
       => [Word8] -> c
 imageRow = hcat . map (colour2square . grey2colour)
 
 image2diagram
-  :: (HasOrigin c, Juxtaposable c, HasStyle c, TrailLike c,
-    Transformable c, Semigroup c, Monoid c, V c ~ R2)
+  :: (Typeable (N c), HasOrigin c, Juxtaposable c, HasStyle c, TrailLike c,
+    Semigroup c, Monoid c, V c ~ V2)
      => Image -> c
 image2diagram = vcat . map imageRow . pixelArray
 
--- image2raster :: Image -> DImage Embedded
--- image2raster img = raster f (iWidth img) (iHeight img)
---   where f r c = grey2colour (pixelAt img r c)
--- -- raster :: (Int -> Int -> AlphaColour Double) -> Int -> Int -> DImage Embedded
-
--- cream :: (Ord b, Floating b) => Colour b
--- cream = sRGB24 255 255 224
-
 drawNode
-  :: (Renderable Text b, Renderable (Path R2) b)
-    => (Label, Image) -> Diagram b R2
+  :: (Typeable n, Floating n, Fractional n, RealFloat n,
+    Renderable (Text n) b, Renderable (Path V2 n) b)
+      => (Label, Image) -> QDiagram b V2 n Any
 drawNode (i, img) = label `atop` pic `atop` area
   where area = rect 1 1.1 # lw none
-        label = translateY 0.475 $ text (show i) # fc black # fontSize (Local 0.08)
-        imgSizeSpec = mkSizeSpec (Just 0.95) (Just 0.95)
+        label = translateY 0.475 $ text (show i) # fc black # fontSize (local 0.08)
+        imgSizeSpec = mkSizeSpec2D (Just 0.95) (Just 0.95)
         pic = translateY 0.4 . centerX . sized imgSizeSpec $ image2diagram img
 
 drawRow
-  :: (Renderable Text b, Renderable (Path R2) b)
-     => [(Label, Image)] -> Diagram b R2
+  :: (RealFloat n, Typeable n, Renderable (Text n) b,
+    Renderable (Path V2 n) b)
+      => [(Label, Image)] -> QDiagram b V2 n Any
 drawRow = hcat . map drawNode
 
 drawClassifier
-  :: (Renderable Text b, Renderable (Path R2) b)
-     => [(Label, Image)] -> Diagram b R2
+  :: (Enum n, RealFloat n, Typeable n, Renderable (Path V2 n) b,
+    Renderable (Text n) b)
+      => [(Label, Image)] -> QDiagram b V2 n Any
 drawClassifier = mconcat . zipWith translateY [0,-1.2..] . map (alignL . drawRow) . chunksOf 6
 
 writeFmri :: Wain Image ImageThinker a -> FilePath -> IO ()
-writeFmri w f = renderCairo f ss diagram
-  where ss = mkSizeSpec (Just 500) Nothing
+writeFmri w f = renderSVG f ss diagram
+  where ss = mkSizeSpec2D (Just 500) Nothing
         c = view classifier . view brain $ w
-        diagram = drawClassifier . toList $ c :: Diagram B R2
+        diagram = drawClassifier . toList $ c :: QDiagram SVG V2 Double Any

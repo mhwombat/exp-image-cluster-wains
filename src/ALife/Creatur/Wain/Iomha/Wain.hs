@@ -57,7 +57,6 @@ import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
 import ALife.Creatur.Wain.Statistics (summarise)
 import ALife.Creatur.Wain.Weights (makeWeights)
-import Control.Applicative ((<$>))
 import Control.Conditional (whenM)
 import Control.Lens hiding (universe)
 import Control.Monad (replicateM, when, unless)
