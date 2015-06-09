@@ -56,13 +56,12 @@ endRoundProgram = use uStatsFile >>= finishRound
 main :: IO ()
 main = do
   u <- loadUniverse
-  let program = run u
   let message = "creatur-wains-iomha-" ++ showVersion version
           ++ ", compiled with " ++ ALife.Creatur.Wain.programVersion
           ++ ", " ++ ALife.Creatur.programVersion
           ++ ", configuration=" ++ show u
   let j = simpleJob
-        { task=runInteractingAgents program doNothing endRoundProgram,
+        { task=runInteractingAgents run doNothing endRoundProgram,
           onStartup=startupHandler message,
           onShutdown=shutdownHandler message,
           sleepTime=view uSleepBetweenTasks u }

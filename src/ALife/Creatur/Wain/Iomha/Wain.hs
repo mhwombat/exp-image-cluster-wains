@@ -63,7 +63,7 @@ import Control.Monad (replicateM, when, unless)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR, getRandomRs,
   evalRandIO)
-import Control.Monad.State.Lazy (StateT, execStateT, evalStateT)
+import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
 import Data.List (intercalate)
 import Data.Maybe (fromJust)
 import Data.Word (Word16)
@@ -294,10 +294,10 @@ data Experiment = Experiment
   }
 makeLenses ''Experiment
 
-run :: U.Universe ImageWain -> [ImageWain]
-      -> StateT (U.Universe ImageWain) IO [ImageWain]
-run u (me:xs) = do
+run :: [ImageWain] -> StateT (U.Universe ImageWain) IO [ImageWain]
+run (me:xs) = do
   when (null xs) $ U.writeToLog "WARNING: Last wain standing!"
+  u <- get
   (x, y) <- chooseObjects xs . view U.uImageDB $ u
   p <- U.popSize
   let e = Experiment { _subject = me,
@@ -313,7 +313,7 @@ run u (me:xs) = do
   U.writeToLog $
     "Modified agents: " ++ show (map agentId modifiedAgents)
   return modifiedAgents
-run _ _ = error "no more wains"
+run _ = error "no more wains"
 
 run' :: StateT Experiment IO ()
 run' = do
@@ -595,16 +595,22 @@ applyCooperationEffects = do
 
 applyAgreementEffects :: StateT Experiment IO ()
 applyAgreementEffects = do
-  aNovelty <- use $ summary . rDirectObjectNovelty
-  bNovelty <- use $ summary . rOtherNovelty
-  xn <- use (universe . U.uNoveltyBasedAgreementDeltaE)
-  x0 <- use (universe . U.uMinAgreementDeltaE)
-  let ra = x0 + xn * aNovelty
-  adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE
-  let rb = x0 + xn * bNovelty
-  adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
-    rOtherChildAgreementDeltaE
-  (summary.rAgreeCount) += 1
+  dObj <- use directObject
+  if (isImage dObj)
+    then do
+      aNovelty <- use $ summary . rDirectObjectNovelty
+      bNovelty <- use $ summary . rOtherNovelty
+      xn <- use (universe . U.uNoveltyBasedAgreementDeltaE)
+      x0 <- use (universe . U.uMinAgreementDeltaE)
+      let ra = x0 + xn * aNovelty
+      adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE
+      let rb = x0 + xn * bNovelty
+      adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
+        rOtherChildAgreementDeltaE
+      (summary.rAgreeCount) += 1
+    else do
+      zoom universe . U.writeToLog $
+        "No reward for agreeing on a classification for a wain"
 
 applyDisagreementEffects :: Action -> Action -> StateT Experiment IO ()
 applyDisagreementEffects aAction bAction = do
