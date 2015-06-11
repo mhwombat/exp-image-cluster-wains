@@ -48,6 +48,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uInitialPopulationSize,
     uIdealPopulationSize,
     uPopulationAllowedRange,
+    uFrequencies,
     uBaseMetabolismDeltaE,
     uEnergyCostPerByte,
     uChildCostFactor,
@@ -119,6 +120,7 @@ data Universe a = Universe
     _uInitialPopulationSize :: Int,
     _uIdealPopulationSize :: Int,
     _uPopulationAllowedRange :: (Int, Int),
+    _uFrequencies :: [Rational],
     _uBaseMetabolismDeltaE :: Double,
     _uEnergyCostPerByte :: Double,
     _uChildCostFactor :: Double,
@@ -220,6 +222,9 @@ cIdealPopulationSize = requiredSetting "idealPopSize"
 cPopulationAllowedRange :: Setting (Double, Double)
 cPopulationAllowedRange = requiredSetting "popAllowedRange"
 
+cFrequencies :: Setting [Rational]
+cFrequencies = requiredSetting "frequencies"
+
 cBaseMetabolismDeltaE :: Setting Double
 cBaseMetabolismDeltaE = requiredSetting "baseMetabDeltaE"
 
@@ -307,6 +312,7 @@ config2Universe getSetting =
       _uInitialPopulationSize = p0,
       _uIdealPopulationSize = pIdeal,
       _uPopulationAllowedRange = (a', b'),
+      _uFrequencies = getSetting cFrequencies,
       _uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       _uEnergyCostPerByte = getSetting cEnergyCostPerByte,
       _uChildCostFactor = getSetting cChildCostFactor,

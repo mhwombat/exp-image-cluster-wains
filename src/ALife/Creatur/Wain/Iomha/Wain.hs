@@ -62,14 +62,13 @@ import Control.Lens hiding (universe)
 import Control.Monad (replicateM, when, unless)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR, getRandomRs,
-  evalRandIO)
+  evalRandIO, fromList)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
 import Data.List (intercalate)
 import Data.Maybe (fromJust)
 import Data.Word (Word16)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (dropFileName)
-import System.Random (randomIO, randomRIO)
 import Text.Printf (printf)
 
 data Object = IObject Image String | AObject ImageWain
@@ -97,18 +96,6 @@ objectChildEnergy (AObject a) = childEnergy a
 addIfAgent :: Object -> [ImageWain] -> [ImageWain]
 addIfAgent (IObject _ _) xs = xs
 addIfAgent (AObject a) xs = a:xs
-
-randomlyInsertImages :: ImageDB -> [Object] -> IO [Object]
-randomlyInsertImages db xs = do
-  insert <- randomIO
-  if insert
-    then do
-      (img, imageId) <- evalStateT anyImage db
-      n <- randomRIO (0, 1)
-      let (fore, aft) = splitAt n xs
-      randomlyInsertImages db $ fore ++ IObject img imageId : aft
-    else
-      return xs
 
 type ImageWain = Wain Image ImageThinker  Action
 
@@ -295,10 +282,11 @@ data Experiment = Experiment
 makeLenses ''Experiment
 
 run :: [ImageWain] -> StateT (U.Universe ImageWain) IO [ImageWain]
-run (me:xs) = do
+run (me:w1:w2:xs) = do
   when (null xs) $ U.writeToLog "WARNING: Last wain standing!"
   u <- get
-  (x, y) <- chooseObjects xs . view U.uImageDB $ u
+  (x, y) <- liftIO $ chooseObjects (view U.uFrequencies u) w1 w2
+                       (view U.uImageDB u)
   p <- U.popSize
   let e = Experiment { _subject = me,
                        _directObject = x,
@@ -313,7 +301,7 @@ run (me:xs) = do
   U.writeToLog $
     "Modified agents: " ++ show (map agentId modifiedAgents)
   return modifiedAgents
-run _ = error "no more wains"
+run _ = error "too few wains"
 
 run' :: StateT Experiment IO ()
 run' = do
@@ -494,12 +482,18 @@ describeOutcomes w = mapM_ (U.writeToLog . f)
                      ++ (printf "%.3f" . fromJust . view outcome $ r)
                      ++ " from model " ++ show l
 
-chooseObjects :: [ImageWain] -> ImageDB -> StateT u IO (Object, Object)
-chooseObjects xs db = do
-  -- zoom universe . U.writeToLog $ "Direct object = " ++ objectId x
-  -- zoom universe . U.writeToLog $ "Indirect object = " ++ objectId y
-  (x:y:_) <- liftIO . randomlyInsertImages db . map AObject $ xs
-  return (x, y)
+chooseObjects
+  :: [Rational] -> ImageWain -> ImageWain -> ImageDB
+    -> IO (Object, Object)
+chooseObjects freqs w1 w2 db = do
+  (img1, imageId1) <- evalStateT anyImage db
+  (img2, imageId2) <- evalStateT anyImage db
+  choosePair freqs (IObject img1 imageId1, IObject img2 imageId2)
+    (AObject w1, AObject w2)
+
+choosePair :: [Rational] -> (a, a) -> (a, a) -> IO (a, a)
+choosePair freqs (i1, i2) (w1, w2)
+  = fromList $ zip [(i1, i2), (i1, w1), (w1, i1), (w1, w2)] freqs
 
 runAction :: Action -> StateT Experiment IO ()
 
