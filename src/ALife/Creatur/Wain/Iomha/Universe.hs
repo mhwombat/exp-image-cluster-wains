@@ -90,7 +90,6 @@ import Control.Exception (SomeException, try)
 import Control.Lens hiding (Setting)
 import Data.AppSettings (Setting(..), GetSetting(..),
   FileLocation(Path), readSettings)
-import Data.Ratio ((%))
 import Data.Word (Word8, Word16)
 import System.Directory (makeRelativeToCurrentDirectory)
 
@@ -223,7 +222,7 @@ cIdealPopulationSize = requiredSetting "idealPopSize"
 cPopulationAllowedRange :: Setting (Double, Double)
 cPopulationAllowedRange = requiredSetting "popAllowedRange"
 
-cFrequencies :: Setting [Integer]
+cFrequencies :: Setting [Rational]
 cFrequencies = requiredSetting "frequencies"
 
 cBaseMetabolismDeltaE :: Setting Double
@@ -313,7 +312,7 @@ config2Universe getSetting =
       _uInitialPopulationSize = p0,
       _uIdealPopulationSize = pIdeal,
       _uPopulationAllowedRange = (a', b'),
-      _uFrequencies = map (% 100) $ getSetting cFrequencies,
+      _uFrequencies = getSetting cFrequencies,
       _uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       _uEnergyCostPerByte = getSetting cEnergyCostPerByte,
       _uChildCostFactor = getSetting cChildCostFactor,
@@ -342,4 +341,3 @@ config2Universe getSetting =
         (a, b) = getSetting cPopulationAllowedRange
         a' = round (fromIntegral pIdeal * a)
         b' = round (fromIntegral pIdeal * b)
-
