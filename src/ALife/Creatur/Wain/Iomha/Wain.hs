@@ -619,7 +619,8 @@ applyDisagreementEffects aAction bAction = do
   a <- use subject
   AObject b <- use indirectObject
   pa <- view appearance <$> use subject
-  p1 <- objectAppearance <$> use directObject
+  dObj <- use directObject
+  let p1 = objectAppearance dObj
   let pb = view appearance b
   -- zoom universe . U.writeToLog $ "DEBUG aNovelty=" ++ show aNovelty
   -- zoom universe . U.writeToLog $ "DEBUG bNovelty=" ++ show bNovelty
@@ -632,9 +633,14 @@ applyDisagreementEffects aAction bAction = do
   if aConfidence > bConfidence
     then do
       zoom universe . U.writeToLog $ view name a ++ " teaches " ++ view name b
+      zoom universe . U.writeToLog $
+        view name b ++ " learns from " ++ view name a ++ " that "
+          ++ objectId dObj ++ " is " ++ show aAction
       assign indirectObject (AObject $ imprint [p1, pa] aAction b)
     else do
-      zoom universe . U.writeToLog $ view name a ++ " learns from " ++ view name b
+      zoom universe . U.writeToLog $
+        view name a ++ " learns from " ++ view name b ++ " that "
+          ++ objectId dObj ++ " is " ++ show bAction
       assign subject $ imprint [p1, pb] bAction a
   
 flirt :: StateT Experiment IO ()
