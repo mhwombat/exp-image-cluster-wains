@@ -61,6 +61,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uPopControlDeltaE,
     uNoveltyBasedAgreementDeltaE,
     uMinAgreementDeltaE,
+    uAdultAdultTeaching,
     uOutcomeRange,
     uClassifierR0Range,
     uClassifierDRange,
@@ -133,6 +134,7 @@ data Universe a = Universe
     _uDQDeltaE :: Double,
     _uCooperationDeltaE :: Double,
     _uPopControlDeltaE :: Persistent Double,
+    _uAdultAdultTeaching :: Bool,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
     _uOutcomeRange :: (Double, Double),
@@ -253,6 +255,9 @@ cDQDeltaE = requiredSetting "dqDeltaE"
 cCooperationDeltaE :: Setting Double
 cCooperationDeltaE = requiredSetting "cooperationDeltaE"
 
+cAdultAdultTeaching :: Setting Bool
+cAdultAdultTeaching = requiredSetting "adultLearning"
+
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
   = requiredSetting "noveltyBasedAgreementDeltaE"
@@ -331,6 +336,7 @@ config2Universe getSetting =
       _uCooperationDeltaE = getSetting cCooperationDeltaE,
       _uPopControlDeltaE
         = mkPersistent 0 (workDir ++ "/popControlDeltaE"),
+      _uAdultAdultTeaching = getSetting cAdultAdultTeaching,
       _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,

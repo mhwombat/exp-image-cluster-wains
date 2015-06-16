@@ -640,18 +640,19 @@ applyDisagreementEffects aAction bAction = do
     agentId a ++ "'s confidence is " ++ printf "%.3f" aConfidence
   zoom universe . U.writeToLog $
     agentId b ++ "'s confidence is " ++ printf "%.3f" bConfidence
-  if aConfidence > bConfidence
-    then do
-      zoom universe . U.writeToLog $ view name a ++ " teaches " ++ view name b
-      zoom universe . U.writeToLog $
-        view name b ++ " learns from " ++ view name a ++ " that "
-          ++ objectId dObj ++ " is " ++ show aAction
-      assign indirectObject (AObject $ imprint [p1, pa] aAction b)
-    else do
-      zoom universe . U.writeToLog $
-        view name a ++ " learns from " ++ view name b ++ " that "
-          ++ objectId dObj ++ " is " ++ show bAction
-      assign subject $ imprint [p1, pb] bAction a
+  whenM (use $ universe . U.uAdultAdultTeaching) $
+    if aConfidence > bConfidence
+      then do
+        zoom universe . U.writeToLog $ view name a ++ " teaches " ++ view name b
+        zoom universe . U.writeToLog $
+          view name b ++ " learns from " ++ view name a ++ " that "
+            ++ objectId dObj ++ " is " ++ show aAction
+        assign indirectObject (AObject $ imprint [p1, pa] aAction b)
+      else do
+        zoom universe . U.writeToLog $
+          view name a ++ " learns from " ++ view name b ++ " that "
+            ++ objectId dObj ++ " is " ++ show bAction
+        assign subject $ imprint [p1, pb] bAction a
   
 flirt :: StateT Experiment IO ()
 flirt = do
