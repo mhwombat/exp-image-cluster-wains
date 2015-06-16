@@ -31,6 +31,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uChecklist,
     uStatsFile,
     uRawStatsFile,
+    uFmriCounter,
     uFmriDir,
     uShowDeciderModels,
     uShowPredictions,
@@ -60,6 +61,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uPopControlDeltaE,
     uNoveltyBasedAgreementDeltaE,
     uMinAgreementDeltaE,
+    uOutcomeRange,
     uClassifierR0Range,
     uClassifierDRange,
     uDeciderR0Range,
@@ -103,6 +105,7 @@ data Universe a = Universe
     _uChecklist :: CL.PersistentChecklist,
     _uStatsFile :: FilePath,
     _uRawStatsFile :: FilePath,
+    _uFmriCounter :: K.PersistentCounter,
     _uFmriDir :: FilePath,
     _uShowDeciderModels :: Bool,
     _uShowPredictions :: Bool,
@@ -132,6 +135,7 @@ data Universe a = Universe
     _uPopControlDeltaE :: Persistent Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
+    _uOutcomeRange :: (Double, Double),
     _uClassifierR0Range :: (Double,Double),
     _uClassifierDRange :: (Double,Double),
     _uDeciderR0Range :: (Double,Double),
@@ -256,6 +260,9 @@ cNoveltyBasedAgreementDeltaE
 cMinAgreementDeltaE :: Setting Double
 cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
 
+cOutcomeRange :: Setting (Double,Double)
+cOutcomeRange = requiredSetting "outcomeRange"
+
 cClassifierR0Range :: Setting (Double,Double)
 cClassifierR0Range = requiredSetting "classifierR0Range"
 
@@ -295,6 +302,7 @@ config2Universe getSetting =
       _uChecklist = CL.mkPersistentChecklist (workDir ++ "/todo"),
       _uStatsFile = workDir ++ "/statsFile",
       _uRawStatsFile = workDir ++ "/rawStatsFile",
+      _uFmriCounter = K.mkPersistentCounter (workDir ++ "/fmriCount"),
       _uFmriDir = workDir ++ "/log",
       _uShowDeciderModels = getSetting cShowDeciderModels,
       _uShowPredictions = getSetting cShowPredictions,
@@ -326,6 +334,7 @@ config2Universe getSetting =
       _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
+      _uOutcomeRange = getSetting cOutcomeRange,
       _uClassifierR0Range = getSetting cClassifierR0Range,
       _uClassifierDRange = getSetting cClassifierDRange,
       _uDeciderR0Range = getSetting cDeciderR0Range,

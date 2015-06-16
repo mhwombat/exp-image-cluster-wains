@@ -28,6 +28,7 @@ module ALife.Creatur.Wain.Iomha.Wain
   ) where
 
 import ALife.Creatur (agentId, isAlive)
+import ALife.Creatur.Counter (current, increment)
 import ALife.Creatur.Task (checkPopSize)
 import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
   appearance, name, chooseAction, incAge, applyMetabolismCost,
@@ -120,7 +121,7 @@ randomImageWain wainName u classifierSize deciderSize = do
                 _dRange = view U.uDeciderDRange u }
   fd <- randomExponential fdp
   xs <- replicateM (fromIntegral deciderSize) $
-         randomResponse 2 (numModels c)
+         randomResponse 2 (numModels c) (view U.uOutcomeRange u)
   cw <- (makeWeights . take 3) <$> getRandomRs unitInterval
   sw <- (makeWeights . take 3) <$> getRandomRs unitInterval
   rw <- (makeWeights . take 2) <$> getRandomRs unitInterval
@@ -335,17 +336,8 @@ run' = do
     ++ "'s summary: " ++ pretty agentStats
   rsf <- use (universe . U.uRawStatsFile)
   zoom universe $ writeRawStats (agentId a) rsf agentStats
-  whenM (use (universe . U.uGenFmris)) writeFmri
   sf <- use (universe . U.uStatsFile)
   zoom universe $ updateStats agentStats sf
-
-writeFmri :: StateT Experiment IO ()
-writeFmri = do
-  w <- use subject
-  t <- zoom universe U.currentTime
-  d <- use (universe . U.uFmriDir)
-  let f = d ++ "/" ++ view name w ++ '_' : show t ++ ".png"
-  liftIO . F.writeFmri w $ f
 
 fillInSummary :: Summary -> Summary
 fillInSummary s = s
@@ -450,12 +442,12 @@ chooseAction3 w dObj iObj = do
   whenM (use U.uShowDeciderModels) $ describeModels w
   let (r, w', xs, (dObjNovelty:iObjNovelty:[]))
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
+  whenM (use U.uGenFmris) (writeFmri w)
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has novelty " ++ show dObjNovelty
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId iObj ++ " has novelty " ++ show iObjNovelty
-  whenM (use U.uShowPredictions) $
-    describeOutcomes w xs
+  whenM (use U.uShowPredictions) $ describeOutcomes w xs
   let dObjNoveltyAdj = round $ dObjNovelty * fromIntegral (view age w)
   let iObjNoveltyAdj = round $ iObjNovelty * fromIntegral (view age w)
   U.writeToLog $ "To " ++ agentId w ++ ", "
@@ -466,6 +458,16 @@ chooseAction3 w dObj iObj = do
     ++ " and chooses to "
     ++ show (view action r)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
+
+writeFmri :: ImageWain -> StateT (U.Universe ImageWain) IO ()
+writeFmri w = do
+  t <- U.currentTime
+  k <- zoom U.uFmriCounter current
+  zoom U.uFmriCounter increment
+  d <- use U.uFmriDir
+  let f = d ++ "/" ++ view name w ++ '_' : show t ++ "_" ++ show k ++ ".png"
+  U.writeToLog $ "Writing FMRI to " ++ f
+  liftIO . F.writeFmri w $ f
 
 describeModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
 describeModels w = mapM_ (U.writeToLog . f) ms
