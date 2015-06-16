@@ -465,7 +465,7 @@ chooseAction3 w dObj iObj = do
   let modelsBefore = models $ view (brain . classifier) w
   let modelsAfter = models $ view (brain . classifier) w'
   U.writeToLog $ "DEBUG number of models changed ="
-    ++ show (wombatCount (zipWith (==) modelsBefore modelsAfter))
+    ++ show (wombatCount (zipWith (/=) modelsBefore modelsAfter))
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
 
 wombatCount :: [Bool] -> Int
