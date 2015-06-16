@@ -43,7 +43,8 @@ import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action,
-  outcome)
+  outcome, scenario)
+import ALife.Creatur.Wain.Scenario (classifications)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
@@ -442,11 +443,14 @@ chooseAction3 w dObj iObj = do
   whenM (use U.uShowDeciderModels) $ describeModels w
   let (r, w', xs, (dObjNovelty:iObjNovelty:[]))
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
+  let (dObjClass:iObjClass:_) = classifications (view scenario r)
   whenM (use U.uGenFmris) (writeFmri w)
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has novelty " ++ show dObjNovelty
+    ++ " and best fits classifier model " ++ show dObjClass
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId iObj ++ " has novelty " ++ show iObjNovelty
+    ++ " and best fits classifier model " ++ show iObjClass
   whenM (use U.uShowPredictions) $ describeOutcomes w xs
   let dObjNoveltyAdj = round $ dObjNovelty * fromIntegral (view age w)
   let iObjNoveltyAdj = round $ iObjNovelty * fromIntegral (view age w)
