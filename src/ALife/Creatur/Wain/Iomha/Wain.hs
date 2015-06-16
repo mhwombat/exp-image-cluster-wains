@@ -39,7 +39,8 @@ import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import ALife.Creatur.Wain.Classifier(buildClassifier)
 import ALife.Creatur.Wain.Decider(buildDecider, deciderQuality)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
-  GeneticSOM, randomExponential, numModels, schemaQuality, toList)
+  GeneticSOM, randomExponential, numModels, schemaQuality, toList,
+  models)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action,
@@ -461,7 +462,16 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and chooses to "
     ++ show (view action r)
+  let modelsBefore = models $ view (brain . classifier) w
+  let modelsAfter = models $ view (brain . classifier) w'
+  U.writeToLog $ "DEBUG number of models changed ="
+    ++ show (wombatCount (zipWith (==) modelsBefore modelsAfter))
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
+
+wombatCount :: [Bool] -> Int
+wombatCount [] = 0
+wombatCount (True:bs) = 1 + wombatCount bs
+wombatCount (False:bs) = wombatCount bs
 
 writeFmri :: ImageWain -> StateT (U.Universe ImageWain) IO ()
 writeFmri w = do
