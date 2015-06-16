@@ -256,7 +256,7 @@ cCooperationDeltaE :: Setting Double
 cCooperationDeltaE = requiredSetting "cooperationDeltaE"
 
 cAdultAdultTeaching :: Setting Bool
-cAdultAdultTeaching = requiredSetting "adultLearning"
+cAdultAdultTeaching = requiredSetting "adultAdultTeaching"
 
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
