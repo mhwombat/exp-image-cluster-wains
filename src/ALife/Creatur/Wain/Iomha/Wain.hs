@@ -39,13 +39,11 @@ import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import ALife.Creatur.Wain.Classifier(buildClassifier)
 import ALife.Creatur.Wain.Decider(buildDecider, deciderQuality)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
-  GeneticSOM, randomExponential, numModels, schemaQuality, toList,
-  models)
+  GeneticSOM, randomExponential, numModels, schemaQuality, toList)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action,
-  outcome, scenario)
-import ALife.Creatur.Wain.Scenario (classifications)
+  outcome)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
@@ -442,16 +440,15 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and " ++ objectId iObj
   whenM (use U.uShowDeciderModels) $ describeModels w
-  let (r, w', xs, (dObjNovelty:iObjNovelty:[]))
+  let (dObjLabel:iObjLabel:_, scenarioLabel, r, w', xs, (dObjNovelty:iObjNovelty:[]))
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
-  let (dObjClass:iObjClass:_) = classifications (view scenario r)
   whenM (use U.uGenFmris) (writeFmri w)
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has novelty " ++ show dObjNovelty
-    ++ " and best fits classifier model " ++ show dObjClass
+    ++ " and best fits classifier model " ++ show dObjLabel
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId iObj ++ " has novelty " ++ show iObjNovelty
-    ++ " and best fits classifier model " ++ show iObjClass
+    ++ " and best fits classifier model " ++ show iObjLabel
   whenM (use U.uShowPredictions) $ describeOutcomes w xs
   let dObjNoveltyAdj = round $ dObjNovelty * fromIntegral (view age w)
   let iObjNoveltyAdj = round $ iObjNovelty * fromIntegral (view age w)
@@ -460,17 +457,17 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId iObj ++ " has adjusted novelty " ++ show iObjNoveltyAdj
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
-    ++ " and chooses to "
-    ++ show (view action r)
-  let modelsBefore = models $ view (brain . classifier) w
-  let modelsAfter = models $ view (brain . classifier) w'
-  U.writeToLog $ "DEBUG classifier model changes = "
-    ++ show (modelChanges modelsBefore modelsAfter)
+    ++ " and chooses to " ++ show (view action r)
+    ++ " based on response model " ++ show scenarioLabel
+  -- let modelsBefore = models $ view (brain . classifier) w
+  -- let modelsAfter = models $ view (brain . classifier) w'
+  -- U.writeToLog $ "DEBUG classifier model changes = "
+  --   ++ show (modelChanges modelsBefore modelsAfter)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
 
-modelChanges :: Eq a => [a] -> [a] -> [Int]
-modelChanges as bs =
-  map fst . filter snd . zip [0..] $ zipWith (/=) as bs
+-- modelChanges :: Eq a => [a] -> [a] -> [Int]
+-- modelChanges as bs =
+--   map fst . filter snd . zip [0..] $ zipWith (/=) as bs
 
 writeFmri :: ImageWain -> StateT (U.Universe ImageWain) IO ()
 writeFmri w = do
@@ -809,10 +806,10 @@ letSubjectReflect r = do
   let (x', err) = reflect [p1, p2] r x
   assign subject x'
   assign (summary . rErr) err
-  let modelsBefore = models $ view (brain . decider) x
-  let modelsAfter = models $ view (brain . decider) x'
-  zoom universe . U.writeToLog $ "DEBUG decider model changes = "
-    ++ show (modelChanges modelsBefore modelsAfter)
+  -- let modelsBefore = models $ view (brain . decider) x
+  -- let modelsAfter = models $ view (brain . decider) x'
+  -- zoom universe . U.writeToLog $ "DEBUG decider model changes = "
+  --   ++ show (modelChanges modelsBefore modelsAfter)
 
 writeRawStats
   :: String -> FilePath -> [Stats.Statistic]
