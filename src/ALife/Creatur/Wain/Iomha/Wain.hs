@@ -464,7 +464,7 @@ chooseAction3 w dObj iObj = do
     ++ show (view action r)
   let modelsBefore = models $ view (brain . classifier) w
   let modelsAfter = models $ view (brain . classifier) w'
-  U.writeToLog $ "Classifier model changes = "
+  U.writeToLog $ "DEBUG classifier model changes = "
     ++ show (modelChanges modelsBefore modelsAfter)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
 
@@ -809,6 +809,10 @@ letSubjectReflect r = do
   let (x', err) = reflect [p1, p2] r x
   assign subject x'
   assign (summary . rErr) err
+  let modelsBefore = models $ view (brain . decider) x
+  let modelsAfter = models $ view (brain . decider) x'
+  zoom universe . U.writeToLog $ "DEBUG decider model changes = "
+    ++ show (modelChanges modelsBefore modelsAfter)
 
 writeRawStats
   :: String -> FilePath -> [Stats.Statistic]
