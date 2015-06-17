@@ -48,7 +48,7 @@ import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
 import qualified ALife.Creatur.Wain.Iomha.FMRI as F
-import ALife.Creatur.Wain.Iomha.Image (Image, stripedImage,
+import ALife.Creatur.Wain.Iomha.Image (Image, bigX,
   randomImageR)
 import ALife.Creatur.Wain.Iomha.ImageThinker (ImageThinker(..))
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
@@ -131,7 +131,7 @@ randomImageWain wainName u classifierSize deciderSize = do
   dv <- getRandomR . view U.uDevotionRange $ u
   m <- getRandomR . view U.uMaturityRange $ u
   p <- getRandomR unitInterval
-  let app = stripedImage w h
+  let app = bigX w h
   return $ buildWainAndGenerateGenome wainName app b dv m p
 
 data Summary = Summary

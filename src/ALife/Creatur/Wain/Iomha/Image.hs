@@ -20,7 +20,7 @@ module ALife.Creatur.Wain.Iomha.Image
     pixelAt,
     pixelArray,
     blankImage,
-    stripedImage,
+    bigX,
     randomImage,
     randomImageR,
     readImage,
@@ -146,12 +146,12 @@ indices w h = [(i,j) | i <- [0..h-1], j <- [0..w-1]]
 -- indices :: Int -> Int -> [(Int, Int, Int)]
 -- indices w h = [(i,j) | i <- [0..h-1], j <- [0..w-1]]
 --   -- row, column, colour channel
-  
-stripedImage :: Int -> Int -> Image
-stripedImage w h = Image w h . map f $ indices w h
-  where f (i,_) | i < halfWidth = 255
-                | otherwise     = 0
-        halfWidth = round $ (fromIntegral w :: Double) / 2
+
+bigX :: Int -> Int -> Image
+bigX w h = Image w h . map f $ indices w h
+  where f (i,j) = if abs (i - j) < 2 || abs (w - 1 - i - j) < 2
+                    then 0
+                    else 255
 
 readImage :: FilePath -> IO Image
 readImage filePath = do
