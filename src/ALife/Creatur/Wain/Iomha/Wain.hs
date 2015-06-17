@@ -464,14 +464,13 @@ chooseAction3 w dObj iObj = do
     ++ show (view action r)
   let modelsBefore = models $ view (brain . classifier) w
   let modelsAfter = models $ view (brain . classifier) w'
-  U.writeToLog $ "DEBUG number of models changed ="
-    ++ show (wombatCount (zipWith (/=) modelsBefore modelsAfter))
+  U.writeToLog $ "Classifier model changes = "
+    ++ show (modelChanges modelsBefore modelsAfter)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
 
-wombatCount :: [Bool] -> Int
-wombatCount [] = 0
-wombatCount (True:bs) = 1 + wombatCount bs
-wombatCount (False:bs) = wombatCount bs
+modelChanges :: Eq a => [a] -> [a] -> [Int]
+modelChanges as bs =
+  map fst . filter snd . zip [0..] $ zipWith (/=) as bs
 
 writeFmri :: ImageWain -> StateT (U.Universe ImageWain) IO ()
 writeFmri w = do
