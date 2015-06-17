@@ -43,7 +43,7 @@ import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action,
-  outcome)
+  outcome, scenario)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
@@ -443,6 +443,7 @@ chooseAction3 w dObj iObj = do
   let (dObjLabel:iObjLabel:_, scenarioLabel, r, w', xs, (dObjNovelty:iObjNovelty:[]))
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
   whenM (use U.uGenFmris) (writeFmri w)
+  U.writeToLog $ "scenario=" ++ pretty (view scenario r)
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has novelty " ++ show dObjNovelty
     ++ " and best fits classifier model " ++ show dObjLabel
