@@ -675,7 +675,7 @@ flirt = do
     then do
       zoom universe . U.writeToLog $
         agentId a ++ " and " ++ agentId b ++ " mated"
-      zoom universe . U.writeToLog $ "DEBUG: after flirting, a's passion is " ++ show (view passion a')
+      zoom universe . U.writeToLog $ "DEBUG: after mating, a's passion is " ++ show (view passion a')
       assign subject a'
       assign directObject (AObject b')
       recordBirths
@@ -683,7 +683,7 @@ flirt = do
       (summary . rOtherMatingDeltaE) += bMatingDeltaE
       (summary . rMateCount) += 1
     else mapM_ (zoom universe . U.writeToLog) msgs
-  zoom universe . U.writeToLog $ "DEBUG: end of flirt method"
+  zoom universe . U.writeToLog $ "DEBUG: end of flirt method msgs=" ++ show msgs
 
 recordBirths :: StateT Experiment IO ()
 recordBirths = do
