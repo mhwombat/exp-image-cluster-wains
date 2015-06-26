@@ -35,6 +35,8 @@ import ALife.Creatur.Genetics.BRGCWord8 (Genetic, put, get,
   Reader, putRawWord8s, getRawWord8s)
 import ALife.Creatur.Genetics.Diploid (Diploid, express)
 import ALife.Creatur.Wain.Pretty (Pretty, pretty)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, doubleToUI,
+  uiToDouble)
 import ALife.Creatur.Wain.Util (forceIntToWord8, word8ToInt)
 import qualified Codec.Picture as P
 import Control.Monad.Random (Rand, RandomGen, getRandoms, getRandomRs)
@@ -103,19 +105,19 @@ instance Pretty Image where
   pretty (Image w h xs) = show w ++ "x" ++ show h ++ concatMap f xs
     where f x = ' ' : pretty x
 
-imageDiff :: Image -> Image -> Double
+imageDiff :: Image -> Image -> UIDouble
 imageDiff a b
   | pixelCount a == 0 && pixelCount b == 0 = 1
-  | otherwise                           = avgDelta / 255
+  | otherwise                             = doubleToUI (avgDelta / 255)
   where xs = map fromIntegral . take l $ pixels a ++ repeat 0 :: [Double]
         ys = map fromIntegral . take l $ pixels b ++ repeat 0 :: [Double]
         l = max (pixelCount a) (pixelCount b)
         diff = sum . map abs $ zipWith (-) xs ys
         avgDelta = diff / fromIntegral l
 
-makeImageSimilar :: Image -> Double -> Image -> Image
+makeImageSimilar :: Image -> UIDouble -> Image -> Image
 makeImageSimilar target amount a
-    = a { pixels=adjust (pixels target) amount (pixels a) }
+    = a { pixels=adjust (pixels target) (uiToDouble amount) (pixels a) }
 
 instance Diploid Image where
   express a b = mkImage w h ps

@@ -59,6 +59,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uDQDeltaE,
     uCooperationDeltaE,
     uPopControlDeltaE,
+    uDQBasedAgreementDeltaE,
     uNoveltyBasedAgreementDeltaE,
     uMinAgreementDeltaE,
     uAdultAdultTeaching,
@@ -88,6 +89,7 @@ import qualified ALife.Creatur.Logger.SimpleLogger as SL
 import ALife.Creatur.Persistent (Persistent, mkPersistent)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Checkpoint as CP
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
 import Control.Exception (SomeException, try)
 import Control.Lens hiding (Setting)
@@ -118,7 +120,7 @@ data Universe a = Universe
     _uInitialImageRange :: (Word8, Word8),
     _uClassifierSizeRange :: (Word16, Word16),
     _uDeciderSizeRange :: (Word16, Word16),
-    _uDevotionRange :: (Double, Double),
+    _uDevotionRange :: (UIDouble, UIDouble),
     _uMaturityRange :: (Word16, Word16),
     _uMaxAge :: Int,
     _uInitialPopulationSize :: Int,
@@ -135,13 +137,14 @@ data Universe a = Universe
     _uCooperationDeltaE :: Double,
     _uPopControlDeltaE :: Persistent Double,
     _uAdultAdultTeaching :: Bool,
+    _uDQBasedAgreementDeltaE :: Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
     _uOutcomeRange :: (Double, Double),
-    _uClassifierR0Range :: (Double,Double),
-    _uClassifierDRange :: (Double,Double),
-    _uDeciderR0Range :: (Double,Double),
-    _uDeciderDRange :: (Double,Double),
+    _uClassifierR0Range :: (UIDouble,UIDouble),
+    _uClassifierDRange :: (UIDouble,UIDouble),
+    _uDeciderR0Range :: (UIDouble,UIDouble),
+    _uDeciderDRange :: (UIDouble,UIDouble),
     _uCheckpoints :: [CP.Checkpoint]
   } deriving Show
 makeLenses ''Universe
@@ -209,7 +212,7 @@ cDeciderSizeRange :: Setting (Word16, Word16)
 cDeciderSizeRange
   = requiredSetting "deciderSizeRange"
     
-cDevotionRange :: Setting (Double, Double)
+cDevotionRange :: Setting (UIDouble, UIDouble)
 cDevotionRange
   = requiredSetting "devotionRange"
 
@@ -258,6 +261,9 @@ cCooperationDeltaE = requiredSetting "cooperationDeltaE"
 cAdultAdultTeaching :: Setting Bool
 cAdultAdultTeaching = requiredSetting "adultAdultTeaching"
 
+cDQBasedAgreementDeltaE :: Setting Double
+cDQBasedAgreementDeltaE = requiredSetting "dqBasedAgreementDeltaE"
+
 cNoveltyBasedAgreementDeltaE :: Setting Double
 cNoveltyBasedAgreementDeltaE
   = requiredSetting "noveltyBasedAgreementDeltaE"
@@ -268,16 +274,16 @@ cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
 cOutcomeRange :: Setting (Double,Double)
 cOutcomeRange = requiredSetting "outcomeRange"
 
-cClassifierR0Range :: Setting (Double,Double)
+cClassifierR0Range :: Setting (UIDouble,UIDouble)
 cClassifierR0Range = requiredSetting "classifierR0Range"
 
-cClassifierDRange :: Setting (Double,Double)
+cClassifierDRange :: Setting (UIDouble,UIDouble)
 cClassifierDRange = requiredSetting "classifierDecayRange"
 
-cDeciderR0Range :: Setting (Double,Double)
+cDeciderR0Range :: Setting (UIDouble,UIDouble)
 cDeciderR0Range = requiredSetting "deciderR0Range"
 
-cDeciderDRange :: Setting (Double,Double)
+cDeciderDRange :: Setting (UIDouble,UIDouble)
 cDeciderDRange = requiredSetting "deciderDecayRange"
 
 cCheckpoints :: Setting [CP.Checkpoint]
@@ -337,6 +343,7 @@ config2Universe getSetting =
       _uPopControlDeltaE
         = mkPersistent 0 (workDir ++ "/popControlDeltaE"),
       _uAdultAdultTeaching = getSetting cAdultAdultTeaching,
+      _uDQBasedAgreementDeltaE = getSetting cDQBasedAgreementDeltaE,
       _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,

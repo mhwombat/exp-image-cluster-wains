@@ -44,6 +44,8 @@ import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, randomResponse, action,
   outcome, scenario)
+import ALife.Creatur.Wain.PlusMinusOne (pm1ToDouble)
+import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
@@ -63,7 +65,7 @@ import Control.Lens hiding (universe)
 import Control.Monad (replicateM, when, unless)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR, getRandomRs,
-  evalRandIO, fromList)
+  getRandoms, evalRandIO, fromList)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
 import Data.List (intercalate)
 import Data.Maybe (fromJust)
@@ -86,11 +88,11 @@ objectAppearance :: Object -> Image
 objectAppearance (IObject img _) = img
 objectAppearance (AObject a) = view appearance a
 
-objectEnergy :: Object -> Double
+objectEnergy :: Object -> UIDouble
 objectEnergy (IObject _ _) = 0
 objectEnergy (AObject a) = view energy a
 
-objectChildEnergy :: Object -> Double
+objectChildEnergy :: Object -> UIDouble
 objectChildEnergy (IObject _ _) = 0
 objectChildEnergy (AObject a) = childEnergy a
 
@@ -121,10 +123,10 @@ randomImageWain wainName u classifierSize deciderSize = do
                 _dRange = view U.uDeciderDRange u }
   fd <- randomExponential fdp
   xs <- replicateM (fromIntegral deciderSize) $
-         randomResponse 2 (numModels c) (view U.uOutcomeRange u)
-  cw <- (makeWeights . take 3) <$> getRandomRs unitInterval
-  sw <- (makeWeights . take 3) <$> getRandomRs unitInterval
-  rw <- (makeWeights . take 2) <$> getRandomRs unitInterval
+         randomResponse 2 (numModels c) 3 (view U.uOutcomeRange u)
+  cw <- (makeWeights . take 3) <$> getRandoms
+  sw <- (makeWeights . take 3) <$> getRandoms
+  rw <- (makeWeights . take 2) <$> getRandoms
   let dr = buildDecider fd cw sw rw xs
   hw <- (makeWeights . take 3) <$> getRandomRs unitInterval
   let b = Brain c dr hw
@@ -137,11 +139,11 @@ randomImageWain wainName u classifierSize deciderSize = do
 data Summary = Summary
   {
     _rPopSize :: Int,
-    _rDirectObjectNovelty :: Double,
+    _rDirectObjectNovelty :: UIDouble,
     _rDirectObjectAdjustedNovelty :: Int,
-    _rIndirectObjectNovelty :: Double,
+    _rIndirectObjectNovelty :: UIDouble,
     _rIndirectObjectAdjustedNovelty :: Int,
-    _rOtherNovelty :: Double,
+    _rOtherNovelty :: UIDouble,
     _rOtherAdjustedNovelty :: Int,
     _rMetabolismDeltaE :: Double,
     _rChildMetabolismDeltaE :: Double,
@@ -225,7 +227,7 @@ initSummary p = Summary
 summaryStats :: Summary -> [Stats.Statistic]
 summaryStats r =
   [
-    Stats.uiStat "pop. size" (view rPopSize r),
+    Stats.dStat "pop. size" (view rPopSize r),
     Stats.uiStat "DO novelty" (view rDirectObjectNovelty r),
     Stats.iStat "DO novelty (adj.)"
       (view rDirectObjectAdjustedNovelty r),
@@ -235,32 +237,32 @@ summaryStats r =
     Stats.uiStat "novelty to other" (view rOtherNovelty r),
     Stats.iStat "novelty to other (adj.)"
       (view rOtherAdjustedNovelty r),
-    Stats.uiStat "adult metabolism Δe" (view rMetabolismDeltaE r),
-    Stats.uiStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
-    Stats.uiStat "adult CSQ Δe" (view rCSQDeltaE r),
-    Stats.uiStat "child CSQ Δe" (view rChildCSQDeltaE r),
-    Stats.uiStat "adult DSQ Δe" (view rDSQDeltaE r),
-    Stats.uiStat "child DSQ Δe" (view rChildDSQDeltaE r),
-    Stats.uiStat "adult DQ Δe" (view rDQDeltaE r),
-    Stats.uiStat "child DQ Δe" (view rChildDQDeltaE r),
-    Stats.uiStat "adult pop. control Δe" (view rPopControlDeltaE r),
-    Stats.uiStat "child pop. control Δe" (view rChildPopControlDeltaE r),
-    Stats.uiStat "adult cooperation Δe" (view rCoopDeltaE r),
-    Stats.uiStat "child cooperation Δe" (view rChildCoopDeltaE r),
-    Stats.uiStat "adult agreement Δe" (view rAgreementDeltaE r),
-    Stats.uiStat "child agreement Δe" (view rChildAgreementDeltaE r),
-    Stats.uiStat "adult flirting Δe" (view rFlirtingDeltaE r),
-    Stats.uiStat "adult mating Δe" (view rMatingDeltaE r),
-    Stats.uiStat "adult old age Δe" (view rOldAgeDeltaE r),
-    Stats.uiStat "child old age Δe" (view rChildOldAgeDeltaE r),
-    Stats.uiStat "other adult mating Δe" (view rOtherMatingDeltaE r),
-    Stats.uiStat "other adult agreement Δe"
+    Stats.dStat "adult metabolism Δe" (view rMetabolismDeltaE r),
+    Stats.dStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
+    Stats.dStat "adult CSQ Δe" (view rCSQDeltaE r),
+    Stats.dStat "child CSQ Δe" (view rChildCSQDeltaE r),
+    Stats.dStat "adult DSQ Δe" (view rDSQDeltaE r),
+    Stats.dStat "child DSQ Δe" (view rChildDSQDeltaE r),
+    Stats.dStat "adult DQ Δe" (view rDQDeltaE r),
+    Stats.dStat "child DQ Δe" (view rChildDQDeltaE r),
+    Stats.dStat "adult pop. control Δe" (view rPopControlDeltaE r),
+    Stats.dStat "child pop. control Δe" (view rChildPopControlDeltaE r),
+    Stats.dStat "adult cooperation Δe" (view rCoopDeltaE r),
+    Stats.dStat "child cooperation Δe" (view rChildCoopDeltaE r),
+    Stats.dStat "adult agreement Δe" (view rAgreementDeltaE r),
+    Stats.dStat "child agreement Δe" (view rChildAgreementDeltaE r),
+    Stats.dStat "adult flirting Δe" (view rFlirtingDeltaE r),
+    Stats.dStat "adult mating Δe" (view rMatingDeltaE r),
+    Stats.dStat "adult old age Δe" (view rOldAgeDeltaE r),
+    Stats.dStat "child old age Δe" (view rChildOldAgeDeltaE r),
+    Stats.dStat "other adult mating Δe" (view rOtherMatingDeltaE r),
+    Stats.dStat "other adult agreement Δe"
       (view rOtherAgreementDeltaE r),
-    Stats.uiStat "other child agreement Δe"
+    Stats.dStat "other child agreement Δe"
       (view rOtherChildAgreementDeltaE r),
-    Stats.uiStat "adult net Δe" (view rNetDeltaE r),
-    Stats.uiStat "child net Δe" (view rChildNetDeltaE r),
-    Stats.uiStat "err" (view rErr r),
+    Stats.dStat "adult net Δe" (view rNetDeltaE r),
+    Stats.dStat "child net Δe" (view rChildNetDeltaE r),
+    Stats.dStat "err" (view rErr r),
     Stats.iStat "bore" (view rBirthCount r),
     Stats.iStat "weaned" (view rWeanCount r),
     Stats.iStat "co-operated" (view rCooperateCount r),
@@ -435,7 +437,7 @@ choosePartnerAction = do
 chooseAction3
   :: ImageWain -> Object -> Object
     -> StateT (U.Universe ImageWain) IO
-        (Double, Int, Double, Int, Response Action, ImageWain)
+        (UIDouble, Int, UIDouble, Int, Response Action, ImageWain)
 chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and " ++ objectId iObj
@@ -451,8 +453,10 @@ chooseAction3 w dObj iObj = do
     ++ objectId iObj ++ " has novelty " ++ show iObjNovelty
     ++ " and best fits classifier model " ++ show iObjLabel
   whenM (use U.uShowPredictions) $ describeOutcomes w xs
-  let dObjNoveltyAdj = round $ dObjNovelty * fromIntegral (view age w)
-  let iObjNoveltyAdj = round $ iObjNovelty * fromIntegral (view age w)
+  let dObjNoveltyAdj
+        = round $ uiToDouble dObjNovelty * fromIntegral (view age w)
+  let iObjNoveltyAdj
+        = round $ uiToDouble iObjNovelty * fromIntegral (view age w)
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has adjusted novelty " ++ show dObjNoveltyAdj
   U.writeToLog $ "To " ++ agentId w ++ ", "
@@ -492,7 +496,8 @@ describeOutcomes
 describeOutcomes w = mapM_ (U.writeToLog . f)
   where f (r, l) = view name w ++ "'s predicted outcome of "
                      ++ show (view action r) ++ " is "
-                     ++ (printf "%.3f" . fromJust . view outcome $ r)
+                     ++ (printf "%.3f" . pm1ToDouble . fromJust
+                          . view outcome $ r)
                      ++ " from model " ++ show l
 
 chooseObjects
@@ -602,16 +607,23 @@ applyCooperationEffects = do
 
 applyAgreementEffects :: StateT Experiment IO ()
 applyAgreementEffects = do
+  a <- use subject
+  AObject b <- use indirectObject
   dObj <- use directObject
   if (isImage dObj)
     then do
-      aNovelty <- use $ summary . rDirectObjectNovelty
-      bNovelty <- use $ summary . rOtherNovelty
+      let aDQ = fromIntegral . deciderQuality
+                 $ view (brain . decider) a
+      let bDQ = fromIntegral . deciderQuality
+                 $ view (brain . decider) b
+      aNovelty <- uiToDouble <$> use (summary . rDirectObjectNovelty)
+      bNovelty <- uiToDouble <$> use (summary . rOtherNovelty)
+      xd <- use (universe . U.uDQBasedAgreementDeltaE)
       xn <- use (universe . U.uNoveltyBasedAgreementDeltaE)
       x0 <- use (universe . U.uMinAgreementDeltaE)
-      let ra = x0 + xn * aNovelty
+      let ra = x0 + xn * aNovelty + xd * aDQ
       adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE
-      let rb = x0 + xn * bNovelty
+      let rb = x0 + xn * bNovelty + xd * bDQ
       adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
         rOtherChildAgreementDeltaE
       (summary.rAgreeCount) += 1
@@ -621,8 +633,8 @@ applyAgreementEffects = do
 
 applyDisagreementEffects :: Action -> Action -> StateT Experiment IO ()
 applyDisagreementEffects aAction bAction = do
-  aNovelty <- use $ summary . rDirectObjectNovelty
-  bNovelty <- use $ summary . rOtherNovelty
+  aNovelty <- uiToDouble <$> use (summary . rDirectObjectNovelty)
+  bNovelty <- uiToDouble <$> use (summary . rOtherNovelty)
   a <- use subject
   AObject b <- use indirectObject
   pa <- view appearance <$> use subject
@@ -756,12 +768,12 @@ idealPopControlDeltaE idealPop pop e
 
 totalEnergy :: StateT Experiment IO (Double, Double)
 totalEnergy = do
-  a <- view energy <$> use subject
-  b <- objectEnergy <$> use directObject
-  c <- objectEnergy <$> use indirectObject
-  d <- childEnergy <$> use subject
-  e <- objectChildEnergy <$> use directObject
-  f <- objectChildEnergy <$> use indirectObject
+  a <- fmap uiToDouble $ view energy <$> use subject
+  b <- fmap uiToDouble $ objectEnergy <$> use directObject
+  c <- fmap uiToDouble $ objectEnergy <$> use indirectObject
+  d <- fmap uiToDouble $ childEnergy <$> use subject
+  e <- fmap uiToDouble $ objectChildEnergy <$> use directObject
+  f <- fmap uiToDouble $ objectChildEnergy <$> use indirectObject
   return (a + b + c, d + e + f)
 
 printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
