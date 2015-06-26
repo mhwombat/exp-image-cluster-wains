@@ -674,7 +674,7 @@ flirt = do
     then do
       zoom universe . U.writeToLog $
         agentId a ++ " and " ++ agentId b ++ " mated"
-      zoom universe . U.writeToLog $ "DEBUG: after flirting, a's passion is " ++ show (view energy a')
+      zoom universe . U.writeToLog $ "DEBUG: after flirting, a's passion is " ++ show (view passion a')
       assign subject a'
       assign directObject (AObject b')
       recordBirths
