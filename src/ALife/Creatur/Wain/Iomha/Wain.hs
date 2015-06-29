@@ -103,8 +103,6 @@ addIfAgent (AObject a) xs = a:xs
 
 type ImageWain = Wain Image ImageThinker  Action
 
--- TODO: Redo with lenses
-
 randomImageWain
   :: RandomGen r
     => String -> U.Universe ImageWain -> Word16 -> Word16 -> Rand r ImageWain
@@ -443,7 +441,7 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and " ++ objectId iObj
   whenM (use U.uShowDeciderModels) $ describeModels w
-  let (dObjLabel:iObjLabel:_, scenarioLabel, r, w', xs, (dObjNovelty:iObjNovelty:[]))
+  let (dObjLabel:iObjLabel:_, scenarioLabel, r, w', xs, [dObjNovelty, iObjNovelty])
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
   whenM (use U.uGenFmris) (writeFmri w)
   U.writeToLog $ "scenario=" ++ pretty (view scenario r)
@@ -611,7 +609,7 @@ applyAgreementEffects = do
   a <- use subject
   AObject b <- use indirectObject
   dObj <- use directObject
-  if (isImage dObj)
+  if isImage dObj
     then do
       let aDQ = fromIntegral . deciderQuality
                  $ view (brain . decider) a
@@ -628,7 +626,7 @@ applyAgreementEffects = do
       adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
         rOtherChildAgreementDeltaE
       (summary.rAgreeCount) += 1
-    else do
+    else
       zoom universe . U.writeToLog $
         "No reward for agreeing on a classification for a wain"
 
