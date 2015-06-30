@@ -227,13 +227,13 @@ summaryStats :: Summary -> [Stats.Statistic]
 summaryStats r =
   [
     Stats.dStat "pop. size" (view rPopSize r),
-    Stats.uiStat "DO novelty" (view rDirectObjectNovelty r),
+    Stats.dStat "DO novelty" (view rDirectObjectNovelty r),
     Stats.iStat "DO novelty (adj.)"
       (view rDirectObjectAdjustedNovelty r),
-    Stats.uiStat "IO novelty" (view rIndirectObjectNovelty r),
+    Stats.dStat "IO novelty" (view rIndirectObjectNovelty r),
     Stats.iStat "IO novelty (adj.)"
       (view rIndirectObjectAdjustedNovelty r),
-    Stats.uiStat "novelty to other" (view rOtherNovelty r),
+    Stats.dStat "novelty to other" (view rOtherNovelty r),
     Stats.iStat "novelty to other (adj.)"
       (view rOtherAdjustedNovelty r),
     Stats.dStat "adult metabolism Δe" (view rMetabolismDeltaE r),
@@ -785,13 +785,14 @@ printStats = mapM_ f
                  "Summary - " ++ intercalate "," (map pretty xs)
 
 adjustSubjectEnergy
-  :: Double -> Simple Lens Summary Double -> Simple Lens Summary Double
-    -> StateT Experiment IO ()
+  :: Double -> Simple Lens Summary Double
+    -> Simple Lens Summary Double -> StateT Experiment IO ()
 adjustSubjectEnergy deltaE adultSelector childSelector = do
   x <- use subject
   let (x', adultDeltaE, childDeltaE) = adjustEnergy deltaE x
   (summary . adultSelector) += adultDeltaE
-  when (childDeltaE /= 0) $ (summary . childSelector) += childDeltaE
+  when (childDeltaE /= 0) $
+    (summary . childSelector) += childDeltaE
   assign subject x'
 
 adjustObjectEnergy
@@ -805,7 +806,8 @@ adjustObjectEnergy
     AObject a -> do
       let (a', adultDeltaE, childDeltaE) = adjustEnergy deltaE a
       (summary . adultSelector) += adultDeltaE
-      when (childDeltaE /= 0) $ (summary . childSelector) += childDeltaE
+      when (childDeltaE /= 0) $
+        (summary . childSelector) += childDeltaE
       assign objectSelector (AObject a')
     IObject _ _ -> return ()
 

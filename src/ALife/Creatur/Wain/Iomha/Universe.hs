@@ -89,8 +89,9 @@ import qualified ALife.Creatur.Logger.SimpleLogger as SL
 import ALife.Creatur.Persistent (Persistent, mkPersistent)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Checkpoint as CP
-import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
+import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Control.Exception (SomeException, try)
 import Control.Lens hiding (Setting)
 import Data.AppSettings (Setting(..), GetSetting(..),
@@ -140,11 +141,11 @@ data Universe a = Universe
     _uDQBasedAgreementDeltaE :: Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
-    _uOutcomeRange :: (Double, Double),
-    _uClassifierR0Range :: (UIDouble,UIDouble),
-    _uClassifierDRange :: (UIDouble,UIDouble),
-    _uDeciderR0Range :: (UIDouble,UIDouble),
-    _uDeciderDRange :: (UIDouble,UIDouble),
+    _uOutcomeRange :: (PM1Double, PM1Double),
+    _uClassifierR0Range :: (UIDouble, UIDouble),
+    _uClassifierDRange :: (UIDouble, UIDouble),
+    _uDeciderR0Range :: (UIDouble, UIDouble),
+    _uDeciderDRange :: (UIDouble, UIDouble),
     _uCheckpoints :: [CP.Checkpoint]
   } deriving Show
 makeLenses ''Universe
@@ -271,19 +272,19 @@ cNoveltyBasedAgreementDeltaE
 cMinAgreementDeltaE :: Setting Double
 cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
 
-cOutcomeRange :: Setting (Double,Double)
+cOutcomeRange :: Setting (PM1Double, PM1Double)
 cOutcomeRange = requiredSetting "outcomeRange"
 
-cClassifierR0Range :: Setting (UIDouble,UIDouble)
+cClassifierR0Range :: Setting (UIDouble, UIDouble)
 cClassifierR0Range = requiredSetting "classifierR0Range"
 
-cClassifierDRange :: Setting (UIDouble,UIDouble)
+cClassifierDRange :: Setting (UIDouble, UIDouble)
 cClassifierDRange = requiredSetting "classifierDecayRange"
 
-cDeciderR0Range :: Setting (UIDouble,UIDouble)
+cDeciderR0Range :: Setting (UIDouble, UIDouble)
 cDeciderR0Range = requiredSetting "deciderR0Range"
 
-cDeciderDRange :: Setting (UIDouble,UIDouble)
+cDeciderDRange :: Setting (UIDouble, UIDouble)
 cDeciderDRange = requiredSetting "deciderDecayRange"
 
 cCheckpoints :: Setting [CP.Checkpoint]
