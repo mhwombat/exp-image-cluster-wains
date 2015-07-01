@@ -363,9 +363,10 @@ fillInSummary s = s
          + _rChildCoopDeltaE s
          + _rChildAgreementDeltaE s
          + _rOtherChildAgreementDeltaE s
+         + _rChildOldAgeDeltaE s
+         -- include energy given to wains when they are born
          - _rMatingDeltaE s
          - _rOtherMatingDeltaE s
-         - _rChildOldAgeDeltaE s
   }
 
 balanceEnergyEquation
@@ -374,7 +375,7 @@ balanceEnergyEquation e0 ec0 ef ecf = do
   netDeltaE1 <- use (summary . rNetDeltaE)
   let netDeltaE2 = ef - e0
   let err = abs (netDeltaE1 - netDeltaE2)
-  when (err > 0.0001) $ do
+  when (err > 0.000001) $ do
     zoom universe . U.writeToLog $
       "WARNING: Adult energy equation doesn't balance"
     zoom universe . U.writeToLog $ "e0=" ++ show e0 ++ ", ef=" ++ show ef
@@ -384,7 +385,7 @@ balanceEnergyEquation e0 ec0 ef ecf = do
   childNetDeltaE1 <- use (summary . rChildNetDeltaE)
   let childNetDeltaE2 = ecf - ec0
   let childErr = abs (childNetDeltaE1 - childNetDeltaE2)
-  when (childErr > 0.0001) $ do
+  when (childErr > 0.000001) $ do
     zoom universe . U.writeToLog $
       "WARNING: Child energy equation doesn't balance"
     zoom universe . U.writeToLog $ "ec0=" ++ show ec0
