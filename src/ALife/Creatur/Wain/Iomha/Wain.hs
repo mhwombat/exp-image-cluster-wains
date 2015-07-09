@@ -123,7 +123,7 @@ randomImageWain wainName u classifierSize = do
   fd <- randomExponential fdp
   -- xs <- replicateM (fromIntegral deciderSize) $
   --        randomResponse 2 (numModels c) 3 (view U.uOutcomeRange u)
-  let xs = responseSet 2 (numModels c) 3
+  xs <- responseSet 2 (numModels c) 3
   cw <- (makeWeights . take 3) <$> getRandoms
   sw <- (makeWeights . take 3) <$> getRandoms
   rw <- (makeWeights . take 2) <$> getRandoms
