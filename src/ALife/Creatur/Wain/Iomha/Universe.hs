@@ -42,7 +42,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uImageHeight,
     uInitialImageRange,
     uClassifierSizeRange,
-    uDeciderSizeRange,
+    -- uDeciderSizeRange,
     uDevotionRange,
     uMaturityRange,
     uMaxAge,
@@ -63,7 +63,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uNoveltyBasedAgreementDeltaE,
     uMinAgreementDeltaE,
     uAdultAdultTeaching,
-    uOutcomeRange,
+    -- uOutcomeRange,
     uClassifierR0Range,
     uClassifierDRange,
     uDeciderR0Range,
@@ -90,7 +90,7 @@ import ALife.Creatur.Persistent (Persistent, mkPersistent)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Checkpoint as CP
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
-import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
+-- import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Control.Exception (SomeException, try)
 import Control.Lens hiding (Setting)
@@ -120,7 +120,7 @@ data Universe a = Universe
     _uImageHeight :: Int,
     _uInitialImageRange :: (Word8, Word8),
     _uClassifierSizeRange :: (Word16, Word16),
-    _uDeciderSizeRange :: (Word16, Word16),
+    -- _uDeciderSizeRange :: (Word16, Word16),
     _uDevotionRange :: (UIDouble, UIDouble),
     _uMaturityRange :: (Word16, Word16),
     _uMaxAge :: Int,
@@ -141,7 +141,7 @@ data Universe a = Universe
     _uDQBasedAgreementDeltaE :: Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
-    _uOutcomeRange :: (PM1Double, PM1Double),
+    -- _uOutcomeRange :: (PM1Double, PM1Double),
     _uClassifierR0Range :: (UIDouble, UIDouble),
     _uClassifierDRange :: (UIDouble, UIDouble),
     _uDeciderR0Range :: (UIDouble, UIDouble),
@@ -209,9 +209,9 @@ cClassifierSizeRange :: Setting (Word16, Word16)
 cClassifierSizeRange
   = requiredSetting "classifierSizeRange"
 
-cDeciderSizeRange :: Setting (Word16, Word16)
-cDeciderSizeRange
-  = requiredSetting "deciderSizeRange"
+-- cDeciderSizeRange :: Setting (Word16, Word16)
+-- cDeciderSizeRange
+--   = requiredSetting "deciderSizeRange"
     
 cDevotionRange :: Setting (UIDouble, UIDouble)
 cDevotionRange
@@ -272,8 +272,8 @@ cNoveltyBasedAgreementDeltaE
 cMinAgreementDeltaE :: Setting Double
 cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
 
-cOutcomeRange :: Setting (PM1Double, PM1Double)
-cOutcomeRange = requiredSetting "outcomeRange"
+-- cOutcomeRange :: Setting (PM1Double, PM1Double)
+-- cOutcomeRange = requiredSetting "outcomeRange"
 
 cClassifierR0Range :: Setting (UIDouble, UIDouble)
 cClassifierR0Range = requiredSetting "classifierR0Range"
@@ -325,7 +325,7 @@ config2Universe getSetting =
       _uImageHeight = getSetting cImageHeight,
       _uInitialImageRange = getSetting cInitialImageRange,
       _uClassifierSizeRange = getSetting cClassifierSizeRange,
-      _uDeciderSizeRange = getSetting cDeciderSizeRange,
+      -- _uDeciderSizeRange = getSetting cDeciderSizeRange,
       _uDevotionRange = getSetting cDevotionRange,
       _uMaturityRange = getSetting cMaturityRange,
       _uMaxAge = getSetting cMaxAge,
@@ -348,7 +348,7 @@ config2Universe getSetting =
       _uNoveltyBasedAgreementDeltaE
         = getSetting cNoveltyBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
-      _uOutcomeRange = getSetting cOutcomeRange,
+      -- _uOutcomeRange = getSetting cOutcomeRange,
       _uClassifierR0Range = getSetting cClassifierR0Range,
       _uClassifierDRange = getSetting cClassifierDRange,
       _uDeciderR0Range = getSetting cDeciderR0Range,
