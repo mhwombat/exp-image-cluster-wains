@@ -28,9 +28,10 @@ data Action = Cooperate_a | Cooperate_b | Cooperate_c | Cooperate_d
                 | Cooperate_e | Cooperate_f | Cooperate_g | Cooperate_h
                 | Cooperate_i | Cooperate_j | Cooperate_k | Cooperate_l
                 | Cooperate_m | Cooperate_n | Cooperate_o | Cooperate_p
-                | Cooperate_q | Cooperate_r | Cooperate_s | Cooperate_t
-                | Cooperate_u | Cooperate_v | Cooperate_w | Cooperate_x
-                | Cooperate_y | Cooperate_z | Flirt | Ignore
+                | Flirt | Ignore
+                -- | Cooperate_q | Cooperate_r | Cooperate_s | Cooperate_t
+                -- | Cooperate_u | Cooperate_v | Cooperate_w | Cooperate_x
+                -- | Cooperate_y | Cooperate_z | Flirt | Ignore
   deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 instance Serialize Action
 instance Genetic Action

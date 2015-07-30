@@ -24,6 +24,7 @@ import ALife.Creatur.Wain.Iomha.Universe
 import ALife.Creatur.Wain.Iomha.Wain
 import Control.Lens
 import Control.Monad.State
+import Data.Map.Strict (toList)
 import Diagrams.Backend.SVG
 import Diagrams.Prelude hiding (view)
 import System.Environment
@@ -33,8 +34,8 @@ getWain s = do
   a <- getAgent s
   case a of
     (Right agent) -> return agent
-    (Left msg)    -> error msg 
-  
+    (Left msg)    -> error msg
+
 getWainName :: IO String
 getWainName = do
   args <- getArgs
@@ -48,6 +49,6 @@ main = do
   n <- getWainName
   w <- evalStateT (getWain n) u
   let ss = mkSizeSpec2D (Just 500) Nothing
-  let diagram = drawClassifier . toList . view classifier . view brain $ w :: QDiagram SVG V2 Double Any
+  let diagram = drawClassifier . toList . modelMap . view classifier . view brain $ w :: QDiagram SVG V2 Double Any
   let outputFileName = n ++ ".svg"
   renderSVG outputFileName ss diagram

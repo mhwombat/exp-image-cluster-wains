@@ -18,7 +18,7 @@
 module ALife.Creatur.Wain.Iomha.Wain
   (
     ImageWain,
-    ImageThinker(..),
+    ImageTweaker(..),
     run,
     randomImageWain,
     finishRound,
@@ -35,25 +35,25 @@ import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
   weanMatureChildren, pruneDeadChildren, adjustEnergy, adjustPassion,
   reflect, mate, litter, brain, energy, passion, childEnergy, age,
   imprint, wainSize)
-import ALife.Creatur.Wain.Brain (classifier, decider, Brain(..))
+import ALife.Creatur.Wain.Brain (classifier, predictor, Brain(..))
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import ALife.Creatur.Wain.Classifier(buildClassifier)
-import ALife.Creatur.Wain.Decider(buildDecider, deciderQuality)
+import ALife.Creatur.Wain.Muser (makeMuser)
+import ALife.Creatur.Wain.Predictor(buildPredictor, predictorQuality)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
-  GeneticSOM, randomExponential, numModels, schemaQuality, toList)
+  GeneticSOM, randomExponential, schemaQuality, modelMap)
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
-import ALife.Creatur.Wain.Response (Response, responseSet, action,
-  outcome, scenario)
+import ALife.Creatur.Wain.Response (Response, action, outcome,
+  scenario)
 import ALife.Creatur.Wain.PlusMinusOne (pm1ToDouble)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
 import qualified ALife.Creatur.Wain.Iomha.FMRI as F
-import ALife.Creatur.Wain.Iomha.Image (Image, bigX,
-  randomImageR)
-import ALife.Creatur.Wain.Iomha.ImageThinker (ImageThinker(..))
+import ALife.Creatur.Wain.Iomha.Image (Image, bigX)
+import ALife.Creatur.Wain.Iomha.ImageTweaker (ImageTweaker(..))
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
 import ALife.Creatur.Persistent (getPS, putPS)
@@ -63,13 +63,13 @@ import ALife.Creatur.Wain.Statistics (summarise)
 import ALife.Creatur.Wain.Weights (makeWeights)
 import Control.Conditional (whenM)
 import Control.Lens hiding (universe)
-import Control.Monad (replicateM, when, unless)
+import Control.Monad (when, unless)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Random (Rand, RandomGen, getRandomR, getRandomRs,
-  getRandoms, evalRandIO, fromList)
+import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR,
+  getRandomRs, getRandoms, evalRandIO, fromList)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
 import Data.List (intercalate)
-import Data.Maybe (fromJust)
+import qualified Data.Map.Strict as M
 import Data.Word (Word16)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (dropFileName)
@@ -101,40 +101,41 @@ addIfAgent :: Object -> [ImageWain] -> [ImageWain]
 addIfAgent (IObject _ _) xs = xs
 addIfAgent (AObject a) xs = a:xs
 
-type ImageWain = Wain Image ImageThinker  Action
+type ImageWain = Wain Image ImageTweaker  Action
 
 randomImageWain
   :: RandomGen r
-    => String -> U.Universe ImageWain -> Word16 -> Rand r ImageWain
-randomImageWain wainName u classifierSize = do
+    => String -> U.Universe ImageWain -> Word16 -> Word16
+      -> Rand r ImageWain
+randomImageWain wName u classifierSize predictorSize = do
   let w = view U.uImageWidth u
   let h = view U.uImageHeight u
-  let r = view U.uInitialImageRange u
-  imgs <- replicateM (fromIntegral classifierSize) (randomImageR w h r)
-  -- let imgs = replicate classifierSize $ blankImage w h
   let fcp = RandomExponentialParams
                { _r0Range = view U.uClassifierR0Range u,
                  _dRange = view U.uClassifierDRange u }
   fc <- randomExponential fcp
-  let c = buildClassifier fc ImageThinker imgs
+  classifierThreshold <- getRandomR (view U.uClassifierThresholdRange u)
+  let c = buildClassifier fc classifierSize classifierThreshold
+            ImageTweaker
   let fdp = RandomExponentialParams
-              { _r0Range = view U.uDeciderR0Range u,
-                _dRange = view U.uDeciderDRange u }
+              { _r0Range = view U.uPredictorR0Range u,
+                _dRange = view U.uPredictorDRange u }
   fd <- randomExponential fdp
-  -- xs <- replicateM (fromIntegral deciderSize) $
-  --        randomResponse 2 (numModels c) 3 (view U.uOutcomeRange u)
-  xs <- responseSet 2 (numModels c) 3
+  predictorThreshold <- getRandomR (view U.uPredictorThresholdRange u)
   cw <- (makeWeights . take 3) <$> getRandoms
-  sw <- (makeWeights . take 3) <$> getRandoms
   rw <- (makeWeights . take 2) <$> getRandoms
-  let dr = buildDecider fd cw sw rw xs
+  let dr = buildPredictor fd predictorSize predictorThreshold cw rw
   hw <- (makeWeights . take 3) <$> getRandomRs unitInterval
-  let b = Brain c dr hw
-  dv <- getRandomR . view U.uDevotionRange $ u
-  m <- getRandomR . view U.uMaturityRange $ u
-  p <- getRandomR unitInterval
-  let app = bigX w h
-  return $ buildWainAndGenerateGenome wainName app b dv m p
+  dOut <- getRandomR $ view U.uDefaultOutcomeRange u
+  dp <- getRandomR $ view U.uDepthRange u
+  let mr = makeMuser dOut dp
+  let wBrain = Brain c mr dr hw
+  wDevotion <- getRandomR . view U.uDevotionRange $ u
+  wAgeOfMaturity <- getRandomR . view U.uMaturityRange $ u
+  wPassionDelta <- getRandom
+  let wAppearance = bigX w h
+  return $ buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
+    wAgeOfMaturity wPassionDelta
 
 data Summary = Summary
   {
@@ -316,7 +317,7 @@ run' = do
     ++ "'s summary: " ++ pretty (Stats.stats a)
   runMetabolism
   applySQEffects classifier U.uCSQDeltaE rCSQDeltaE rChildCSQDeltaE
-  applySQEffects decider U.uDSQDeltaE rDSQDeltaE rChildDSQDeltaE
+  applySQEffects predictor U.uDSQDeltaE rDSQDeltaE rChildDSQDeltaE
   applyDQEffects
   applyPopControl
   r <- chooseSubjectAction
@@ -355,7 +356,7 @@ fillInSummary s = s
          + _rMatingDeltaE s
          + _rOldAgeDeltaE s
          + _rOtherMatingDeltaE s
-         + _rOtherAgreementDeltaE s, 
+         + _rOtherAgreementDeltaE s,
     _rChildNetDeltaE = _rChildMetabolismDeltaE s
          + _rChildCSQDeltaE s
          + _rChildDSQDeltaE s
@@ -442,9 +443,10 @@ chooseAction3
 chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and " ++ objectId iObj
-  whenM (use U.uShowDeciderModels) $ describeModels w
-  let (dObjLabel:iObjLabel:_, scenarioLabel, r, w', xs, [dObjNovelty, iObjNovelty])
+  whenM (use U.uShowPredictorModels) $ describeModels w
+  let (dObjLabel:iObjLabel:_, lds, scenarioLabel, rls, r, w')
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
+  let (dObjNovelty:iObjNovelty:_) = map (maximum . map snd) $ lds
   whenM (use U.uGenFmris) (writeFmri w)
   U.writeToLog $ "scenario=" ++ pretty (view scenario r)
   U.writeToLog $ "To " ++ agentId w ++ ", "
@@ -453,7 +455,7 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId iObj ++ " has novelty " ++ show iObjNovelty
     ++ " and best fits classifier model " ++ show iObjLabel
-  whenM (use U.uShowPredictions) $ describeOutcomes w xs
+  whenM (use U.uShowPredictions) $ describeOutcomes w rls
   let dObjNoveltyAdj
         = round $ uiToDouble dObjNovelty * fromIntegral (view age w)
   let iObjNoveltyAdj
@@ -487,8 +489,8 @@ writeFmri w = do
 
 describeModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
 describeModels w = mapM_ (U.writeToLog . f) ms
-  where ms = toList . view decider $ view brain w
-        f (l, r) = view name w ++ "'s decider model " ++ show l ++ "="
+  where ms = M.toList . modelMap . view predictor $ view brain w
+        f (l, r) = view name w ++ "'s predictor model " ++ show l ++ "="
                      ++ pretty r
 
 describeOutcomes
@@ -497,8 +499,7 @@ describeOutcomes
 describeOutcomes w = mapM_ (U.writeToLog . f)
   where f (r, l) = view name w ++ "'s predicted outcome of "
                      ++ show (view action r) ++ " is "
-                     ++ (printf "%.3f" . pm1ToDouble . fromJust
-                          . view outcome $ r)
+                     ++ (printf "%.3f" . pm1ToDouble . view outcome $ r)
                      ++ " from model " ++ show l
 
 chooseObjects
@@ -566,13 +567,13 @@ runAction aAction = do
     IObject _ _ -> do
       zoom universe . U.writeToLog $ "Attempting to co-operate with an image"
       return ()
-  
+
 --
 -- Utility functions
 --
 
 applySQEffects
-  :: Simple Lens (Brain Image ImageThinker  Action) (GeneticSOM p t)
+  :: Simple Lens (Brain Image ImageTweaker  Action) (GeneticSOM p t)
     -> Simple Lens (U.Universe ImageWain) Double
      -> Simple Lens Summary Double -> Simple Lens Summary Double
        -> StateT Experiment IO ()
@@ -587,8 +588,8 @@ applySQEffects component deltaESelector adultSelector childSelector = do
 
 applyDQEffects :: StateT Experiment IO ()
 applyDQEffects = do
-  aDQ <- fromIntegral . deciderQuality
-          <$> use (subject . brain . decider)
+  aDQ <- fromIntegral . predictorQuality
+          <$> use (subject . brain . predictor)
   x <- use (universe . U.uDQDeltaE)
   let deltaE = x*aDQ
   zoom universe . U.writeToLog $
@@ -613,10 +614,10 @@ applyAgreementEffects = do
   dObj <- use directObject
   if isImage dObj
     then do
-      let aDQ = fromIntegral . deciderQuality
-                 $ view (brain . decider) a
-      let bDQ = fromIntegral . deciderQuality
-                 $ view (brain . decider) b
+      let aDQ = fromIntegral . predictorQuality
+                 $ view (brain . predictor) a
+      let bDQ = fromIntegral . predictorQuality
+                 $ view (brain . predictor) b
       aNovelty <- uiToDouble <$> use (summary . rDirectObjectNovelty)
       bNovelty <- uiToDouble <$> use (summary . rOtherNovelty)
       xd <- use (universe . U.uDQBasedAgreementDeltaE)
@@ -663,7 +664,7 @@ applyDisagreementEffects aAction bAction = do
           view name a ++ " learns from " ++ view name b ++ " that "
             ++ objectId dObj ++ " is " ++ show bAction
         assign subject $ imprint [p1, pb] bAction a
-  
+
 flirt :: StateT Experiment IO ()
 flirt = do
   a <- use subject
@@ -746,7 +747,7 @@ adjustPopControlDeltaE xs =
           = Stats.lookup "avg. child pop. control Δe" xs
     U.writeToLog $ "childPopControl=" ++ show childPopControl
 
-    let avgEnergyToBalance 
+    let avgEnergyToBalance
           = adultNet + childNet - adultPopControl - childPopControl
     U.writeToLog $ "avgEnergyToBalance=" ++ show avgEnergyToBalance
     let c = idealPopControlDeltaE idealPop pop avgEnergyToBalance
@@ -826,9 +827,9 @@ letSubjectReflect r = do
   let (x', err) = reflect [p1, p2] r x
   assign subject x'
   assign (summary . rErr) err
-  -- let modelsBefore = models $ view (brain . decider) x
-  -- let modelsAfter = models $ view (brain . decider) x'
-  -- zoom universe . U.writeToLog $ "DEBUG decider model changes = "
+  -- let modelsBefore = models $ view (brain . predictor) x
+  -- let modelsAfter = models $ view (brain . predictor) x'
+  -- zoom universe . U.writeToLog $ "DEBUG predictor model changes = "
   --   ++ show (modelChanges modelsBefore modelsAfter)
 
 writeRawStats
@@ -839,4 +840,3 @@ writeRawStats n f xs = do
   t <- U.currentTime
   liftIO . appendFile f $
     "time=" ++ show t ++ ",agent=" ++ n ++ ',':raw xs ++ "\n"
-

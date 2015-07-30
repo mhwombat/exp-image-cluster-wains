@@ -25,7 +25,7 @@ import ALife.Creatur.Wain.PlusMinusOne
 import ALife.Creatur.Wain.UnitInterval
 import Control.Lens
 import Control.Monad.State
-import Data.Map.Strict (elems)
+import Data.Map.Strict (elems, toList)
 import System.Environment
 import Text.Printf (printf)
 
@@ -33,14 +33,14 @@ getAndExamineAll :: StateT (Universe ImageWain) IO ()
 getAndExamineAll = do
   names <- agentIds
   mapM_ getAndExamine names
-  
+
 getAndExamine :: String -> StateT (Universe ImageWain) IO ()
 getAndExamine s = do
   a <- getAgent s
   case a of
     (Right agent) -> liftIO $ examine agent
-    (Left msg)    -> liftIO $ putStrLn msg 
-  
+    (Left msg)    -> liftIO $ putStrLn msg
+
 examine :: ImageWain -> IO ()
 examine a = do
   putStrLn $ "name: " ++ show (view name a)
@@ -57,14 +57,13 @@ examine a = do
   putStrLn $ "total # children weaned: "
     ++ show (view childrenWeanedLifetime a)
   putStrLn $ "litter size: " ++ show (length . view litter $ a)
-  putStrLn $ "counts=" ++ show (elems . view counterMap . view classifier . view brain $ a)
-  putStrLn $ "swagger: " ++ show (view swagger a)
+  putStrLn $ "counts=" ++ show (elems . counterMap . view classifier . view brain $ a)
   putStrLn $ "size: " ++ show (view wainSize a)
-  putStrLn $ "SQ: " ++ show (schemaQuality . view decider . view brain $ a)
+  putStrLn $ "SQ: " ++ show (schemaQuality . view predictor . view brain $ a)
   putStrLn $ "Number of classifier models: " ++ show (numModels . view classifier . view brain $ a)
   putStrLn $ "Classifier learning function " ++ show (view exponentialParams . view classifier . view brain $ a)
-  putStrLn $ "Number of decider models: " ++ show (numModels . view decider . view brain $ a)
-  putStrLn $ "Decider learning function " ++ show (view exponentialParams . view decider . view brain $ a)
+  putStrLn $ "Number of predictor models: " ++ show (numModels . view predictor . view brain $ a)
+  putStrLn $ "Predictor learning function " ++ show (view exponentialParams . view predictor . view brain $ a)
   -- putStrLn "------------------------"
   -- putStrLn "Mental models of vectors"
   -- putStrLn "------------------------"
@@ -72,7 +71,7 @@ examine a = do
   putStrLn "-----------------"
   putStrLn "Response models"
   putStrLn "-----------------"
-  mapM_ putStrLn $ concatMap prettyResponseModel (toList . view decider . view brain $ a)
+  mapM_ putStrLn $ concatMap prettyResponseModel (toList . modelMap . view predictor . view brain $ a)
   -- putStrLn "--------"
   -- putStrLn "Raw data"
   -- putStrLn "--------"
@@ -81,13 +80,12 @@ examine a = do
 prettyResponseModel :: (Label, Response Action) -> [String]
 prettyResponseModel (l, r) =
   [ "Model " ++ show l,
-    "Differences: "
-      ++ formatVector "%5.3f" (map uiToDouble . head . view (scenario . Scenario.diffs) $ r),
+    "Labels: " ++ show (view (scenario . Scenario.labels) $ r),
     "Energy: " ++ show (head . view (scenario . Scenario.condition) $ r),
     "Passion: " ++ show ((!!2) . view (scenario . Scenario.condition) $ r),
     "Action: " ++ show (view action r),
     "Expected happiness change: "
-      ++ maybe "" (printf "%.3g" . pm1ToDouble) (view outcome r),
+      ++ (printf "%.3g" . pm1ToDouble) (view outcome r),
     "-----" ]
 
 formatVector :: String -> [Double] -> String

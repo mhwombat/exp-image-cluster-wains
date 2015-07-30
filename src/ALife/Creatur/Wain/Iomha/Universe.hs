@@ -33,7 +33,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uRawStatsFile,
     uFmriCounter,
     uFmriDir,
-    uShowDeciderModels,
+    uShowPredictorModels,
     uShowPredictions,
     uGenFmris,
     uSleepBetweenTasks,
@@ -42,7 +42,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uImageHeight,
     uInitialImageRange,
     uClassifierSizeRange,
-    -- uDeciderSizeRange,
+    uPredictorSizeRange,
     uDevotionRange,
     uMaturityRange,
     uMaxAge,
@@ -63,11 +63,14 @@ module ALife.Creatur.Wain.Iomha.Universe
     uNoveltyBasedAgreementDeltaE,
     uMinAgreementDeltaE,
     uAdultAdultTeaching,
-    -- uOutcomeRange,
+    uClassifierThresholdRange,
     uClassifierR0Range,
     uClassifierDRange,
-    uDeciderR0Range,
-    uDeciderDRange,
+    uPredictorThresholdRange,
+    uPredictorR0Range,
+    uPredictorDRange,
+    uDefaultOutcomeRange,
+    uDepthRange,
     uCheckpoints,
     -- * Other
     U.agentIds,
@@ -90,7 +93,7 @@ import ALife.Creatur.Persistent (Persistent, mkPersistent)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Checkpoint as CP
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
--- import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
+import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Control.Exception (SomeException, try)
 import Control.Lens hiding (Setting)
@@ -111,7 +114,7 @@ data Universe a = Universe
     _uRawStatsFile :: FilePath,
     _uFmriCounter :: K.PersistentCounter,
     _uFmriDir :: FilePath,
-    _uShowDeciderModels :: Bool,
+    _uShowPredictorModels :: Bool,
     _uShowPredictions :: Bool,
     _uGenFmris :: Bool,
     _uSleepBetweenTasks :: Int,
@@ -120,7 +123,7 @@ data Universe a = Universe
     _uImageHeight :: Int,
     _uInitialImageRange :: (Word8, Word8),
     _uClassifierSizeRange :: (Word16, Word16),
-    -- _uDeciderSizeRange :: (Word16, Word16),
+    _uPredictorSizeRange :: (Word16, Word16),
     _uDevotionRange :: (UIDouble, UIDouble),
     _uMaturityRange :: (Word16, Word16),
     _uMaxAge :: Int,
@@ -141,11 +144,14 @@ data Universe a = Universe
     _uDQBasedAgreementDeltaE :: Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
-    -- _uOutcomeRange :: (PM1Double, PM1Double),
+    _uClassifierThresholdRange :: (UIDouble,UIDouble),
     _uClassifierR0Range :: (UIDouble, UIDouble),
     _uClassifierDRange :: (UIDouble, UIDouble),
-    _uDeciderR0Range :: (UIDouble, UIDouble),
-    _uDeciderDRange :: (UIDouble, UIDouble),
+    _uPredictorThresholdRange :: (UIDouble,UIDouble),
+    _uPredictorR0Range :: (UIDouble, UIDouble),
+    _uPredictorDRange :: (UIDouble, UIDouble),
+    _uDefaultOutcomeRange :: (PM1Double, PM1Double),
+    _uDepthRange :: (Word8, Word8),
     _uCheckpoints :: [CP.Checkpoint]
   } deriving Show
 makeLenses ''Universe
@@ -181,8 +187,8 @@ cWorkingDir = requiredSetting "workingDir"
 cCacheSize :: Setting Int
 cCacheSize = requiredSetting "cacheSize"
 
-cShowDeciderModels :: Setting Bool
-cShowDeciderModels = requiredSetting "showDeciderModels"
+cShowPredictorModels :: Setting Bool
+cShowPredictorModels = requiredSetting "showPredictorModels"
 
 cShowPredictions :: Setting Bool
 cShowPredictions = requiredSetting "showPredictions"
@@ -209,10 +215,10 @@ cClassifierSizeRange :: Setting (Word16, Word16)
 cClassifierSizeRange
   = requiredSetting "classifierSizeRange"
 
--- cDeciderSizeRange :: Setting (Word16, Word16)
--- cDeciderSizeRange
---   = requiredSetting "deciderSizeRange"
-    
+cPredictorSizeRange :: Setting (Word16, Word16)
+cPredictorSizeRange
+  = requiredSetting "predictorSizeRange"
+
 cDevotionRange :: Setting (UIDouble, UIDouble)
 cDevotionRange
   = requiredSetting "devotionRange"
@@ -272,8 +278,8 @@ cNoveltyBasedAgreementDeltaE
 cMinAgreementDeltaE :: Setting Double
 cMinAgreementDeltaE = requiredSetting "minAgreementDeltaE"
 
--- cOutcomeRange :: Setting (PM1Double, PM1Double)
--- cOutcomeRange = requiredSetting "outcomeRange"
+cClassifierThresholdRange :: Setting (UIDouble, UIDouble)
+cClassifierThresholdRange = requiredSetting "classifierThresholdRange"
 
 cClassifierR0Range :: Setting (UIDouble, UIDouble)
 cClassifierR0Range = requiredSetting "classifierR0Range"
@@ -281,11 +287,20 @@ cClassifierR0Range = requiredSetting "classifierR0Range"
 cClassifierDRange :: Setting (UIDouble, UIDouble)
 cClassifierDRange = requiredSetting "classifierDecayRange"
 
-cDeciderR0Range :: Setting (UIDouble, UIDouble)
-cDeciderR0Range = requiredSetting "deciderR0Range"
+cPredictorThresholdRange :: Setting (UIDouble, UIDouble)
+cPredictorThresholdRange = requiredSetting "predictorThresholdRange"
 
-cDeciderDRange :: Setting (UIDouble, UIDouble)
-cDeciderDRange = requiredSetting "deciderDecayRange"
+cPredictorR0Range :: Setting (UIDouble, UIDouble)
+cPredictorR0Range = requiredSetting "predictorR0Range"
+
+cPredictorDRange :: Setting (UIDouble, UIDouble)
+cPredictorDRange = requiredSetting "predictorDecayRange"
+
+cDefaultOutcomeRange :: Setting (PM1Double, PM1Double)
+cDefaultOutcomeRange = requiredSetting "defaultOutcomeRange"
+
+cDepthRange :: Setting (Word8, Word8)
+cDepthRange = requiredSetting "depthRange"
 
 cCheckpoints :: Setting [CP.Checkpoint]
 cCheckpoints = requiredSetting "checkpoints"
@@ -316,7 +331,7 @@ config2Universe getSetting =
       _uRawStatsFile = workDir ++ "/rawStatsFile",
       _uFmriCounter = K.mkPersistentCounter (workDir ++ "/fmriCount"),
       _uFmriDir = workDir ++ "/log",
-      _uShowDeciderModels = getSetting cShowDeciderModels,
+      _uShowPredictorModels = getSetting cShowPredictorModels,
       _uShowPredictions = getSetting cShowPredictions,
       _uGenFmris = getSetting cGenFmris,
       _uSleepBetweenTasks = getSetting cSleepBetweenTasks,
@@ -325,7 +340,7 @@ config2Universe getSetting =
       _uImageHeight = getSetting cImageHeight,
       _uInitialImageRange = getSetting cInitialImageRange,
       _uClassifierSizeRange = getSetting cClassifierSizeRange,
-      -- _uDeciderSizeRange = getSetting cDeciderSizeRange,
+      _uPredictorSizeRange = getSetting cPredictorSizeRange,
       _uDevotionRange = getSetting cDevotionRange,
       _uMaturityRange = getSetting cMaturityRange,
       _uMaxAge = getSetting cMaxAge,
@@ -349,10 +364,14 @@ config2Universe getSetting =
         = getSetting cNoveltyBasedAgreementDeltaE,
       _uMinAgreementDeltaE = getSetting cMinAgreementDeltaE,
       -- _uOutcomeRange = getSetting cOutcomeRange,
+      _uClassifierThresholdRange = getSetting cClassifierThresholdRange,
       _uClassifierR0Range = getSetting cClassifierR0Range,
       _uClassifierDRange = getSetting cClassifierDRange,
-      _uDeciderR0Range = getSetting cDeciderR0Range,
-      _uDeciderDRange = getSetting cDeciderDRange,
+      _uPredictorThresholdRange = getSetting cPredictorThresholdRange,
+      _uPredictorR0Range = getSetting cPredictorR0Range,
+      _uPredictorDRange = getSetting cPredictorDRange,
+      _uDefaultOutcomeRange = getSetting cDefaultOutcomeRange,
+      _uDepthRange = getSetting cDepthRange,
       _uCheckpoints = getSetting cCheckpoints
     }
   where en = getSetting cExperimentName
