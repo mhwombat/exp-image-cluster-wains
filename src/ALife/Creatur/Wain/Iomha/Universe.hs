@@ -40,7 +40,6 @@ module ALife.Creatur.Wain.Iomha.Universe
     uImageDB,
     uImageWidth,
     uImageHeight,
-    uInitialImageRange,
     uClassifierSizeRange,
     uPredictorSizeRange,
     uDevotionRange,
@@ -121,7 +120,6 @@ data Universe a = Universe
     _uImageDB :: ImageDB,
     _uImageWidth :: Int,
     _uImageHeight :: Int,
-    _uInitialImageRange :: (Word8, Word8),
     _uClassifierSizeRange :: (Word16, Word16),
     _uPredictorSizeRange :: (Word16, Word16),
     _uDevotionRange :: (UIDouble, UIDouble),
@@ -207,9 +205,6 @@ cImageWidth = requiredSetting "imageWidth"
 
 cImageHeight :: Setting Int
 cImageHeight = requiredSetting "imageHeight"
-
-cInitialImageRange :: Setting (Word8, Word8)
-cInitialImageRange = requiredSetting "initialImageRange"
 
 cClassifierSizeRange :: Setting (Word16, Word16)
 cClassifierSizeRange
@@ -338,7 +333,6 @@ config2Universe getSetting =
       _uImageDB = mkImageDB imageDir,
       _uImageWidth = getSetting cImageWidth,
       _uImageHeight = getSetting cImageHeight,
-      _uInitialImageRange = getSetting cInitialImageRange,
       _uClassifierSizeRange = getSetting cClassifierSizeRange,
       _uPredictorSizeRange = getSetting cPredictorSizeRange,
       _uDevotionRange = getSetting cDevotionRange,
