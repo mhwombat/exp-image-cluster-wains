@@ -35,11 +35,12 @@ import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
   weanMatureChildren, pruneDeadChildren, adjustEnergy, adjustPassion,
   reflect, mate, litter, brain, energy, passion, childEnergy, age,
   imprint, wainSize)
-import ALife.Creatur.Wain.Brain (classifier, predictor, Brain(..))
+import ALife.Creatur.Wain.Brain (Brain, classifier, predictor,
+  decisionQuality, makeBrain)
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import ALife.Creatur.Wain.Classifier(buildClassifier)
 import ALife.Creatur.Wain.Muser (makeMuser)
-import ALife.Creatur.Wain.Predictor(buildPredictor, predictorQuality)
+import ALife.Creatur.Wain.Predictor(buildPredictor)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
   GeneticSOM, randomExponential, schemaQuality, modelMap)
 import ALife.Creatur.Wain.Pretty (pretty)
@@ -129,7 +130,7 @@ randomImageWain wName u classifierSize predictorSize = do
   dOut <- getRandomR $ view U.uDefaultOutcomeRange u
   dp <- getRandomR $ view U.uDepthRange u
   let mr = makeMuser dOut dp
-  let wBrain = Brain c mr dr hw
+  let wBrain = makeBrain c mr dr hw
   wDevotion <- getRandomR . view U.uDevotionRange $ u
   wAgeOfMaturity <- getRandomR . view U.uMaturityRange $ u
   wPassionDelta <- getRandom
@@ -588,8 +589,7 @@ applySQEffects component deltaESelector adultSelector childSelector = do
 
 applyDQEffects :: StateT Experiment IO ()
 applyDQEffects = do
-  aDQ <- fromIntegral . predictorQuality
-          <$> use (subject . brain . predictor)
+  aDQ <- fromIntegral . decisionQuality <$> use (subject . brain)
   x <- use (universe . U.uDQDeltaE)
   let deltaE = x*aDQ
   zoom universe . U.writeToLog $
@@ -614,10 +614,8 @@ applyAgreementEffects = do
   dObj <- use directObject
   if isImage dObj
     then do
-      let aDQ = fromIntegral . predictorQuality
-                 $ view (brain . predictor) a
-      let bDQ = fromIntegral . predictorQuality
-                 $ view (brain . predictor) b
+      let aDQ = fromIntegral . decisionQuality $ view brain a
+      let bDQ = fromIntegral . decisionQuality $ view brain b
       aNovelty <- uiToDouble <$> use (summary . rDirectObjectNovelty)
       bNovelty <- uiToDouble <$> use (summary . rOtherNovelty)
       xd <- use (universe . U.uDQBasedAgreementDeltaE)
