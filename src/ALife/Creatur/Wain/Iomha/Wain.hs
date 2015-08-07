@@ -30,15 +30,16 @@ module ALife.Creatur.Wain.Iomha.Wain
 import ALife.Creatur (agentId, isAlive)
 import ALife.Creatur.Counter (current, increment)
 import ALife.Creatur.Task (checkPopSize)
-import ALife.Creatur.Wain (Wain, Label, buildWainAndGenerateGenome,
+import ALife.Creatur.Wain (Wain, buildWainAndGenerateGenome,
   appearance, name, chooseAction, incAge, applyMetabolismCost,
   weanMatureChildren, pruneDeadChildren, adjustEnergy, adjustPassion,
   reflect, mate, litter, brain, energy, passion, childEnergy, age,
   imprint, wainSize)
 import ALife.Creatur.Wain.Brain (Brain, classifier, predictor,
-  decisionQuality, makeBrain)
+  decisionQuality, makeBrain, scenarioReport, responseReport,
+  decisionReport)
 import ALife.Creatur.Wain.Checkpoint (enforceAll)
-import ALife.Creatur.Wain.Classifier(buildClassifier)
+import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.Predictor(buildPredictor)
 import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
@@ -47,7 +48,6 @@ import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
 import ALife.Creatur.Wain.Response (Response, action, outcome,
   scenario)
-import ALife.Creatur.Wain.PlusMinusOne (pm1ToDouble)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
@@ -69,8 +69,9 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandom, getRandomR,
   getRandomRs, getRandoms, evalRandIO, fromList)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
-import Data.List (intercalate)
+import Data.List (intercalate, minimumBy)
 import qualified Data.Map.Strict as M
+import Data.Ord (comparing)
 import Data.Word (Word16)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (dropFileName)
@@ -116,7 +117,7 @@ randomImageWain wName u classifierSize predictorSize = do
                  _dRange = view U.uClassifierDRange u }
   fc <- randomExponential fcp
   classifierThreshold <- getRandomR (view U.uClassifierThresholdRange u)
-  let c = buildClassifier fc classifierSize classifierThreshold
+  let c = Cl.buildClassifier fc classifierSize classifierThreshold
             ImageTweaker
   let fdp = RandomExponentialParams
               { _r0Range = view U.uPredictorR0Range u,
@@ -445,9 +446,11 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and " ++ objectId iObj
   whenM (use U.uShowPredictorModels) $ describeModels w
-  let (dObjLabel:iObjLabel:_, lds, scenarioLabel, rls, r, w')
+  let (lds, sps, rplos, aos, r, w')
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
-  let (dObjNovelty:iObjNovelty:_) = map (maximum . map snd) $ lds
+  let (dObjLabel, dObjNovelty, dObjNoveltyAdj,
+        iObjLabel, iObjNovelty, iObjNoveltyAdj)
+          = analyseClassification lds w
   whenM (use U.uGenFmris) (writeFmri w)
   U.writeToLog $ "scenario=" ++ pretty (view scenario r)
   U.writeToLog $ "To " ++ agentId w ++ ", "
@@ -456,23 +459,35 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId iObj ++ " has novelty " ++ show iObjNovelty
     ++ " and best fits classifier model " ++ show iObjLabel
-  whenM (use U.uShowPredictions) $ describeOutcomes w rls
-  let dObjNoveltyAdj
-        = round $ uiToDouble dObjNovelty * fromIntegral (view age w)
-  let iObjNoveltyAdj
-        = round $ uiToDouble iObjNovelty * fromIntegral (view age w)
+  whenM (use U.uShowPredictions) $ do
+    mapM_ U.writeToLog $ scenarioReport sps
+    mapM_ U.writeToLog $ responseReport rplos
+    mapM_ U.writeToLog $ decisionReport aos
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has adjusted novelty " ++ show dObjNoveltyAdj
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId iObj ++ " has adjusted novelty " ++ show iObjNoveltyAdj
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and chooses to " ++ show (view action r)
-    ++ " based on response model " ++ show scenarioLabel
+    ++ " predicting the outcome " ++ show (view outcome r)
   -- let modelsBefore = models $ view (brain . classifier) w
   -- let modelsAfter = models $ view (brain . classifier) w'
   -- U.writeToLog $ "DEBUG classifier model changes = "
   --   ++ show (modelChanges modelsBefore modelsAfter)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
+
+analyseClassification
+  :: [[(Cl.Label, Cl.Difference)]] -> ImageWain
+    -> (Cl.Label, Cl.Difference, Int, Cl.Label, Cl.Difference, Int)
+analyseClassification ldss w
+  = (dObjLabel, dObjNovelty, dObjNoveltyAdj,
+      iObjLabel, iObjNovelty, iObjNoveltyAdj)
+  where ((dObjLabel, dObjNovelty):(iObjLabel, iObjNovelty):_)
+          = map (minimumBy (comparing snd)) ldss
+        dObjNoveltyAdj
+          = round $ uiToDouble dObjNovelty * fromIntegral (view age w)
+        iObjNoveltyAdj
+          = round $ uiToDouble iObjNovelty * fromIntegral (view age w)
 
 -- modelChanges :: Eq a => [a] -> [a] -> [Int]
 -- modelChanges as bs =
@@ -493,15 +508,6 @@ describeModels w = mapM_ (U.writeToLog . f) ms
   where ms = M.toList . modelMap . view predictor $ view brain w
         f (l, r) = view name w ++ "'s predictor model " ++ show l ++ "="
                      ++ pretty r
-
-describeOutcomes
-  :: ImageWain -> [(Response Action, Label)]
-    -> StateT (U.Universe ImageWain) IO ()
-describeOutcomes w = mapM_ (U.writeToLog . f)
-  where f (r, l) = view name w ++ "'s predicted outcome of "
-                     ++ show (view action r) ++ " is "
-                     ++ (printf "%.3f" . pm1ToDouble . view outcome $ r)
-                     ++ " from model " ++ show l
 
 chooseObjects
   :: [Rational] -> ImageWain -> ImageWain -> ImageDB
