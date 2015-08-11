@@ -32,9 +32,9 @@ import ALife.Creatur.Counter (current, increment)
 import ALife.Creatur.Task (checkPopSize)
 import ALife.Creatur.Wain (Wain, buildWainAndGenerateGenome,
   appearance, name, chooseAction, incAge, applyMetabolismCost,
-  weanMatureChildren, pruneDeadChildren, adjustEnergy, adjustPassion,
-  reflect, mate, litter, brain, energy, passion, childEnergy, age,
-  imprint, wainSize)
+  weanMatureChildren, pruneDeadChildren, adjustEnergy,
+  autoAdjustPassion, reflect, mate, litter, brain, energy, passion,
+  childEnergy, age, imprint, wainSize)
 import ALife.Creatur.Wain.Brain (Brain, classifier, predictor,
   decisionQuality, makeBrain, scenarioReport, responseReport,
   decisionReport)
@@ -57,7 +57,7 @@ import ALife.Creatur.Wain.Iomha.Image (Image, bigX)
 import ALife.Creatur.Wain.Iomha.ImageTweaker (ImageTweaker(..))
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
-import ALife.Creatur.Persistent (getPS, putPS)
+import ALife.Creatur.Persistent (putPS)
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
 import ALife.Creatur.Wain.Statistics (summarise)
@@ -135,9 +135,10 @@ randomImageWain wName u classifierSize predictorSize = do
   wDevotion <- getRandomR . view U.uDevotionRange $ u
   wAgeOfMaturity <- getRandomR . view U.uMaturityRange $ u
   wPassionDelta <- getRandom
+  wBoredomDelta <- getRandom
   let wAppearance = bigX w h
   return $ buildWainAndGenerateGenome wName wAppearance wBrain wDevotion
-    wAgeOfMaturity wPassionDelta
+    wAgeOfMaturity wPassionDelta wBoredomDelta
 
 data Summary = Summary
   {
@@ -321,7 +322,7 @@ run' = do
   applySQEffects classifier U.uCSQDeltaE rCSQDeltaE rChildCSQDeltaE
   applySQEffects predictor U.uDSQDeltaE rDSQDeltaE rChildDSQDeltaE
   applyDQEffects
-  applyPopControl
+  -- applyPopControl
   r <- chooseSubjectAction
   runAction (view action r)
   letSubjectReflect r
@@ -602,10 +603,10 @@ applyDQEffects = do
     "aDQ=" ++ show aDQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
   adjustSubjectEnergy deltaE rDQDeltaE rChildDQDeltaE
 
-applyPopControl :: StateT Experiment IO ()
-applyPopControl = do
-  deltaE <- zoom (universe . U.uPopControlDeltaE) getPS
-  adjustSubjectEnergy deltaE rPopControlDeltaE rChildPopControlDeltaE
+-- applyPopControl :: StateT Experiment IO ()
+-- applyPopControl = do
+--   deltaE <- zoom (universe . U.uPopControlDeltaE) getPS
+--   adjustSubjectEnergy deltaE rPopControlDeltaE rChildPopControlDeltaE
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
@@ -820,7 +821,7 @@ adjustObjectEnergy
 
 adjustSubjectPassion
   :: StateT Experiment IO ()
-adjustSubjectPassion = subject %= adjustPassion
+adjustSubjectPassion = subject %= autoAdjustPassion
 
 letSubjectReflect
   :: Response Action -> StateT Experiment IO ()
