@@ -28,7 +28,7 @@ module ALife.Creatur.Wain.Iomha.Wain
   ) where
 
 import ALife.Creatur (agentId, isAlive)
-import ALife.Creatur.Counter (current, increment)
+-- import ALife.Creatur.Counter (current, increment)
 import ALife.Creatur.Task (checkPopSize)
 import ALife.Creatur.Wain (Wain, buildWainAndGenerateGenome,
   appearance, name, chooseAction, incAge, applyMetabolismCost,
@@ -52,12 +52,12 @@ import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
 import ALife.Creatur.Wain.Iomha.Action (Action(..))
-import qualified ALife.Creatur.Wain.Iomha.FMRI as F
-import ALife.Creatur.Wain.Iomha.Image (Image, bigX)
+-- import qualified ALife.Creatur.Wain.Iomha.FMRI as F
+import ALife.Creatur.Wain.Iomha.Image (Image, bigX, base64encode)
 import ALife.Creatur.Wain.Iomha.ImageTweaker (ImageTweaker(..))
 import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, anyImage)
 import qualified ALife.Creatur.Wain.Iomha.Universe as U
-import ALife.Creatur.Persistent (putPS)
+import ALife.Creatur.Persistent (putPS, getPS)
 import ALife.Creatur.Wain.PersistentStatistics (updateStats, readStats,
   clearStats)
 import ALife.Creatur.Wain.Statistics (summarise)
@@ -87,6 +87,10 @@ objectId :: Object -> String
 objectId (IObject _ s) = "Image " ++ s
 objectId (AObject a) = agentId a
 
+-- objectNum :: Object -> Int
+-- objectNum (IObject _ s) = read [head s]
+-- objectNum (AObject _) = 10
+
 objectAppearance :: Object -> Image
 objectAppearance (IObject img _) = img
 objectAppearance (AObject a) = view appearance a
@@ -107,9 +111,8 @@ type ImageWain = Wain Image ImageTweaker  Action
 
 randomImageWain
   :: RandomGen r
-    => String -> U.Universe ImageWain -> Word16 -> Word16
-      -> Rand r ImageWain
-randomImageWain wName u classifierSize predictorSize = do
+    => String -> U.Universe ImageWain -> Word16 -> Rand r ImageWain
+randomImageWain wName u classifierSize = do
   let w = view U.uImageWidth u
   let h = view U.uImageHeight u
   let fcp = RandomExponentialParams
@@ -126,6 +129,7 @@ randomImageWain wName u classifierSize predictorSize = do
   predictorThreshold <- getRandomR (view U.uPredictorThresholdRange u)
   cw <- (makeWeights . take 3) <$> getRandoms
   rw <- (makeWeights . take 2) <$> getRandoms
+  let predictorSize = classifierSize * 4
   let dr = buildPredictor fd predictorSize predictorThreshold cw rw
   hw <- (makeWeights . take 3) <$> getRandomRs unitInterval
   dOut <- getRandomR $ view U.uDefaultOutcomeRange u
@@ -322,7 +326,8 @@ run' = do
   applySQEffects classifier U.uCSQDeltaE rCSQDeltaE rChildCSQDeltaE
   applySQEffects predictor U.uDSQDeltaE rDSQDeltaE rChildDSQDeltaE
   applyDQEffects
-  -- applyPopControl
+  autoPopControl <- use (universe . U.uPopControl)
+  when autoPopControl applyPopControl
   r <- chooseSubjectAction
   runAction (view action r)
   letSubjectReflect r
@@ -446,13 +451,14 @@ chooseAction3
 chooseAction3 w dObj iObj = do
   U.writeToLog $ agentId w ++ " sees " ++ objectId dObj
     ++ " and " ++ objectId iObj
-  whenM (use U.uShowPredictorModels) $ describeModels w
+  whenM (use U.uShowPredictorModels) $ describePredictorModels w
   let (lds, sps, rplos, aos, r, w')
         = chooseAction [objectAppearance dObj, objectAppearance iObj] w
   let (dObjLabel, dObjNovelty, dObjNoveltyAdj,
         iObjLabel, iObjNovelty, iObjNoveltyAdj)
           = analyseClassification lds w
-  whenM (use U.uGenFmris) (writeFmri w)
+  -- whenM (use U.uGenFmris) (writeFmri w)
+  whenM (use U.uGenFmris) (describeClassifierModels w)
   U.writeToLog $ "scenario=" ++ pretty (view scenario r)
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ objectId dObj ++ " has novelty " ++ show dObjNovelty
@@ -494,18 +500,25 @@ analyseClassification ldss w
 -- modelChanges as bs =
 --   map fst . filter snd . zip [0..] $ zipWith (/=) as bs
 
-writeFmri :: ImageWain -> StateT (U.Universe ImageWain) IO ()
-writeFmri w = do
-  t <- U.currentTime
-  k <- zoom U.uFmriCounter current
-  zoom U.uFmriCounter increment
-  d <- use U.uFmriDir
-  let f = d ++ "/" ++ view name w ++ '_' : show t ++ "_" ++ show k ++ ".png"
-  U.writeToLog $ "Writing FMRI to " ++ f
-  liftIO . F.writeFmri w $ f
+-- writeFmri :: ImageWain -> StateT (U.Universe ImageWain) IO ()
+-- writeFmri w = do
+--   t <- U.currentTime
+--   k <- zoom U.uFmriCounter current
+--   zoom U.uFmriCounter increment
+--   d <- use U.uFmriDir
+--   let f = d ++ "/" ++ view name w ++ '_' : show t ++ "_" ++ show k ++ ".png"
+--   U.writeToLog $ "Writing FMRI to " ++ f
+--   liftIO . F.writeFmri w $ f
 
-describeModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
-describeModels w = mapM_ (U.writeToLog . f) ms
+describeClassifierModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
+describeClassifierModels w = mapM_ (U.writeToLog . f) ms
+  where ms = M.toList . modelMap . view (brain . classifier) $ w
+        f (l, r) = view name w ++ "'s classifier model "
+                     ++ show l ++ ": <img src='data:image/png;base64,"
+                     ++ base64encode r ++ "'/>"
+
+describePredictorModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
+describePredictorModels w = mapM_ (U.writeToLog . f) ms
   where ms = M.toList . modelMap . view predictor $ view brain w
         f (l, r) = view name w ++ "'s predictor model " ++ show l ++ "="
                      ++ pretty r
@@ -603,10 +616,10 @@ applyDQEffects = do
     "aDQ=" ++ show aDQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
   adjustSubjectEnergy deltaE rDQDeltaE rChildDQDeltaE
 
--- applyPopControl :: StateT Experiment IO ()
--- applyPopControl = do
---   deltaE <- zoom (universe . U.uPopControlDeltaE) getPS
---   adjustSubjectEnergy deltaE rPopControlDeltaE rChildPopControlDeltaE
+applyPopControl :: StateT Experiment IO ()
+applyPopControl = do
+  deltaE <- zoom (universe . U.uPopControlDeltaE) getPS
+  adjustSubjectEnergy deltaE rPopControlDeltaE rChildPopControlDeltaE
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do

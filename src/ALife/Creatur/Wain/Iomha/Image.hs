@@ -25,6 +25,7 @@ module ALife.Creatur.Wain.Iomha.Image
     randomImageR,
     readImage,
     writeImage,
+    base64encode,
     -- imageToArray,
     -- arrayToImage
     imageDiff,
@@ -45,6 +46,10 @@ import Control.Monad.Random (Rand, RandomGen, getRandoms, getRandomRs)
 -- import Data.Array.Repa.Index ((:.)(..), Z(..))
 -- import qualified Data.Array.Repa.IO.DevIL as I
 -- import Data.Array.Repa.Shape (listOfShape)
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Base64 as B64
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.List.Split (chunksOf)
 import Data.Serialize (Serialize)
 import Data.Vector.Storable (Vector, toList, fromList)
@@ -173,6 +178,14 @@ writeImage filePath img = do
   -- let dImg = P.ImageY8 img'
   P.writePng filePath img'
   -- I.runIL $ I.writeImage filePath $ imageToArray img
+
+toPNG :: Image -> P.Image P.Pixel8
+toPNG (Image w h ps) = P.Image w h (fromList ps)
+
+base64encode :: Image -> String
+base64encode
+  = UTF8.toString . B64.encode . B.concat . BL.toChunks . P.encodePng
+      . toPNG
 
 -- imageToArray :: Image -> I.Image
 -- imageToArray img = I.Grey arr
