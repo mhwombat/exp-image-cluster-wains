@@ -34,7 +34,7 @@ import ALife.Creatur.Wain (Wain, buildWainAndGenerateGenome,
   appearance, name, chooseAction, incAge, applyMetabolismCost,
   weanMatureChildren, pruneDeadChildren, adjustEnergy,
   autoAdjustPassion, reflect, mate, litter, brain, energy, passion,
-  childEnergy, age, imprint, wainSize)
+  childEnergy, age, imprint, wainSize, boredom, happiness)
 import ALife.Creatur.Wain.Brain (Brain, classifier, predictor,
   decisionQuality, makeBrain, scenarioReport, responseReport,
   decisionReport)
@@ -176,6 +176,10 @@ data Summary = Summary
     _rOtherChildAgreementDeltaE :: Double,
     _rNetDeltaE :: Double,
     _rChildNetDeltaE :: Double,
+    _rDeltaEToReflectOn :: Double,
+    _rDeltaBToReflectOn :: Double,
+    _rDeltaPToReflectOn :: Double,
+    _rDeltaHToReflectOn :: Double,
     _rErr :: Double,
     _rBirthCount :: Int,
     _rWeanCount :: Int,
@@ -184,7 +188,8 @@ data Summary = Summary
     _rFlirtCount :: Int,
     _rMateCount :: Int,
     _rIgnoreCount :: Int,
-    _rDeathCount :: Int
+    _rDeathCount :: Int,
+    _rMistakeCount :: Int
   }
 makeLenses ''Summary
 
@@ -221,6 +226,10 @@ initSummary p = Summary
     _rOtherChildAgreementDeltaE = 0,
     _rNetDeltaE = 0,
     _rChildNetDeltaE = 0,
+    _rDeltaEToReflectOn = 0,
+    _rDeltaBToReflectOn = 0,
+    _rDeltaPToReflectOn = 0,
+    _rDeltaHToReflectOn = 0,
     _rErr = 0,
     _rBirthCount = 0,
     _rWeanCount = 0,
@@ -229,7 +238,8 @@ initSummary p = Summary
     _rFlirtCount = 0,
     _rMateCount = 0,
     _rIgnoreCount = 0,
-    _rDeathCount = 0
+    _rDeathCount = 0,
+    _rMistakeCount = 0
   }
 
 summaryStats :: Summary -> [Stats.Statistic]
@@ -270,6 +280,10 @@ summaryStats r =
       (view rOtherChildAgreementDeltaE r),
     Stats.dStat "adult net Δe" (view rNetDeltaE r),
     Stats.dStat "child net Δe" (view rChildNetDeltaE r),
+    Stats.dStat "Δe to reflect on" (view rDeltaEToReflectOn r),
+    Stats.dStat "Δb to reflect on" (view rDeltaBToReflectOn r),
+    Stats.dStat "Δp to reflect on" (view rDeltaPToReflectOn r),
+    Stats.dStat "Δh to reflect on" (view rDeltaHToReflectOn r),
     Stats.dStat "err" (view rErr r),
     Stats.iStat "bore" (view rBirthCount r),
     Stats.iStat "weaned" (view rWeanCount r),
@@ -278,7 +292,8 @@ summaryStats r =
     Stats.iStat "flirted" (view rFlirtCount r),
     Stats.iStat "mated" (view rMateCount r),
     Stats.iStat "ignored" (view rIgnoreCount r),
-    Stats.iStat "died" (view rDeathCount r)
+    Stats.iStat "died" (view rDeathCount r),
+    Stats.iStat "mistakes" (view rMistakeCount r)
   ]
 
 data Experiment = Experiment
@@ -329,9 +344,11 @@ run' = do
   autoPopControl <- use (universe . U.uPopControl)
   when autoPopControl applyPopControl
   r <- chooseSubjectAction
+  wainBeforeAction <- use subject
   runAction (view action r)
-  letSubjectReflect r
-  adjustSubjectPassion
+  letSubjectReflect wainBeforeAction r
+  autoAdjustSubjectPassion
+--  autoAdjustSubjectBoredom
   subject %= incAge
   a' <- use subject
   zoom universe . U.writeToLog $ "End of " ++ agentId a ++ "'s turn"
@@ -411,7 +428,11 @@ runMetabolism = do
   cps <- use (universe . U.uEnergyCostPerByte)
   ccf <- use (universe . U.uChildCostFactor)
   let (a', adultCost, childCost) = applyMetabolismCost bms cps ccf a
-  zoom universe . U.writeToLog $ "bms=" ++ show bms ++ " cps=" ++ show cps ++ " adult size=" ++ show (view wainSize a) ++ " adult cost=" ++ show adultCost
+  zoom universe . U.writeToLog $ "bms=" ++ show bms
+    ++ " cps=" ++ show cps ++ " adult size=" ++ show (view wainSize a)
+    ++ " adult cost=" ++ show adultCost
+    ++ " adult energy after=" ++ show (view energy a')
+    ++ " alive=" ++ show (isAlive a')
   (summary . rMetabolismDeltaE) += adultCost
   (summary . rChildMetabolismDeltaE) += childCost
   assign subject a'
@@ -496,20 +517,6 @@ analyseClassification ldss w
         iObjNoveltyAdj
           = round $ uiToDouble iObjNovelty * fromIntegral (view age w)
 
--- modelChanges :: Eq a => [a] -> [a] -> [Int]
--- modelChanges as bs =
---   map fst . filter snd . zip [0..] $ zipWith (/=) as bs
-
--- writeFmri :: ImageWain -> StateT (U.Universe ImageWain) IO ()
--- writeFmri w = do
---   t <- U.currentTime
---   k <- zoom U.uFmriCounter current
---   zoom U.uFmriCounter increment
---   d <- use U.uFmriDir
---   let f = d ++ "/" ++ view name w ++ '_' : show t ++ "_" ++ show k ++ ".png"
---   U.writeToLog $ "Writing FMRI to " ++ f
---   liftIO . F.writeFmri w $ f
-
 describeClassifierModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
 describeClassifierModels w = mapM_ (U.writeToLog . f) ms
   where ms = M.toList . modelMap . view (brain . classifier) $ w
@@ -519,8 +526,8 @@ describeClassifierModels w = mapM_ (U.writeToLog . f) ms
 
 describePredictorModels :: ImageWain -> StateT (U.Universe ImageWain) IO ()
 describePredictorModels w = mapM_ (U.writeToLog . f) ms
-  where ms = M.toList . modelMap . view predictor $ view brain w
-        f (l, r) = view name w ++ "'s predictor model " ++ show l ++ "="
+  where ms = M.toList . modelMap . view (brain . predictor) $ w
+        f (l, r) = view name w ++ "'s predictor model " ++ show l ++ ": "
                      ++ pretty r
 
 chooseObjects
@@ -799,7 +806,7 @@ adjustSubjectEnergy deltaE adultSelector childSelector = do
     ++ ", child's share is " ++ show childDeltaE
   (summary . adultSelector) += adultDeltaE
   when (childDeltaE /= 0) $
-    (summary . childSelector) += childDeltaE
+    (summary.childSelector) += childDeltaE
   assign subject x'
 
 adjustObjectEnergy
@@ -825,24 +832,46 @@ adjustObjectEnergy
       zoom universe . U.writeToLog $
         "WARNING: Attempted to adjust the energy of an image"
 
+-- autoAdjustSubjectBoredom
+--    :: StateT Experiment IO ()
+-- autoAdjustSubjectBoredom = subject %= autoAdjustBoredom
 
-adjustSubjectPassion
+autoAdjustSubjectPassion
   :: StateT Experiment IO ()
-adjustSubjectPassion = subject %= autoAdjustPassion
+autoAdjustSubjectPassion = subject %= autoAdjustPassion
 
 letSubjectReflect
-  :: Response Action -> StateT Experiment IO ()
-letSubjectReflect r = do
+  :: ImageWain -> Response Action -> StateT Experiment IO ()
+letSubjectReflect wainBefore r = do
   x <- use subject
   p1 <- objectAppearance <$> use directObject
   p2 <- objectAppearance <$> use indirectObject
+  let energyBefore = view energy wainBefore
+  let boredomBefore = view boredom wainBefore
+  let passionBefore = view passion wainBefore
+  let happinessBefore = happiness wainBefore
+  energyAfter <- use (subject.energy)
+  boredomAfter <- use (subject.boredom)
+  passionAfter <- use (subject.passion)
+  happinessAfter <- happiness <$> use subject
+  let deltaH = uiToDouble happinessAfter - uiToDouble happinessBefore
+  assign (summary . rDeltaEToReflectOn)
+    (uiToDouble energyAfter - uiToDouble energyBefore)
+  assign (summary . rDeltaBToReflectOn)
+    (uiToDouble boredomAfter - uiToDouble boredomBefore)
+  assign (summary . rDeltaPToReflectOn)
+    (uiToDouble passionAfter - uiToDouble passionBefore)
+  assign (summary . rDeltaHToReflectOn) deltaH
   let (x', err) = reflect [p1, p2] r x
   assign subject x'
   assign (summary . rErr) err
-  -- let modelsBefore = models $ view (brain . predictor) x
-  -- let modelsAfter = models $ view (brain . predictor) x'
-  -- zoom universe . U.writeToLog $ "DEBUG predictor model changes = "
-  --   ++ show (modelChanges modelsBefore modelsAfter)
+  when (deltaH < 0) $ do
+    b <- use directObject
+    c <- use indirectObject
+    zoom universe . U.writeToLog $
+      agentId x ++ "'s choice to " ++ show (view action r) ++ " "
+        ++ objectId b ++ " " ++ objectId c ++ " was a mistake"
+    (summary . rMistakeCount) += 1
 
 writeRawStats
   :: String -> FilePath -> [Stats.Statistic]

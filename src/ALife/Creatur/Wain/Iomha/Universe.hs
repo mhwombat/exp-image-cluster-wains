@@ -49,6 +49,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uIdealPopulationSize,
     uPopulationAllowedRange,
     uPopControl,
+    uEnergyToAddWain,
     uFrequencies,
     uBaseMetabolismDeltaE,
     uEnergyCostPerByte,
@@ -130,6 +131,7 @@ data Universe a = Universe
     _uIdealPopulationSize :: Int,
     _uPopulationAllowedRange :: (Int, Int),
     _uPopControl :: Bool,
+    _uEnergyToAddWain :: Double,
     _uFrequencies :: [Rational],
     _uBaseMetabolismDeltaE :: Double,
     _uEnergyCostPerByte :: Double,
@@ -237,6 +239,9 @@ cPopulationAllowedRange = requiredSetting "popAllowedRange"
 
 cPopControl :: Setting Bool
 cPopControl = requiredSetting "popControl"
+
+cEnergyToAddWain :: Setting Double
+cEnergyToAddWain = requiredSetting "energyToAddWain"
 
 cFrequencies :: Setting [Rational]
 cFrequencies = requiredSetting "frequencies"
@@ -347,6 +352,7 @@ config2Universe getSetting =
       _uIdealPopulationSize = pIdeal,
       _uPopulationAllowedRange = (a', b'),
       _uPopControl = getSetting cPopControl,
+      _uEnergyToAddWain = getSetting cEnergyToAddWain,
       _uFrequencies = getSetting cFrequencies,
       _uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       _uEnergyCostPerByte = getSetting cEnergyCostPerByte,
