@@ -605,6 +605,7 @@ applySQEffects component deltaESelector adultSelector childSelector = do
   let deltaE = x*aSQ
   zoom universe . U.writeToLog $
     "aSQ=" ++ show aSQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
+  zoom universe . U.writeToLog $ "Applying SQ energy adjustment"
   adjustSubjectEnergy deltaE adultSelector childSelector
 
 applyDQEffects :: StateT Experiment IO ()
@@ -614,16 +615,19 @@ applyDQEffects = do
   let deltaE = x*aDQ
   zoom universe . U.writeToLog $
     "aDQ=" ++ show aDQ ++ " x=" ++ show x ++ " deltaE=" ++ show deltaE
+  zoom universe . U.writeToLog $ "Applying DQ energy adjustment"
   adjustSubjectEnergy deltaE rDQDeltaE rChildDQDeltaE
 
 applyPopControl :: StateT Experiment IO ()
 applyPopControl = do
   deltaE <- zoom (universe . U.uPopControlDeltaE) getPS
+  zoom universe . U.writeToLog $ "Applying pop control"
   adjustSubjectEnergy deltaE rPopControlDeltaE rChildPopControlDeltaE
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
   deltaE <- use (universe . U.uCooperationDeltaE)
+  zoom universe . U.writeToLog $ "Applying co-operation energy adjustment"
   adjustSubjectEnergy deltaE rCoopDeltaE rChildCoopDeltaE
   (summary.rCooperateCount) += 1
 
@@ -642,8 +646,10 @@ applyAgreementEffects = do
       xn <- use (universe . U.uNoveltyBasedAgreementDeltaE)
       x0 <- use (universe . U.uMinAgreementDeltaE)
       let ra = x0 + xn * aNovelty + xd * aDQ
+      zoom universe . U.writeToLog $ "Applying agreement energy adjustment"
       adjustSubjectEnergy ra rAgreementDeltaE rChildAgreementDeltaE
       let rb = x0 + xn * bNovelty + xd * bDQ
+      zoom universe . U.writeToLog $ "Applying agreement energy adjustment"
       adjustObjectEnergy indirectObject rb rOtherAgreementDeltaE
         rOtherChildAgreementDeltaE
       (summary.rAgreeCount) += 1
@@ -694,6 +700,10 @@ flirt = do
     then do
       zoom universe . U.writeToLog $
         agentId a ++ " and " ++ agentId b ++ " mated"
+      zoom universe . U.writeToLog $
+        "Contribution to child: " ++
+        agentId a ++ "'s share is " ++ show aMatingDeltaE ++ " " ++ 
+        agentId b ++ "'s share is " ++ show bMatingDeltaE
       zoom universe . U.writeToLog $ "DEBUG: after mating, a's passion is " ++ show (view passion a')
       assign subject a'
       assign directObject (AObject b')
@@ -712,6 +722,7 @@ recordBirths = do
 applyFlirtationEffects :: StateT Experiment IO ()
 applyFlirtationEffects = do
   deltaE <- use (universe . U.uFlirtingDeltaE)
+  zoom universe . U.writeToLog $ "Applying flirtation energy adjustment"
   adjustSubjectEnergy deltaE rFlirtingDeltaE undefined
   (summary.rFlirtCount) += 1
 
@@ -752,43 +763,13 @@ adjustPopControlDeltaE xs =
     U.writeToLog $ "pop=" ++ show pop
     idealPop <- use U.uIdealPopulationSize
     U.writeToLog $ "ideal pop=" ++ show idealPop
-
-    let (Just adultNet) = Stats.lookup "avg. adult net Δe" xs
-    U.writeToLog $ "adultNet=" ++ show adultNet
-    let (Just childNet) = Stats.lookup "avg. child net Δe" xs
-    U.writeToLog $ "childNet=" ++ show childNet
-
-    let (Just adultPopControl)
-          = Stats.lookup "avg. adult pop. control Δe" xs
-    U.writeToLog $ "adultPopControl=" ++ show adultPopControl
-    let (Just childPopControl)
-          = Stats.lookup "avg. child pop. control Δe" xs
-    U.writeToLog $ "childPopControl=" ++ show childPopControl
-
-    let avgEnergyToBalance
-          = adultNet + childNet - adultPopControl - childPopControl
-    U.writeToLog $ "avgEnergyToBalance=" ++ show avgEnergyToBalance
-    let c = idealPopControlDeltaE idealPop pop avgEnergyToBalance
+    let c = idealPopControlDeltaE idealPop pop
     U.writeToLog $ "Adjusted pop. control Δe = " ++ show c
     zoom U.uPopControlDeltaE $ putPS c
 
-idealPopControlDeltaE :: Int -> Int -> Double -> Double
-idealPopControlDeltaE idealPop pop e
-  | idealPop == 0 = error "idealPop == 0"
-  | pop == 0      = error "pop == 0"
-  | otherwise    = -f*e
-  where f = if e < 0
-              then fromIntegral idealPop / fromIntegral pop
-              else fromIntegral pop / fromIntegral idealPop
-
--- lookupStat
---   :: String -> [Stats.Statistic]
---     -> StateT (U.Universe ImageWain) IO (Maybe Double)
--- lookupStat key xs = do
---   let result = Stats.lookup key xs
---   when (isNothing result && not (null xs)) $ -- ignore missing stats file
---     requestShutdown $ "Cannot find statistic: " ++ key
---   return result
+idealPopControlDeltaE :: Int -> Int -> Double
+idealPopControlDeltaE idealPop pop
+  = 2*fromIntegral (idealPop - pop) / fromIntegral pop
 
 totalEnergy :: StateT Experiment IO (Double, Double)
 totalEnergy = do
@@ -811,6 +792,11 @@ adjustSubjectEnergy
 adjustSubjectEnergy deltaE adultSelector childSelector = do
   x <- use subject
   let (x', adultDeltaE, childDeltaE) = adjustEnergy deltaE x
+  zoom universe . U.writeToLog $
+    "Adjusting energy of " ++ agentId x
+    ++ " by " ++ show deltaE
+    ++ ", adult's share is " ++ show adultDeltaE
+    ++ ", child's share is " ++ show childDeltaE
   (summary . adultSelector) += adultDeltaE
   when (childDeltaE /= 0) $
     (summary . childSelector) += childDeltaE
@@ -826,11 +812,19 @@ adjustObjectEnergy
   case x of
     AObject a -> do
       let (a', adultDeltaE, childDeltaE) = adjustEnergy deltaE a
+      zoom universe . U.writeToLog $
+        "Adjusting energy of " ++ agentId a
+        ++ " by " ++ show deltaE
+        ++ ", adult's share is " ++ show adultDeltaE
+        ++ ", child's share is " ++ show childDeltaE
       (summary . adultSelector) += adultDeltaE
       when (childDeltaE /= 0) $
         (summary . childSelector) += childDeltaE
       assign objectSelector (AObject a')
-    IObject _ _ -> return ()
+    IObject _ _ ->
+      zoom universe . U.writeToLog $
+        "WARNING: Attempted to adjust the energy of an image"
+
 
 adjustSubjectPassion
   :: StateT Experiment IO ()

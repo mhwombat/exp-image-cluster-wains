@@ -20,79 +20,31 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 
--- strawMan :: Gen ImageWain
--- strawMan = Wain <$> pure ""       -- name
---                 <*> arbitrary     -- appearance
---                 <*> arbitrary     -- brain
---                 <*> arbitrary     -- devotion
---                 <*> arbitrary     -- age of maturity
---                 <*> arbitrary     -- delta passion
---                 <*> arbitrary     -- energy
---                 <*> arbitrary     -- passion
---                 <*> arbitrary     -- age
---                 <*> pure []       -- litter
---                 <*> arbitrary     -- children borne during lifetime
---                 <*> arbitrary     -- children weanded during lifetime
---                 <*> arbitrary     -- # of wins
---                 <*> pure ([],[])  -- genome
---                 <*> arbitrary     -- size
+prop_idealPopControlDeltaE_counteracts_overpopulation
+  :: Positive Int -> Positive Int -> Positive Int -> Property
+prop_idealPopControlDeltaE_counteracts_overpopulation
+  (Positive pIdeal) (Positive deltaP) (Positive deltaP2)
+    = property $ ec1 < 0 && ec2 < 0 && ec2 < ec1
+  where p1 = pIdeal + deltaP
+        p2 = p1 + deltaP2
+        ec1 = idealPopControlDeltaE pIdeal p1
+        ec2 = idealPopControlDeltaE pIdeal p2
 
--- -- | Can't just generate an arbitrary genome and build an agent from
--- --   it, because random genomes tend to be invalid.
--- arbWain :: Gen ImageWain
--- arbWain = do
---   n <- arbitrary
---   a1 <- strawMan
---   a2 <- strawMan
---   let g1 = write a1
---   let g2 = write a2
---   let r = runDiploidReader (buildWainFromGenome False n) (g1, g2)
---   case r of
---     (Left s)   -> error . show $ s
---     (Right r') -> return r'
-
--- sizedArbWain :: Int -> Gen ImageWain
--- sizedArbWain n = do
---   w <- arbWain
---   if n < 1
---     then do
---       cs <- listOf arbWain
---       return $ set litter cs w
---     else return w
-
--- instance Arbitrary ImageWain where
---   arbitrary = sized sizedArbWain
-
-prop_idealPopControlDeltaE_counteracts_pop_growth
-  :: Positive Int -> Positive Int -> Positive Int -> Double -> Property
-prop_idealPopControlDeltaE_counteracts_pop_growth idealPop p deltaP e
-  = not (isNaN ec1 || isNaN ec2 || isNegativeZero ec1) ==> ec2 < ec1
-  where ec1 = idealPopControlDeltaE pIdeal p1 e
-        ec2 = idealPopControlDeltaE pIdeal p2 e
-        pIdeal = getPositive idealPop
-        p1 = getPositive p
-        p2 = p1 + getPositive deltaP
-
-prop_idealPopControlDeltaE_counteracts_learning
-  :: Positive Int -> Positive Int -> Double -> Positive Double -> Property
-prop_idealPopControlDeltaE_counteracts_learning idealPop pop e deltaE
-  = not (isNaN ec1 || isNaN ec2) ==> ec2 < ec1
-  where ec1 = idealPopControlDeltaE pIdeal p e
-        ec2 = idealPopControlDeltaE pIdeal p e2
-        pIdeal = getPositive idealPop
-        p = getPositive pop
-        e2 = e + getPositive deltaE
-
--- prop_novelty_btw_0_and_1 :: Image -> Image -> ImageWain -> Property
--- prop_novelty_btw_0_and_1 p1 p2 w = property . and . map inRange $ ns
---     where (_, _, _, ns) = chooseAction [p1, p2] w
---           inRange x = 0 <= x && x <= 1
+prop_idealPopControlDeltaE_counteracts_underpopulation
+  :: Positive Int -> Positive Int -> Positive Int -> Property
+prop_idealPopControlDeltaE_counteracts_underpopulation
+  (Positive p1) (Positive deltaP) (Positive deltaP2)
+    = property $ ec1 > 0 && ec2 > 0 && ec2 < ec1
+  where p2 = p1 + deltaP
+        pIdeal = p2 + deltaP2
+        ec1 = idealPopControlDeltaE pIdeal p1
+        ec2 = idealPopControlDeltaE pIdeal p2
 
 test :: Test
 test = testGroup "ALife.Creatur.Wain.Iomha.WainQC"
   [
-    testProperty "prop_idealPopControlDeltaE_counteracts_pop_growth"
-      prop_idealPopControlDeltaE_counteracts_pop_growth,
-    testProperty "prop_idealPopControlDeltaE_counteracts_learning"
-      prop_idealPopControlDeltaE_counteracts_learning
+    testProperty "prop_idealPopControlDeltaE_counteracts_overpopulation"
+      prop_idealPopControlDeltaE_counteracts_overpopulation,
+    testProperty "prop_idealPopControlDeltaE_counteracts_underpopulation"
+      prop_idealPopControlDeltaE_counteracts_underpopulation
   ]
