@@ -99,7 +99,7 @@ objectEnergy :: Object -> UIDouble
 objectEnergy (IObject _ _) = 0
 objectEnergy (AObject a) = view energy a
 
-objectChildEnergy :: Object -> UIDouble
+objectChildEnergy :: Object -> Double
 objectChildEnergy (IObject _ _) = 0
 objectChildEnergy (AObject a) = childEnergy a
 
@@ -711,7 +711,6 @@ flirt = do
         "Contribution to child: " ++
         agentId a ++ "'s share is " ++ show aMatingDeltaE ++ " " ++ 
         agentId b ++ "'s share is " ++ show bMatingDeltaE
-      zoom universe . U.writeToLog $ "DEBUG: after mating, a's passion is " ++ show (view passion a')
       assign subject a'
       assign directObject (AObject b')
       recordBirths
@@ -783,9 +782,9 @@ totalEnergy = do
   a <- fmap uiToDouble $ view energy <$> use subject
   b <- fmap uiToDouble $ objectEnergy <$> use directObject
   c <- fmap uiToDouble $ objectEnergy <$> use indirectObject
-  d <- fmap uiToDouble $ childEnergy <$> use subject
-  e <- fmap uiToDouble $ objectChildEnergy <$> use directObject
-  f <- fmap uiToDouble $ objectChildEnergy <$> use indirectObject
+  d <- childEnergy <$> use subject
+  e <- objectChildEnergy <$> use directObject
+  f <- objectChildEnergy <$> use indirectObject
   return (a + b + c, d + e + f)
 
 printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
@@ -804,6 +803,14 @@ adjustSubjectEnergy deltaE adultSelector childSelector = do
     ++ " by " ++ show deltaE
     ++ ", adult's share is " ++ show adultDeltaE
     ++ ", child's share is " ++ show childDeltaE
+  zoom universe . U.writeToLog $
+    "Adult: " ++ show (view energy x)
+      ++ " " ++ show adultDeltaE
+      ++ " -> " ++ show (view energy x')
+  zoom universe . U.writeToLog $
+    "Child: " ++ show (childEnergy x)
+      ++ " " ++ show childDeltaE
+      ++ " -> " ++ show (childEnergy x')
   (summary . adultSelector) += adultDeltaE
   when (childDeltaE /= 0) $
     (summary.childSelector) += childDeltaE
