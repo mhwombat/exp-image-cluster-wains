@@ -769,13 +769,15 @@ adjustPopControlDeltaE xs =
     U.writeToLog $ "pop=" ++ show pop
     idealPop <- use U.uIdealPopulationSize
     U.writeToLog $ "ideal pop=" ++ show idealPop
-    let c = idealPopControlDeltaE idealPop pop
+    energyToAddWain <- use U.uEnergyToAddWain
+    U.writeToLog $ "energy to add one wain=" ++ show energyToAddWain
+    let c = idealPopControlDeltaE idealPop pop energyToAddWain
     U.writeToLog $ "Adjusted pop. control Δe = " ++ show c
     zoom U.uPopControlDeltaE $ putPS c
 
-idealPopControlDeltaE :: Int -> Int -> Double
-idealPopControlDeltaE idealPop pop
-  = 2*fromIntegral (idealPop - pop) / fromIntegral pop
+idealPopControlDeltaE :: Int -> Int -> Double -> Double
+idealPopControlDeltaE idealPop pop energyToAddWain
+  = energyToAddWain*fromIntegral (idealPop - pop) / fromIntegral pop
 
 totalEnergy :: StateT Experiment IO (Double, Double)
 totalEnergy = do
