@@ -13,7 +13,8 @@
 {-# LANGUAGE DeriveGeneric #-}
 module ALife.Creatur.Wain.Iomha.Action
   (
-    Action(..)
+    Action(..),
+    numActions
   ) where
 
 import ALife.Creatur.Genetics.BRGCWord8 (Genetic)
@@ -42,3 +43,6 @@ instance Random Action where
   randomR (a,b) g = (toEnum n, g')
     where (n, g') = randomR (fromEnum a, fromEnum b) g
   random = randomR (minBound,maxBound)
+
+numActions :: Int
+numActions = 1 + fromEnum (maxBound :: Action)

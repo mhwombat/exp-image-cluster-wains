@@ -51,7 +51,7 @@ import ALife.Creatur.Wain.Response (Response, action, outcome,
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
-import ALife.Creatur.Wain.Iomha.Action (Action(..))
+import ALife.Creatur.Wain.Iomha.Action (Action(..), numActions)
 -- import qualified ALife.Creatur.Wain.Iomha.FMRI as F
 import ALife.Creatur.Wain.Iomha.Image (Image, bigX, base64encode)
 import ALife.Creatur.Wain.Iomha.ImageTweaker (ImageTweaker(..))
@@ -129,7 +129,7 @@ randomImageWain wName u classifierSize = do
   predictorThreshold <- getRandomR (view U.uPredictorThresholdRange u)
   cw <- (makeWeights . take 3) <$> getRandoms
   rw <- (makeWeights . take 2) <$> getRandoms
-  let predictorSize = classifierSize * 4
+  let predictorSize = classifierSize * fromIntegral numActions
   let dr = buildPredictor fd predictorSize predictorThreshold cw rw
   hw <- (makeWeights . take 3) <$> getRandomRs unitInterval
   dOut <- getRandomR $ view U.uDefaultOutcomeRange u
