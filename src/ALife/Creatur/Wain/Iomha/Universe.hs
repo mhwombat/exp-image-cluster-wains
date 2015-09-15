@@ -72,6 +72,8 @@ module ALife.Creatur.Wain.Iomha.Universe
     uPredictorDRange,
     uDefaultOutcomeRange,
     uDepthRange,
+    uBoredomDeltaRange,
+    uPassionDeltaRange,
     uCheckpoints,
     -- * Other
     U.agentIds,
@@ -93,7 +95,7 @@ import qualified ALife.Creatur.Logger.SimpleLogger as SL
 import ALife.Creatur.Persistent (Persistent, mkPersistent)
 import qualified ALife.Creatur.Universe as U
 import qualified ALife.Creatur.Wain.Checkpoint as CP
-import ALife.Creatur.Wain.Iomha.ImageDB (ImageDB, mkImageDB)
+import ALife.Creatur.Wain.ImageDB (ImageDB, mkImageDB)
 import ALife.Creatur.Wain.PlusMinusOne (PM1Double)
 import ALife.Creatur.Wain.UnitInterval (UIDouble)
 import Control.Exception (SomeException, try)
@@ -146,14 +148,16 @@ data Universe a = Universe
     _uDQBasedAgreementDeltaE :: Double,
     _uNoveltyBasedAgreementDeltaE :: Double,
     _uMinAgreementDeltaE :: Double,
-    _uClassifierThresholdRange :: (UIDouble,UIDouble),
+    _uClassifierThresholdRange :: (UIDouble, UIDouble),
     _uClassifierR0Range :: (UIDouble, UIDouble),
     _uClassifierDRange :: (UIDouble, UIDouble),
-    _uPredictorThresholdRange :: (UIDouble,UIDouble),
+    _uPredictorThresholdRange :: (UIDouble, UIDouble),
     _uPredictorR0Range :: (UIDouble, UIDouble),
     _uPredictorDRange :: (UIDouble, UIDouble),
     _uDefaultOutcomeRange :: (PM1Double, PM1Double),
     _uDepthRange :: (Word8, Word8),
+    _uBoredomDeltaRange :: (UIDouble, UIDouble),
+    _uPassionDeltaRange :: (UIDouble, UIDouble),
     _uCheckpoints :: [CP.Checkpoint]
   } deriving Show
 makeLenses ''Universe
@@ -307,6 +311,12 @@ cDefaultOutcomeRange = requiredSetting "defaultOutcomeRange"
 cDepthRange :: Setting (Word8, Word8)
 cDepthRange = requiredSetting "depthRange"
 
+cBoredomDeltaRange :: Setting (UIDouble, UIDouble)
+cBoredomDeltaRange = requiredSetting "boredomDeltaRange"
+
+cPassionDeltaRange :: Setting (UIDouble, UIDouble)
+cPassionDeltaRange = requiredSetting "passionDeltaRange"
+
 cCheckpoints :: Setting [CP.Checkpoint]
 cCheckpoints = requiredSetting "checkpoints"
 
@@ -378,6 +388,8 @@ config2Universe getSetting =
       _uPredictorDRange = getSetting cPredictorDRange,
       _uDefaultOutcomeRange = getSetting cDefaultOutcomeRange,
       _uDepthRange = getSetting cDepthRange,
+      _uBoredomDeltaRange = getSetting cBoredomDeltaRange,
+      _uPassionDeltaRange = getSetting cPassionDeltaRange,
       _uCheckpoints = getSetting cCheckpoints
     }
   where en = getSetting cExperimentName

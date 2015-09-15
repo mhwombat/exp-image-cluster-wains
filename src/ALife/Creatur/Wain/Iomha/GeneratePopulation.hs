@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 import ALife.Creatur (agentId)
-import ALife.Creatur.Wain.Iomha.Wain (ImageWain, randomImageWain,
+import ALife.Creatur.Wain.Iomha.Experiment (ImageWain, randomImageWain,
   printStats)
 import ALife.Creatur.Wain (adjustEnergy)
 import ALife.Creatur.Wain.Pretty (pretty)

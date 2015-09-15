@@ -19,7 +19,7 @@ import ALife.Creatur.Daemon (CreaturDaemon(..), Job(..),
   simpleDaemon, launch)
 import ALife.Creatur.Task (runInteractingAgents, simpleJob, doNothing)
 import ALife.Creatur.Wain (programVersion)
-import ALife.Creatur.Wain.Iomha.Wain (ImageWain, run, finishRound)
+import ALife.Creatur.Wain.Iomha.Experiment (ImageWain, run, finishRound)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
   writeToLog, loadUniverse, uStatsFile, uSleepBetweenTasks,
   uExperimentName)

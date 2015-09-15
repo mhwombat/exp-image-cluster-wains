@@ -16,7 +16,7 @@ module ALife.Creatur.Wain.Iomha.ActionQC
   ) where
 
 import ALife.Creatur.Wain.Iomha.Action (Action)
-import ALife.Creatur.Wain.Iomha.TestUtils (prop_serialize_round_trippable,
+import ALife.Creatur.Wain.TestUtils (prop_serialize_round_trippable,
   prop_genetic_round_trippable, prop_diploid_identity)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
