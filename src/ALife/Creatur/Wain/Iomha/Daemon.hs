@@ -14,12 +14,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
-import ALife.Creatur (programVersion)
 import ALife.Creatur.Daemon (CreaturDaemon(..), Job(..),
   simpleDaemon, launch)
 import ALife.Creatur.Task (runInteractingAgents, simpleJob, doNothing)
-import ALife.Creatur.Wain (programVersion)
-import ALife.Creatur.Wain.Iomha.Experiment (ImageWain, run, finishRound)
+import ALife.Creatur.Wain.Iomha.Experiment (ImageWain, run, finishRound,
+  versionInfo)
 import ALife.Creatur.Wain.Iomha.Universe (Universe(..),
   writeToLog, loadUniverse, uStatsFile, uSleepBetweenTasks,
   uExperimentName)
@@ -27,8 +26,6 @@ import Control.Concurrent (MVar, newMVar, readMVar, swapMVar)
 import Control.Lens
 import Control.Monad (unless)
 import Control.Monad.State (StateT, execStateT)
-import Data.Version (showVersion)
-import Paths_creatur_wains_iomha (version)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Posix.Daemonize (CreateDaemon(name))
 
@@ -56,10 +53,7 @@ endRoundProgram = use uStatsFile >>= finishRound
 main :: IO ()
 main = do
   u <- loadUniverse
-  let message = "creatur-wains-iomha-" ++ showVersion version
-          ++ ", compiled with " ++ ALife.Creatur.Wain.programVersion
-          ++ ", " ++ ALife.Creatur.programVersion
-          ++ ", configuration=" ++ show u
+  let message = versionInfo ++ ", configuration=" ++ show u
   let j = simpleJob
         { task=runInteractingAgents run doNothing endRoundProgram,
           onStartup=startupHandler message,

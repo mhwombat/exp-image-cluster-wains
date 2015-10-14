@@ -24,10 +24,11 @@ module ALife.Creatur.Wain.Iomha.Experiment
     finishRound,
     schemaQuality,
     printStats,
+    versionInfo,
     idealPopControlDeltaE -- exported for testing only
   ) where
 
-import ALife.Creatur (agentId, isAlive)
+import ALife.Creatur (agentId, isAlive, programVersion)
 import ALife.Creatur.Task (checkPopSize)
 import qualified ALife.Creatur.Wain as W
 import ALife.Creatur.Wain.Brain (Brain, classifier, predictor,
@@ -42,7 +43,7 @@ import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
 import qualified ALife.Creatur.Wain.Object as O
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
-import ALife.Creatur.Wain.Response (Response, action, outcomes)
+import ALife.Creatur.Wain.Response (Response, _action, _outcomes)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
@@ -62,14 +63,22 @@ import Control.Lens hiding (universe)
 import Control.Monad (when, unless)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR, getRandomRs,
-  evalRandIO, fromList)
+  getRandom, evalRandIO, fromList)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
 import Data.List (intercalate, minimumBy)
 import Data.Ord (comparing)
+import Data.Version (showVersion)
 import Data.Word (Word16)
+import Paths_exp_image_cluster_wains (version)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (dropFileName)
 import Text.Printf (printf)
+
+versionInfo :: String
+versionInfo
+  = "exp-image-cluster-wains-" ++ showVersion version
+      ++ ", compiled with " ++ W.packageVersion
+      ++ ", " ++ ALife.Creatur.programVersion
 
 type ImageWain = IW.ImageWain Action
 type Object = O.Object Action
@@ -94,11 +103,13 @@ randomImageWain wName u classifierSize = do
   predictorThreshold <- getRandomR (view U.uPredictorThresholdRange u)
   let predictorSize = classifierSize * fromIntegral numActions
   let dr = buildPredictor fd predictorSize predictorThreshold
-  hw <- (makeWeights . take 3) <$> getRandomRs unitInterval
-  dOut <- take 3 <$> getRandomRs (view U.uDefaultOutcomeRange u)
+  hw <- (makeWeights . take 4) <$> getRandomRs unitInterval
+  dOut <- take 4 <$> getRandomRs (view U.uDefaultOutcomeRange u)
   dp <- getRandomR $ view U.uDepthRange u
   let mr = makeMuser dOut dp
-  let wBrain = makeBrain c mr dr hw
+  t <- getRandom
+  ios <- take 4 <$> getRandomRs (view U.uImprintOutcomeRange u)
+  let wBrain = makeBrain c mr dr hw t ios
   wDevotion <- getRandomR . view U.uDevotionRange $ u
   wAgeOfMaturity <- getRandomR . view U.uMaturityRange $ u
   wPassionDelta <- getRandomR . view U.uBoredomDeltaRange $ u
@@ -302,7 +313,7 @@ run' = do
   when autoPopControl applyPopControl
   r <- chooseSubjectAction
   wainBeforeAction <- use subject
-  runAction (view action r)
+  runAction (_action r)
   letSubjectReflect wainBeforeAction r
   subject %= W.autoAdjustPassion
   -- subject %= W.autoAdjustBoredom
@@ -436,8 +447,8 @@ chooseAction3 w dObj iObj = do
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ O.objectId iObj ++ " has adjusted novelty " ++ show iObjNoveltyAdj
   U.writeToLog $ agentId w ++ " sees " ++ O.objectId dObj
-    ++ " and chooses to " ++ show (view action r)
-    ++ " predicting the outcomes " ++ show (view outcomes r)
+    ++ " and chooses to " ++ show (_action r)
+    ++ " predicting the outcomes " ++ show (_outcomes r)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
 
 analyseClassification
@@ -501,7 +512,7 @@ runAction aAction = do
         ++ " that image " ++ O.objectId dObj ++ " has label "
         ++ show aAction
       r <- choosePartnerAction
-      let bAction = view action r
+      let bAction = _action r
       if aAction == bAction
         then do
           report $ agentId b ++ " agrees with " ++  agentId a
@@ -639,7 +650,8 @@ applyFlirtationEffects :: StateT Experiment IO ()
 applyFlirtationEffects = do
   deltaE <- use (universe . U.uFlirtingDeltaE)
   report $ "Applying flirtation energy adjustment"
-  IW.adjustEnergy subject deltaE rFlirtingDeltaE undefined summary report
+  IW.adjustEnergy subject deltaE rFlirtingDeltaE "flirting" summary
+    report
   (summary.rFlirtCount) += 1
 
 updateChildren :: StateT Experiment IO ()
@@ -669,26 +681,29 @@ finishRound f = do
   cs <- use U.uCheckpoints
   enforceAll zs cs
   clearStats f
-  (a, b) <- use U.uPopulationAllowedRange
+  (a, b) <- use U.uAllowedPopulationRange
   checkPopSize (a, b)
 
 adjustPopControlDeltaE
   :: [Stats.Statistic] -> StateT (U.Universe ImageWain) IO ()
 adjustPopControlDeltaE xs =
   unless (null xs) $ do
+    let (Just average) = Stats.lookup "avg. energy" xs
+    let (Just total) = Stats.lookup "total energy" xs
+    budget <- use U.uEnergyBudget
     pop <- U.popSize
-    U.writeToLog $ "pop=" ++ show pop
-    idealPop <- use U.uIdealPopulationSize
-    U.writeToLog $ "ideal pop=" ++ show idealPop
-    energyToAddWain <- use U.uEnergyToAddWain
-    U.writeToLog $ "energy to add one wain=" ++ show energyToAddWain
-    let c = idealPopControlDeltaE idealPop pop energyToAddWain
+    let c = idealPopControlDeltaE average total budget pop
+    U.writeToLog $ "Current avg. energy = " ++ show average
+    U.writeToLog $ "Current total energy = " ++ show total
+    U.writeToLog $ "energy budget = " ++ show budget
     U.writeToLog $ "Adjusted pop. control Δe = " ++ show c
     zoom U.uPopControlDeltaE $ putPS c
 
-idealPopControlDeltaE :: Int -> Int -> Double -> Double
-idealPopControlDeltaE idealPop pop energyToAddWain
-  = energyToAddWain*fromIntegral (idealPop - pop) / fromIntegral pop
+-- TODO: Make the numbers configurable
+idealPopControlDeltaE :: Double -> Double -> Double -> Int -> Double
+idealPopControlDeltaE average total budget pop
+  | average < 0.8 = min 0.08 $ (budget - total) / (fromIntegral pop)
+  | otherwise     = 0.8 - average
 
 totalEnergy :: StateT Experiment IO (Double, Double)
 totalEnergy = do
@@ -734,7 +749,7 @@ letSubjectReflect wainBefore r = do
   when (deltaH < 0) $ do
     b <- use directObject
     c <- use indirectObject
-    report $ agentId w ++ "'s choice to " ++ show (view action r) ++ " "
+    report $ agentId w ++ "'s choice to " ++ show (_action r) ++ " "
         ++ O.objectId b ++ " " ++ O.objectId c ++ " was a mistake"
     (summary . rMistakeCount) += 1
 

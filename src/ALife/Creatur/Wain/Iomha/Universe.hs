@@ -31,8 +31,6 @@ module ALife.Creatur.Wain.Iomha.Universe
     uChecklist,
     uStatsFile,
     uRawStatsFile,
-    uFmriCounter,
-    uFmriDir,
     uShowPredictorModels,
     uShowPredictions,
     uGenFmris,
@@ -46,10 +44,9 @@ module ALife.Creatur.Wain.Iomha.Universe
     uMaturityRange,
     uMaxAge,
     uInitialPopulationSize,
-    uIdealPopulationSize,
-    uPopulationAllowedRange,
+    uEnergyBudget,
+    uAllowedPopulationRange,
     uPopControl,
-    uEnergyToAddWain,
     uFrequencies,
     uBaseMetabolismDeltaE,
     uEnergyCostPerClassifierModel,
@@ -71,6 +68,7 @@ module ALife.Creatur.Wain.Iomha.Universe
     uPredictorR0Range,
     uPredictorDRange,
     uDefaultOutcomeRange,
+    uImprintOutcomeRange,
     uDepthRange,
     uBoredomDeltaRange,
     uPassionDeltaRange,
@@ -115,8 +113,6 @@ data Universe a = Universe
     _uChecklist :: CL.PersistentChecklist,
     _uStatsFile :: FilePath,
     _uRawStatsFile :: FilePath,
-    _uFmriCounter :: K.PersistentCounter,
-    _uFmriDir :: FilePath,
     _uShowPredictorModels :: Bool,
     _uShowPredictions :: Bool,
     _uGenFmris :: Bool,
@@ -130,10 +126,9 @@ data Universe a = Universe
     _uMaturityRange :: (Word16, Word16),
     _uMaxAge :: Int,
     _uInitialPopulationSize :: Int,
-    _uIdealPopulationSize :: Int,
-    _uPopulationAllowedRange :: (Int, Int),
+    _uEnergyBudget :: Double,
+    _uAllowedPopulationRange :: (Int, Int),
     _uPopControl :: Bool,
-    _uEnergyToAddWain :: Double,
     _uFrequencies :: [Rational],
     _uBaseMetabolismDeltaE :: Double,
     _uEnergyCostPerClassifierModel :: Double,
@@ -155,6 +150,7 @@ data Universe a = Universe
     _uPredictorR0Range :: (UIDouble, UIDouble),
     _uPredictorDRange :: (UIDouble, UIDouble),
     _uDefaultOutcomeRange :: (PM1Double, PM1Double),
+    _uImprintOutcomeRange :: (PM1Double, PM1Double),
     _uDepthRange :: (Word8, Word8),
     _uBoredomDeltaRange :: (UIDouble, UIDouble),
     _uPassionDeltaRange :: (UIDouble, UIDouble),
@@ -223,8 +219,7 @@ cPredictorSizeRange
   = requiredSetting "predictorSizeRange"
 
 cDevotionRange :: Setting (UIDouble, UIDouble)
-cDevotionRange
-  = requiredSetting "devotionRange"
+cDevotionRange = requiredSetting "devotionRange"
 
 cMaturityRange :: Setting (Word16, Word16)
 cMaturityRange = requiredSetting "maturityRange"
@@ -235,17 +230,11 @@ cMaxAge = requiredSetting "maxAge"
 cInitialPopulationSize :: Setting Int
 cInitialPopulationSize = requiredSetting "initialPopSize"
 
-cIdealPopulationSize :: Setting Double
-cIdealPopulationSize = requiredSetting "idealPopSize"
-
-cPopulationAllowedRange :: Setting (Double, Double)
-cPopulationAllowedRange = requiredSetting "popAllowedRange"
+cAllowedPopulationRange :: Setting (Double, Double)
+cAllowedPopulationRange = requiredSetting "allowedPopRange"
 
 cPopControl :: Setting Bool
 cPopControl = requiredSetting "popControl"
-
-cEnergyToAddWain :: Setting Double
-cEnergyToAddWain = requiredSetting "energyToAddWain"
 
 cFrequencies :: Setting [Rational]
 cFrequencies = requiredSetting "frequencies"
@@ -309,6 +298,9 @@ cPredictorDRange = requiredSetting "predictorDecayRange"
 cDefaultOutcomeRange :: Setting (PM1Double, PM1Double)
 cDefaultOutcomeRange = requiredSetting "defaultOutcomeRange"
 
+cImprintOutcomeRange :: Setting (PM1Double, PM1Double)
+cImprintOutcomeRange = requiredSetting "imprintOutcomeRange"
+
 cDepthRange :: Setting (Word8, Word8)
 cDepthRange = requiredSetting "depthRange"
 
@@ -338,15 +330,12 @@ config2Universe getSetting =
       _uExperimentName = en,
       _uClock = K.mkPersistentCounter (workDir ++ "/clock"),
       _uLogger = SL.mkSimpleLogger (workDir ++ "/log/" ++ en ++ ".log"),
-      _uDB
-        = CFS.mkCachedFSDatabase (workDir ++ "/db")
-          (getSetting cCacheSize),
+      _uDB = CFS.mkCachedFSDatabase (workDir ++ "/db")
+               (getSetting cCacheSize),
       _uNamer = N.mkSimpleNamer (en ++ "_") (workDir ++ "/namer"),
       _uChecklist = CL.mkPersistentChecklist (workDir ++ "/todo"),
       _uStatsFile = workDir ++ "/statsFile",
       _uRawStatsFile = workDir ++ "/rawStatsFile",
-      _uFmriCounter = K.mkPersistentCounter (workDir ++ "/fmriCount"),
-      _uFmriDir = workDir ++ "/log",
       _uShowPredictorModels = getSetting cShowPredictorModels,
       _uShowPredictions = getSetting cShowPredictions,
       _uGenFmris = getSetting cGenFmris,
@@ -360,10 +349,9 @@ config2Universe getSetting =
       _uMaturityRange = getSetting cMaturityRange,
       _uMaxAge = getSetting cMaxAge,
       _uInitialPopulationSize = p0,
-      _uIdealPopulationSize = pIdeal,
-      _uPopulationAllowedRange = (a', b'),
+      _uEnergyBudget = fromIntegral p0 * 0.5,
+      _uAllowedPopulationRange = (a', b'),
       _uPopControl = getSetting cPopControl,
-      _uEnergyToAddWain = getSetting cEnergyToAddWain,
       _uFrequencies = getSetting cFrequencies,
       _uBaseMetabolismDeltaE = getSetting cBaseMetabolismDeltaE,
       _uEnergyCostPerClassifierModel
@@ -389,6 +377,7 @@ config2Universe getSetting =
       _uPredictorR0Range = getSetting cPredictorR0Range,
       _uPredictorDRange = getSetting cPredictorDRange,
       _uDefaultOutcomeRange = getSetting cDefaultOutcomeRange,
+      _uImprintOutcomeRange = getSetting cImprintOutcomeRange,
       _uDepthRange = getSetting cDepthRange,
       _uBoredomDeltaRange = getSetting cBoredomDeltaRange,
       _uPassionDeltaRange = getSetting cPassionDeltaRange,
@@ -398,8 +387,6 @@ config2Universe getSetting =
         workDir = getSetting cWorkingDir
         imageDir = getSetting cImageDir
         p0 = getSetting cInitialPopulationSize
-        fIdeal = getSetting cIdealPopulationSize
-        pIdeal = round (fromIntegral p0 * fIdeal)
-        (a, b) = getSetting cPopulationAllowedRange
-        a' = round (fromIntegral pIdeal * a)
-        b' = round (fromIntegral pIdeal * b)
+        (a, b) = getSetting cAllowedPopulationRange
+        a' = round (fromIntegral p0 * a)
+        b' = round (fromIntegral p0 * b)
