@@ -42,8 +42,7 @@ import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
 import qualified ALife.Creatur.Wain.Object as O
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
-import ALife.Creatur.Wain.Response (Response, action, outcome,
-  scenario)
+import ALife.Creatur.Wain.Response (Response, action, outcomes)
 import ALife.Creatur.Wain.UnitInterval (UIDouble, uiToDouble)
 import ALife.Creatur.Wain.Util (unitInterval)
 import qualified ALife.Creatur.Wain.Statistics as Stats
@@ -63,7 +62,7 @@ import Control.Lens hiding (universe)
 import Control.Monad (when, unless)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Random (Rand, RandomGen, getRandomR, getRandomRs,
-  getRandoms, evalRandIO, fromList)
+  evalRandIO, fromList)
 import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
 import Data.List (intercalate, minimumBy)
 import Data.Ord (comparing)
@@ -93,12 +92,10 @@ randomImageWain wName u classifierSize = do
                 _dRange = view U.uPredictorDRange u }
   fd <- randomExponential fdp
   predictorThreshold <- getRandomR (view U.uPredictorThresholdRange u)
-  cw <- (makeWeights . take 3) <$> getRandoms
-  rw <- (makeWeights . take 2) <$> getRandoms
   let predictorSize = classifierSize * fromIntegral numActions
-  let dr = buildPredictor fd predictorSize predictorThreshold cw rw
+  let dr = buildPredictor fd predictorSize predictorThreshold
   hw <- (makeWeights . take 3) <$> getRandomRs unitInterval
-  dOut <- getRandomR $ view U.uDefaultOutcomeRange u
+  dOut <- take 3 <$> getRandomRs (view U.uDefaultOutcomeRange u)
   dp <- getRandomR $ view U.uDepthRange u
   let mr = makeMuser dOut dp
   let wBrain = makeBrain c mr dr hw
@@ -120,26 +117,17 @@ data Summary = Summary
     _rOtherNovelty :: UIDouble,
     _rOtherAdjustedNovelty :: Int,
     _rMetabolismDeltaE :: Double,
-    _rChildMetabolismDeltaE :: Double,
     _rCSQDeltaE :: Double,
-    _rChildCSQDeltaE :: Double,
     _rDSQDeltaE :: Double,
-    _rChildDSQDeltaE :: Double,
     _rDQDeltaE :: Double,
-    _rChildDQDeltaE :: Double,
     _rPopControlDeltaE :: Double,
-    _rChildPopControlDeltaE :: Double,
     _rCoopDeltaE :: Double,
-    _rChildCoopDeltaE :: Double,
     _rAgreementDeltaE :: Double,
-    _rChildAgreementDeltaE :: Double,
     _rFlirtingDeltaE :: Double,
     _rMatingDeltaE :: Double,
     _rOldAgeDeltaE :: Double,
-    _rChildOldAgeDeltaE :: Double,
     _rOtherMatingDeltaE :: Double,
     _rOtherAgreementDeltaE :: Double,
-    _rOtherChildAgreementDeltaE :: Double,
     _rNetDeltaE :: Double,
     _rChildNetDeltaE :: Double,
     _rDeltaEToReflectOn :: Double,
@@ -170,26 +158,17 @@ initSummary p = Summary
     _rOtherNovelty = 0,
     _rOtherAdjustedNovelty = 0,
     _rMetabolismDeltaE = 0,
-    _rChildMetabolismDeltaE = 0,
     _rCSQDeltaE = 0,
-    _rChildCSQDeltaE = 0,
     _rDSQDeltaE = 0,
-    _rChildDSQDeltaE = 0,
     _rDQDeltaE = 0,
-    _rChildDQDeltaE = 0,
     _rPopControlDeltaE = 0,
-    _rChildPopControlDeltaE = 0,
     _rCoopDeltaE = 0,
-    _rChildCoopDeltaE = 0,
     _rAgreementDeltaE = 0,
-    _rChildAgreementDeltaE = 0,
     _rFlirtingDeltaE = 0,
     _rMatingDeltaE = 0,
     _rOldAgeDeltaE = 0,
-    _rChildOldAgeDeltaE = 0,
     _rOtherMatingDeltaE = 0,
     _rOtherAgreementDeltaE = 0,
-    _rOtherChildAgreementDeltaE = 0,
     _rNetDeltaE = 0,
     _rChildNetDeltaE = 0,
     _rDeltaEToReflectOn = 0,
@@ -221,30 +200,19 @@ summaryStats r =
     Stats.dStat "novelty to other" (view rOtherNovelty r),
     Stats.iStat "novelty to other (adj.)"
       (view rOtherAdjustedNovelty r),
-    Stats.dStat "adult metabolism Δe" (view rMetabolismDeltaE r),
-    Stats.dStat "child metabolism Δe" (view rChildMetabolismDeltaE r),
-    Stats.dStat "adult CSQ Δe" (view rCSQDeltaE r),
-    Stats.dStat "child CSQ Δe" (view rChildCSQDeltaE r),
-    Stats.dStat "adult DSQ Δe" (view rDSQDeltaE r),
-    Stats.dStat "child DSQ Δe" (view rChildDSQDeltaE r),
-    Stats.dStat "adult DQ Δe" (view rDQDeltaE r),
-    Stats.dStat "child DQ Δe" (view rChildDQDeltaE r),
-    Stats.dStat "adult pop. control Δe" (view rPopControlDeltaE r),
-    Stats.dStat "child pop. control Δe" (view rChildPopControlDeltaE r),
-    Stats.dStat "adult cooperation Δe" (view rCoopDeltaE r),
-    Stats.dStat "child cooperation Δe" (view rChildCoopDeltaE r),
-    Stats.dStat "adult agreement Δe" (view rAgreementDeltaE r),
-    Stats.dStat "child agreement Δe" (view rChildAgreementDeltaE r),
-    Stats.dStat "adult flirting Δe" (view rFlirtingDeltaE r),
-    Stats.dStat "adult mating Δe" (view rMatingDeltaE r),
-    Stats.dStat "adult old age Δe" (view rOldAgeDeltaE r),
-    Stats.dStat "child old age Δe" (view rChildOldAgeDeltaE r),
-    Stats.dStat "other adult mating Δe" (view rOtherMatingDeltaE r),
-    Stats.dStat "other adult agreement Δe"
-      (view rOtherAgreementDeltaE r),
-    Stats.dStat "other child agreement Δe"
-      (view rOtherChildAgreementDeltaE r),
-    Stats.dStat "adult net Δe" (view rNetDeltaE r),
+    Stats.dStat "metabolism Δe" (view rMetabolismDeltaE r),
+    Stats.dStat "CSQ Δe" (view rCSQDeltaE r),
+    Stats.dStat "DSQ Δe" (view rDSQDeltaE r),
+    Stats.dStat "DQ Δe" (view rDQDeltaE r),
+    Stats.dStat "pop. control Δe" (view rPopControlDeltaE r),
+    Stats.dStat "cooperation Δe" (view rCoopDeltaE r),
+    Stats.dStat "agreement Δe" (view rAgreementDeltaE r),
+    Stats.dStat "flirting Δe" (view rFlirtingDeltaE r),
+    Stats.dStat "mating Δe" (view rMatingDeltaE r),
+    Stats.dStat "old age Δe" (view rOldAgeDeltaE r),
+    Stats.dStat "other mating Δe" (view rOtherMatingDeltaE r),
+    Stats.dStat "other agreement Δe" (view rOtherAgreementDeltaE r),
+    Stats.dStat "net Δe" (view rNetDeltaE r),
     Stats.dStat "child net Δe" (view rChildNetDeltaE r),
     Stats.dStat "Δe to reflect on" (view rDeltaEToReflectOn r),
     Stats.dStat "Δb to reflect on" (view rDeltaBToReflectOn r),
@@ -327,8 +295,8 @@ run' = do
   report $ "At beginning of turn, " ++ agentId a
     ++ "'s summary: " ++ pretty (Stats.stats a)
   runMetabolism
-  applySQEffects classifier U.uCSQDeltaE rCSQDeltaE rChildCSQDeltaE
-  applySQEffects predictor U.uDSQDeltaE rDSQDeltaE rChildDSQDeltaE
+  applySQEffects classifier U.uCSQDeltaE rCSQDeltaE
+  applySQEffects predictor U.uDSQDeltaE rDSQDeltaE
   applyDQEffects
   autoPopControl <- use (universe . U.uPopControl)
   when autoPopControl applyPopControl
@@ -340,7 +308,6 @@ run' = do
   -- subject %= W.autoAdjustBoredom
   subject %= W.incAge
   a' <- use subject
-  report $ "End of " ++ agentId a ++ "'s turn"
   -- assign (summary.rNetDeltaE) (energy a' - energy a)
   unless (isAlive a') $ assign (summary.rDeathCount) 1
   summary %= fillInSummary
@@ -371,15 +338,7 @@ fillInSummary s = s
          + _rOldAgeDeltaE s
          + _rOtherMatingDeltaE s
          + _rOtherAgreementDeltaE s,
-    _rChildNetDeltaE = _rChildMetabolismDeltaE s
-         + _rChildCSQDeltaE s
-         + _rChildDSQDeltaE s
-         + _rChildDQDeltaE s
-         + _rChildPopControlDeltaE s
-         + _rChildCoopDeltaE s
-         + _rChildAgreementDeltaE s
-         + _rOtherChildAgreementDeltaE s
-         + _rChildOldAgeDeltaE s
+    _rChildNetDeltaE = 0
          -- include energy given to wains when they are born
          - _rMatingDeltaE s
          - _rOtherMatingDeltaE s
@@ -410,18 +369,14 @@ balanceEnergyEquation e0 ec0 ef ecf = do
 runMetabolism :: StateT Experiment IO ()
 runMetabolism = do
   a <- use subject
-  bms <- use (universe . U.uBaseMetabolismDeltaE)
-  cps <- use (universe . U.uEnergyCostPerByte)
+  bmc <- use (universe . U.uBaseMetabolismDeltaE)
+  cpcm <- use (universe . U.uEnergyCostPerClassifierModel)
   ccf <- use (universe . U.uChildCostFactor)
-  let (a', adultCost, childCost) = W.applyMetabolismCost bms cps ccf a
-  report $ "bms=" ++ show bms ++ " cps=" ++ show cps
-    ++ " adult size=" ++ show (view W.wainSize a)
-    ++ " adult cost=" ++ show adultCost
-    ++ " adult energy after=" ++ show (view W.energy a')
-    ++ " alive=" ++ show (isAlive a')
-  (summary . rMetabolismDeltaE) += adultCost
-  (summary . rChildMetabolismDeltaE) += childCost
-  assign subject a'
+  let deltaE = IW.metabCost bmc cpcm 1 a
+                 + sum (map (IW.metabCost bmc cpcm ccf)
+                         (view W.litter a))
+  IW.adjustEnergy subject deltaE rMetabolismDeltaE "metab." summary
+    report
 
 chooseSubjectAction
   :: StateT Experiment IO (Response Action)
@@ -463,18 +418,15 @@ chooseAction3 w dObj iObj = do
   let (lds, sps, rplos, aos, r, w')
         = W.chooseAction
             [O.objectAppearance dObj, O.objectAppearance iObj] w
-  let (dObjLabel, dObjNovelty, dObjNoveltyAdj,
-        iObjLabel, iObjNovelty, iObjNoveltyAdj)
+  let (_, dObjNovelty, dObjNoveltyAdj,
+        _, iObjNovelty, iObjNoveltyAdj)
           = analyseClassification lds w
   whenM (use U.uGenFmris)
     (mapM_ U.writeToLog . IW.describeClassifierModels $ w)
-  U.writeToLog $ "scenario=" ++ pretty (view scenario r)
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ O.objectId dObj ++ " has novelty " ++ show dObjNovelty
-    ++ " and best fits classifier model " ++ show dObjLabel
   U.writeToLog $ "To " ++ agentId w ++ ", "
     ++ O.objectId iObj ++ " has novelty " ++ show iObjNovelty
-    ++ " and best fits classifier model " ++ show iObjLabel
   whenM (use U.uShowPredictions) $ do
     mapM_ U.writeToLog $ scenarioReport sps
     mapM_ U.writeToLog $ responseReport rplos
@@ -485,11 +437,7 @@ chooseAction3 w dObj iObj = do
     ++ O.objectId iObj ++ " has adjusted novelty " ++ show iObjNoveltyAdj
   U.writeToLog $ agentId w ++ " sees " ++ O.objectId dObj
     ++ " and chooses to " ++ show (view action r)
-    ++ " predicting the outcome " ++ show (view outcome r)
-  -- let modelsBefore = models $ view (brain . classifier) w
-  -- let modelsAfter = models $ view (brain . classifier) w'
-  -- U.writeToLog $ "DEBUG classifier model changes = "
-  --   ++ show (modelChanges modelsBefore modelsAfter)
+    ++ " predicting the outcomes " ++ show (view outcomes r)
   return (dObjNovelty, dObjNoveltyAdj, iObjNovelty, iObjNoveltyAdj, r, w')
 
 analyseClassification
@@ -576,17 +524,13 @@ runAction aAction = do
 applySQEffects
   :: Simple Lens (Brain Image ImageTweaker  Action) (GeneticSOM p t)
     -> Simple Lens (U.Universe ImageWain) Double
-     -> Simple Lens Summary Double -> Simple Lens Summary Double
-       -> StateT Experiment IO ()
-applySQEffects component deltaESelector adultSelector childSelector = do
+     -> Simple Lens Summary Double -> StateT Experiment IO ()
+applySQEffects component deltaESelector adultSelector = do
   aSQ <- fromIntegral . schemaQuality
           <$> use (subject . W.brain . component)
   x <- use (universe . deltaESelector)
   let deltaE = x*aSQ
-  report $ "aSQ=" ++ show aSQ ++ " x=" ++ show x
-    ++ " deltaE=" ++ show deltaE
-  report $ "Applying SQ energy adjustment"
-  IW.adjustEnergy subject deltaE adultSelector childSelector summary
+  IW.adjustEnergy subject deltaE adultSelector "SQ" summary
     report
 
 applyDQEffects :: StateT Experiment IO ()
@@ -594,23 +538,19 @@ applyDQEffects = do
   aDQ <- fromIntegral . decisionQuality <$> use (subject . W.brain)
   x <- use (universe . U.uDQDeltaE)
   let deltaE = x*aDQ
-  report $ "aDQ=" ++ show aDQ ++ " x=" ++ show x
-    ++ " deltaE=" ++ show deltaE
-  report $ "Applying DQ energy adjustment"
-  IW.adjustEnergy subject deltaE rDQDeltaE rChildDQDeltaE summary report
+  IW.adjustEnergy subject deltaE rDQDeltaE "DQ" summary report
 
 applyPopControl :: StateT Experiment IO ()
 applyPopControl = do
   deltaE <- zoom (universe . U.uPopControlDeltaE) getPS
-  report $ "Applying pop control"
   IW.adjustEnergy subject deltaE rPopControlDeltaE
-    rChildPopControlDeltaE summary report
+    "pop. control" summary report
 
 applyCooperationEffects :: StateT Experiment IO ()
 applyCooperationEffects = do
   deltaE <- use (universe . U.uCooperationDeltaE)
   report $ "Applying co-operation energy adjustment"
-  IW.adjustEnergy subject deltaE rCoopDeltaE rChildCoopDeltaE summary
+  IW.adjustEnergy subject deltaE rCoopDeltaE "cooperation" summary
     report
   (summary.rCooperateCount) += 1
 
@@ -630,12 +570,12 @@ applyAgreementEffects = do
       x0 <- use (universe . U.uMinAgreementDeltaE)
       let ra = x0 + xn * aNovelty + xd * aDQ
       report $ "Applying agreement energy adjustment"
-      IW.adjustEnergy subject ra rAgreementDeltaE rChildAgreementDeltaE
+      IW.adjustEnergy subject ra rAgreementDeltaE "agreement"
         summary report
       let rb = x0 + xn * bNovelty + xd * bDQ
       report $ "Applying agreement energy adjustment"
       IW.adjustEnergy indirectObjectWain rb rOtherAgreementDeltaE
-        rOtherChildAgreementDeltaE summary report
+        "agreement" summary report
       (summary.rAgreeCount) += 1
     else
       report "No reward for agreeing on a classification for a wain"
@@ -716,7 +656,7 @@ killIfTooOld = do
   a <- view W.age <$> use subject
   maxAge <- use (universe . U.uMaxAge)
   when (fromIntegral a > maxAge) $
-    IW.adjustEnergy subject (-100) rOldAgeDeltaE rChildOldAgeDeltaE
+    IW.adjustEnergy subject (-100) rOldAgeDeltaE "old age"
       summary report
 
 finishRound :: FilePath -> StateT (U.Universe ImageWain) IO ()
@@ -769,7 +709,7 @@ printStats = mapM_ f
 letSubjectReflect
   :: ImageWain -> Response Action -> StateT Experiment IO ()
 letSubjectReflect wainBefore r = do
-  x <- use subject
+  w <- use subject
   p1 <- O.objectAppearance <$> use directObject
   p2 <- O.objectAppearance <$> use indirectObject
   let energyBefore = view W.energy wainBefore
@@ -788,13 +728,13 @@ letSubjectReflect wainBefore r = do
   assign (summary . rDeltaPToReflectOn)
     (uiToDouble passionAfter - uiToDouble passionBefore)
   assign (summary . rDeltaHToReflectOn) deltaH
-  let (x', err) = W.reflect [p1, p2] r x
-  assign subject x'
+  let (w', err) = W.reflect [p1, p2] r wainBefore w
+  assign subject w'
   assign (summary . rErr) err
   when (deltaH < 0) $ do
     b <- use directObject
     c <- use indirectObject
-    report $ agentId x ++ "'s choice to " ++ show (view action r) ++ " "
+    report $ agentId w ++ "'s choice to " ++ show (view action r) ++ " "
         ++ O.objectId b ++ " " ++ O.objectId c ++ " was a mistake"
     (summary . rMistakeCount) += 1
 
@@ -811,5 +751,4 @@ reportAnyDeaths :: [ImageWain] -> StateT (U.Universe ImageWain) IO ()
 reportAnyDeaths ws = mapM_ f ws
   where f w = when (not . isAlive $ w) $
                 U.writeToLog
-                  (agentId w ++ " dead at age "
-                    ++ show (view W.age w))
+                  (agentId w ++ " dead at age " ++ show (view W.age w))

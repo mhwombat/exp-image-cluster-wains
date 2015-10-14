@@ -40,7 +40,7 @@ introduceRandomAgent name = do
   -- Make the first generation a little hungry so they start learning
   -- immediately.
   -- TODO: Make the amount configurable.
-  let (agent', _, _) = adjustEnergy 0.8 agent
+  let (agent', _) = adjustEnergy 0.8 agent
   writeToLog $ "GeneratePopulation: Created " ++ agentId agent'
   writeToLog $ "GeneratePopulation: Stats " ++ pretty (stats agent')
   store agent'
