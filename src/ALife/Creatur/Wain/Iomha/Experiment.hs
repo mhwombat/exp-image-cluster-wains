@@ -708,11 +708,11 @@ idealPopControlDeltaE average total budget pop
 totalEnergy :: StateT Experiment IO (Double, Double)
 totalEnergy = do
   a <- fmap uiToDouble $ view W.energy <$> use subject
-  b <- fmap uiToDouble $ view W.energy <$> use directObjectWain
-  c <- fmap uiToDouble $ view W.energy <$> use indirectObjectWain
+  b <- fmap uiToDouble $ O.objectEnergy <$> use directObject
+  c <- fmap uiToDouble $ O.objectEnergy <$> use indirectObject
   d <- W.childEnergy <$> use subject
-  e <- W.childEnergy <$> use directObjectWain
-  f <- W.childEnergy <$> use indirectObjectWain
+  e <- O.objectChildEnergy <$> use directObject
+  f <- O.objectChildEnergy <$> use indirectObject
   return (a + b + c, d + e + f)
 
 printStats :: [[Stats.Statistic]] -> StateT (U.Universe ImageWain) IO ()
