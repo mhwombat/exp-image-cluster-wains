@@ -38,8 +38,8 @@ import ALife.Creatur.Wain.Checkpoint (enforceAll)
 import qualified ALife.Creatur.Wain.Classifier as Cl
 import ALife.Creatur.Wain.Muser (makeMuser)
 import ALife.Creatur.Wain.Predictor(buildPredictor)
-import ALife.Creatur.Wain.GeneticSOM (RandomExponentialParams(..),
-  GeneticSOM, randomExponential, schemaQuality)
+import ALife.Creatur.Wain.GeneticSOM (RandomLearningParams(..),
+  GeneticSOM, randomLearningFunction, schemaQuality)
 import qualified ALife.Creatur.Wain.Object as O
 import ALife.Creatur.Wain.Pretty (pretty)
 import ALife.Creatur.Wain.Raw (raw)
@@ -68,7 +68,7 @@ import Control.Monad.State.Lazy (StateT, execStateT, evalStateT, get)
 import Data.List (intercalate, minimumBy)
 import Data.Ord (comparing)
 import Data.Version (showVersion)
-import Data.Word (Word16)
+import Data.Word (Word64)
 import Paths_exp_image_cluster_wains (version)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (dropFileName)
@@ -85,21 +85,23 @@ type Object = O.Object Action
 
 randomImageWain
   :: RandomGen r
-    => String -> U.Universe ImageWain -> Word16 -> Rand r ImageWain
+    => String -> U.Universe ImageWain -> Word64 -> Rand r ImageWain
 randomImageWain wName u classifierSize = do
   let w = view U.uImageWidth u
   let h = view U.uImageHeight u
-  let fcp = RandomExponentialParams
+  let fcp = RandomLearningParams
                { _r0Range = view U.uClassifierR0Range u,
-                 _dRange = view U.uClassifierDRange u }
-  fc <- randomExponential fcp
+                 _rfRange = view U.uClassifierRfRange u,
+                 _tfRange = view U.uClassifierTfRange u }
+  fc <- randomLearningFunction fcp
   classifierThreshold <- getRandomR (view U.uClassifierThresholdRange u)
   let c = Cl.buildClassifier fc classifierSize classifierThreshold
             ImageTweaker
-  let fdp = RandomExponentialParams
+  let fdp = RandomLearningParams
               { _r0Range = view U.uPredictorR0Range u,
-                _dRange = view U.uPredictorDRange u }
-  fd <- randomExponential fdp
+                _rfRange = view U.uPredictorRfRange u,
+                _tfRange = view U.uPredictorTfRange u }
+  fd <- randomLearningFunction fdp
   predictorThreshold <- getRandomR (view U.uPredictorThresholdRange u)
   let predictorSize = classifierSize * fromIntegral numActions
   let dr = buildPredictor fd predictorSize predictorThreshold
@@ -108,8 +110,10 @@ randomImageWain wName u classifierSize = do
   dp <- getRandomR $ view U.uDepthRange u
   let mr = makeMuser dOut dp
   t <- getRandom
+  s <- getRandomR (view U.uStrictnessRange u)
   ios <- take 4 <$> getRandomRs (view U.uImprintOutcomeRange u)
-  let wBrain = makeBrain c mr dr hw t ios
+  rds <- take 4 <$> getRandomRs (view U.uReinforcementDeltasRange u)
+  let (Right wBrain) = makeBrain c mr dr hw t s ios rds
   wDevotion <- getRandomR . view U.uDevotionRange $ u
   wAgeOfMaturity <- getRandomR . view U.uMaturityRange $ u
   wPassionDelta <- getRandomR . view U.uBoredomDeltaRange $ u
@@ -614,11 +618,13 @@ applyDisagreementEffects aAction bAction = do
       then do
         report $ view W.name b ++ " learns from " ++ view W.name a
           ++ " that " ++ O.objectId dObj ++ " is " ++ show aAction
-        assign indirectObjectWain (W.imprint [p1, pa] aAction b)
+        let (_, _, _, _, b') = W.imprint [p1, pa] aAction b
+        assign indirectObjectWain b'
       else do
         report $ view W.name a ++ " learns from " ++ view W.name b
           ++ " that " ++ O.objectId dObj ++ " is " ++ show bAction
-        assign subject $ W.imprint [p1, pb] bAction a
+        let (_, _, _, _, a') = W.imprint [p1, pb] bAction a
+        assign subject a'
 
 flirt :: StateT Experiment IO ()
 flirt = do
