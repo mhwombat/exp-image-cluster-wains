@@ -1,0 +1,109 @@
+:l ALife.Creatur.Wain.Iomha.Image
+let w = stripedImage 28 28
+x0 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/0_10005.png"
+x1 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/1_10006.png"
+x2 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/2_10009.png"
+x3 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/3_10000.png"
+x4 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/4_10013.png"
+x5 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/5_0.png"
+x6 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/6_10017.png"
+x7 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/7_10002.png"
+x8 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/8_10001.png"
+x9 <- readImage "/home/eamybut/néal/créatúr-íomha/sample-images/9_10003.png"
+
+let xs = [w,x0,x1,x2,x3,x4,x5,x6,x7,x8,x9]
+let ds = [imageDiff a b | a <- xs, b <- xs]
+mapM_ print $ chunksOf 11 ds
+
+
+
+bms=-4.9e-2 cps=-9.0e-9adult size=29018 adult cost=-1.0e-3
+
+
+
+
+A brief introduction to R
+Techniques for building models from a table of data
+Using the models to make predictions
+Evaluating the accuracy of a model
+Using simpler models in place of complex calculations
+
+
+This set of tutorials is intended for anyone who needs to analyse data, especially if you have *lots* of it. Even if you learned some statistics previously, I think this tutorial will give you a deeper understanding of the concepts, and help you avoid common mistakes. I will also show how to use R to do the analysis. The topics will include:
+
+Analysing the population distribution
+Population parameters (mean, variance, standard deviation)
+Visualising discrete data
+The Normal Distribution
+Central Limit Theorem
+Evaluating whether or not a distribution is normal
+Visualising continuous data
+Binning the data
+Probability Density Function
+Kernel density curve
+Species
+Simple random sampling
+Sample statistics
+Comparing two distributions
+QQ plots
+Stratified sampling
+Cluster sampling
+Systematic sampling
+Convenience sampling
+
+
+
+
+
+Lessons 1-2
+An intro to R
+Linear equations
+Linear regression methods
+ - parametric: least squares
+ - exploratory (non-parametric): LOWESS
+ - robust: lqs
+Making predictions based on the regression
+Reversing the regression
+Goodness of fit
+ - outliers
+ - residuals
+ - fitting for for prediction vs. structural analysis
+Curve fitting
+Goodness of fit, revisited
+ - outliers
+ - residuals
+ - Analysis of variance
+
+Additional topics that I plan to cover in future lessons are listed below. They are in no particular order, but I've grouped related topics together. I am open to suggestions on other topics. Also, I will encourage the students to tell me about their data analysis problems, which may inspire additional topics to cover. My best guess is that there will be about 10 lessons in total. If there's interest, at the end we'll have a "data clinic" where people can discuss specific problems they're having, and everyone can participate by suggesting approaches.
+
+Types of "averages": mean, median, mode
+The normal distribution
+Standard deviation
+Variance
+QQ plots
+Likelihood function
+quantiles
+
+discrete data vs. continuous data
+probability densities
+uniform distribution
+binomial distribution
+poisson distribution
+exponential distribution
+normal distribution revisited
+
+rolling averages and other statistics
+trend analysis
+
+Conditional probabilities
+Bayes' theorem
+
+hypothesis testing
+law of large numbers
+
+correlation and causation
+multivariate regression analysis
+choosing an appropriate sample size
+choosing a representative sample
+probability sampling vs non-probability sampling
+varying the sample in response to potential problems
